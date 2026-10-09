@@ -38,6 +38,13 @@ import {
   aoriSubmit,
   aoriStatus,
 } from "./aori.js";
+import {
+  getVirtueScores,
+  virtueMeta,
+  listStrategies,
+  seykotaSignal,
+  dashboardData,
+} from "./bushido.js";
 
 dotenv.config();
 
@@ -349,6 +356,50 @@ app.post("/api/aori/swap", async (req, res) => {
 app.get("/api/aori/status", async (req, res) => {
   try {
     res.json(await aoriStatus(String(req.query.orderHash || "")));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// ---- Bushido trading dashboard (virtue scores + Seykota signals) ----
+// GET /api/bushido/virtues?trader=0x… — 7-virtue scores (0-1 scale)
+app.get("/api/bushido/virtues", async (req, res) => {
+  try {
+    const trader = String(req.query.trader || "");
+    if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
+    const { scores, source } = await getVirtueScores(trader);
+    res.json({ virtues: virtueMeta().map((m) => ({ ...m, score: scores[m.id] ?? 0.5 })), source });
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// GET /api/bushido/strategies — strategy list
+app.get("/api/bushido/strategies", (_req, res) => {
+  res.json({ strategies: listStrategies() });
+});
+
+// POST /api/bushido/signal — { prices: number[], trader? } -> Seykota signal
+app.post("/api/bushido/signal", async (req, res) => {
+  try {
+    const { prices, trader } = req.body || {};
+    if (!Array.isArray(prices) || prices.length < 5) return res.status(400).json({ error: "need price history" });
+    let scores = null;
+    if (trader && /^0x[0-9a-fA-F]{40}$/.test(trader)) {
+      ({ scores } = await getVirtueScores(trader));
+    }
+    res.json({ signal: seykotaSignal(prices.map(Number), scores) });
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// GET /api/bushido/dashboard?trader=0x… — full dashboard payload
+app.get("/api/bushido/dashboard", async (req, res) => {
+  try {
+    const trader = String(req.query.trader || "");
+    if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
+    res.json(await dashboardData(trader));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
