@@ -1,0 +1,4 @@
+# Run button for the Replit workspace. Deployments are configured
+# in the Replit UI (see REPLIT_DEPLOY.md) — this just makes the
+# workspace Run button start the production server.
+run = "npm start"
