@@ -2,8 +2,8 @@
 //   quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) -> Quote|null
 //   buildTx(quote, wallet, slippageBps) -> { to, data, value, spender }
 // Quote = { source, amountOut: bigint, amountOutUsd?, gasUsd?, raw }
-// All adapters are keyless except oneinch, zerox (keys via env).
-// uniswap + zerion go through the server proxy (keys server-side).
+// All adapters are keyless except zerox (key via env).
+// uniswap + zerion + oneinch go through the server proxy (keys server-side).
 
 import { ethers } from 'ethers';
 import { CHAINS, NATIVE_SENTINEL, QUOTE_TIMEOUT_MS } from './chains.js';
@@ -205,31 +205,43 @@ const Velora = {
   },
 };
 
-/* ================= 1inch (keyed) ================= */
+/* ================= 1inch (swap API via server proxy) ================= */
+// Key lives in the Secure Vault, used SERVER-SIDE (server/oneinch.js).
+// 1inch uses Bearer auth, which the vault surrogate pattern handles cleanly.
+// Router fallback addresses live in CHAINS[chainKey].routers for Base.
 const OneInch = {
-  key() { return env('VITE_1INCH_API_KEY'); },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet) {
-    const key = this.key();
-    if (!key) throw new Error('1inch API key not set');
     const id = CHAINS[chainKey].chainId;
     const src = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
-    const url = `https://api.1inch.dev/swap/v6.0/${id}/quote?src=${src}&dst=${tokenOut.address}&amount=${amountInWei.toString()}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
-    if (!r.ok) throw new Error(`1inch HTTP ${r.status}`);
-    const j = await r.json();
-    if (!j.dstAmount) return null;
-    return { source: 'oneinch', amountOut: BigInt(j.dstAmount), raw: j };
+    let r;
+    try {
+      r = await fetch('/api/oneinch/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chainId: id, src, dst: tokenOut.address, amountAtomic: amountInWei.toString() }),
+      });
+    } catch { return null; }
+    if (!r.ok) return null;
+    const j = await r.json().catch(() => null);
+    if (!j?.amountOut) return null;
+    return { source: 'oneinch', amountOut: BigInt(j.amountOut), raw: { ...j, chainKey, tokenIn, tokenOut, amountInWei: amountInWei.toString() } };
   },
   async buildTx(q, wallet, slippageBps) {
-    const key = this.key();
-    const id = CHAINS[q.chainKey].chainId;
-    const src = q.tokenIn.isNative ? NATIVE_SENTINEL : q.tokenIn.address;
-    const url = `https://api.1inch.dev/swap/v6.0/${id}/swap?src=${src}&dst=${q.tokenOut.address}&amount=${q.amountInWei.toString()}&from=${wallet}&slippage=${slippageBps / 100}&disableEstimate=true`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
-    if (!r.ok) throw new Error(`1inch swap HTTP ${r.status}`);
-    const j = await r.json();
-    if (!j.tx?.data) throw new Error('1inch build failed');
-    return { to: j.tx.to, data: j.tx.data, value: BigInt(j.tx.value || 0), spender: j.tx.to };
+    const { chainKey, tokenIn, tokenOut, amountInWei } = q.raw;
+    const id = CHAINS[chainKey].chainId;
+    const src = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
+    let r;
+    try {
+      r = await fetch('/api/oneinch/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chainId: id, src, dst: tokenOut.address, amountAtomic: amountInWei, from: wallet, slippageBps: slippageBps ?? 50 }),
+      });
+    } catch { throw new Error('1inch swap build failed'); }
+    if (!r.ok) throw new Error('1inch swap build failed');
+    const j = await r.json().catch(() => null);
+    if (!j?.data) throw new Error('1inch build failed');
+    return { to: j.to, data: j.data, value: BigInt(j.value || 0), spender: j.to };
   },
 };
 
@@ -417,9 +429,9 @@ export const ADAPTERS = {
 };
 
 // Which adapters need keys — used to show "key missing" state instead of failing silently.
-// uniswap + zerion are server-proxied (keys server-side), so they never show key-missing.
+// uniswap + zerion + oneinch are server-proxied (keys server-side), so they never show key-missing.
 export function adapterNeedsKey(src) {
-  return ['oneinch', 'zerox'].includes(src);
+  return ['zerox'].includes(src);
 }
 
 export function adapterKeySet(src) {

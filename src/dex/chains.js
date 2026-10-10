@@ -84,8 +84,14 @@ export const CHAINS = {
     chainId: 8453,
     native: 'ETH',
     color: '#0052ff',
-    rpcs: ['https://base.drpc.org', 'https://1rpc.io/base'],
+    rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'],
     explorer: 'https://basescan.org',
+    // 1inch routers for Base — primary + fallbacks for direct execution
+    routers: {
+      primary: '0x111111125421cA6dc452d289314280a0f8842A65',   // 1inch v5
+      fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae',
+      fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
+    },
     sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'zerox', 'zerion'],
     kyberName: 'base',
     tokens: [

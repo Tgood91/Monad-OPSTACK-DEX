@@ -12,7 +12,7 @@ import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- config ---------------- */
 const BRIDGE_CHAINS = {
-  base:     { chainId: 8453, label: 'Base',     native: 'ETH', explorer: 'https://basescan.org',            rpcs: ['https://mainnet.base.org', 'https://1rpc.io/base'] },
+  base:     { chainId: 8453, label: 'Base',     native: 'ETH', explorer: 'https://basescan.org',            rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'] },
   optimism: { chainId: 10,   label: 'Optimism', native: 'ETH', explorer: 'https://optimistic.etherscan.io', rpcs: ['https://mainnet.optimism.io', 'https://1rpc.io/op'] },
   ethereum: { chainId: 1,    label: 'Ethereum', native: 'ETH', explorer: 'https://etherscan.io',            rpcs: ['https://1rpc.io/eth', 'https://eth.drpc.org'] },
   monad:    { chainId: 143,  label: 'Monad',    native: 'MON', explorer: 'https://monadvision.com',         rpcs: ['https://rpc.monad.xyz', 'https://monad-mainnet.drpc.org'] },

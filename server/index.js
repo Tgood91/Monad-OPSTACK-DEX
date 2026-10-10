@@ -46,6 +46,7 @@ import {
   dashboardData,
 } from "./bushido.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
+import { oneinchQuote, oneinchSwap } from "./oneinch.js";
 
 dotenv.config();
 
@@ -418,6 +419,33 @@ app.post("/api/zerion/quote", async (req, res) => {
       return res.status(400).json({ error: "chain not supported by Zerion" });
     }
     res.json(await zerionQuote({ chainId, tokenIn, tokenOut, amountHuman, taker, slippageBps }));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// ---- 1inch swap API (server-side proxy, vault key) ----
+// POST /api/oneinch/quote — { chainId, src, dst, amountAtomic }
+// POST /api/oneinch/swap — { chainId, src, dst, amountAtomic, from, slippageBps }
+app.post("/api/oneinch/quote", async (req, res) => {
+  try {
+    const { chainId, src, dst, amountAtomic } = req.body || {};
+    if (!chainId || !src || !dst || !amountAtomic) {
+      return res.status(400).json({ error: "missing params" });
+    }
+    res.json(await oneinchQuote({ chainId, src, dst, amountAtomic }));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+app.post("/api/oneinch/swap", async (req, res) => {
+  try {
+    const { chainId, src, dst, amountAtomic, from, slippageBps } = req.body || {};
+    if (!chainId || !src || !dst || !amountAtomic || !from) {
+      return res.status(400).json({ error: "missing params" });
+    }
+    res.json(await oneinchSwap({ chainId, src, dst, amountAtomic, from, slippageBps }));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
