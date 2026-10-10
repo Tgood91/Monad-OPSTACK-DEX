@@ -45,6 +45,7 @@ import {
   seykotaSignal,
   dashboardData,
 } from "./bushido.js";
+import { zerionQuote, zerionSupported } from "./zerion.js";
 
 dotenv.config();
 
@@ -400,6 +401,23 @@ app.get("/api/bushido/dashboard", async (req, res) => {
     const trader = String(req.query.trader || "");
     if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
     res.json(await dashboardData(trader));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// ---- Zerion swap quotes (server-side proxy, EVM chains only) ----
+// POST /api/zerion/quote — { chainId, tokenIn, tokenOut, amountHuman, taker?, slippageBps? }
+app.post("/api/zerion/quote", async (req, res) => {
+  try {
+    const { chainId, tokenIn, tokenOut, amountHuman, taker, slippageBps } = req.body || {};
+    if (!chainId || !tokenIn || !tokenOut || !amountHuman) {
+      return res.status(400).json({ error: "missing params" });
+    }
+    if (!zerionSupported(chainId)) {
+      return res.status(400).json({ error: "chain not supported by Zerion" });
+    }
+    res.json(await zerionQuote({ chainId, tokenIn, tokenOut, amountHuman, taker, slippageBps }));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }

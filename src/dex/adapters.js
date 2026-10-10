@@ -2,7 +2,8 @@
 //   quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) -> Quote|null
 //   buildTx(quote, wallet, slippageBps) -> { to, data, value, spender }
 // Quote = { source, amountOut: bigint, amountOutUsd?, gasUsd?, raw }
-// All adapters are keyless except oneinch, zerox, zerion (keys via env).
+// All adapters are keyless except oneinch, zerox (keys via env).
+// uniswap + zerion go through the server proxy (keys server-side).
 
 import { ethers } from 'ethers';
 import { CHAINS, NATIVE_SENTINEL, QUOTE_TIMEOUT_MS } from './chains.js';
@@ -259,46 +260,55 @@ const ZeroX = {
   },
 };
 
-/* ================= Zerion (keyed) ================= */
+/* ================= Zerion (swap API via server proxy) ================= */
+// Key lives SERVER-SIDE (server/zerion.js, ZERION_API_KEY env) — never in the
+// browser bundle. Zerion's swap API needs HTTP Basic auth, which the vault
+// surrogate pattern can't produce, so the backend holds the key.
+// EVM chains only — Zerion's swap API does not support Monad (verified 2026-10-07).
 const Zerion = {
-  key() { return env('VITE_ZERION_API_KEY'); },
-  // Zerion chain ids per chain
-  chainIds: { celo: 'celo', optimism: 'optimism', ink: 'ink', base: 'base', unichain: 'unichain' },
+  supported: { 1: true, 10: true, 56: true, 130: true, 8453: true, 42161: true, 42220: true, 43114: true, 57073: true },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
-    const key = this.key();
-    if (!key) throw new Error('Zerion API key not set');
-    const zc = this.chainIds[chainKey];
-    if (!zc) return null;
+    const id = CHAINS[chainKey].chainId;
+    if (!this.supported[id]) return null;
     const fin = tokenIn.isNative ? ZERO : tokenIn.address;
     const fout = tokenOut.isNative ? ZERO : tokenOut.address;
     const amountHuman = ethers.formatUnits(amountInWei, tokenIn.decimals);
-    const p = new URLSearchParams({
-      from: wallet || ZERO, to: wallet || ZERO,
-      'input[chain_id]': zc, 'input[fungible_id]': fin, 'input[amount]': amountHuman,
-      'output[fungible_id]': fout,
-      slippage_percent: String((slippageBps ?? 50) / 100),
-      currency: 'usd',
-    });
-    const r = await fetch('https://api.zerion.io/v1/swap/quotes/?' + p.toString(), {
-      headers: { Authorization: 'Basic ' + btoa(key + ':') },
-    });
-    if (!r.ok) throw new Error(`Zerion HTTP ${r.status}`);
-    const j = await r.json();
-    const quotes = (j.data || []).map(x => x.attributes || x);
-    const q = quotes.find(a => { const s = a.transaction_swap?.evm || a.transaction_swap; return s?.to && s?.data; });
-    if (!q) return null;
-    const outRaw = String(q.output_amount_after_fees ?? q.output_amount ?? '0');
-    const outWei = outRaw.includes('.')
-      ? ethers.parseUnits(Number(outRaw).toFixed(tokenOut.decimals), tokenOut.decimals)
-      : BigInt(outRaw);
-    return { source: 'zerion', amountOut: outWei, amountOutUsd: parseFloat(q.output_amount_usd ?? 0) || undefined, raw: q };
+    let r;
+    try {
+      r = await fetch('/api/zerion/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chainId: id,
+          tokenIn: fin,
+          tokenOut: fout,
+          amountHuman,
+          taker: wallet && wallet !== ZERO ? wallet : undefined,
+          slippageBps: slippageBps ?? 50,
+        }),
+      });
+    } catch { return null; }
+    if (!r.ok) return null;
+    const q = await r.json().catch(() => null);
+    if (!q?.amountOut) return null;
+    const outWei = q.amountOut.includes('.')
+      ? ethers.parseUnits(Number(q.amountOut).toFixed(tokenOut.decimals), tokenOut.decimals)
+      : BigInt(q.amountOut);
+    return {
+      source: 'zerion',
+      amountOut: outWei,
+      amountOutUsd: q.amountOutUsd ?? undefined,
+      raw: q,
+    };
   },
-  async buildTx(q, wallet) {
-    const swapTx = q.raw.transaction_swap.evm || q.raw.transaction_swap;
-    const ap = q.raw.transaction_approve?.evm || q.raw.transaction_approve;
-    // spender: prefer explicit field, fall back to approve tx target
-    const spender = q.raw.spender || ap?.to || swapTx.to;
-    return { to: swapTx.to, data: swapTx.data, value: BigInt(swapTx.value || 0), spender };
+  async buildTx(q) {
+    if (!q.raw?.to || !q.raw?.data) throw new Error('Zerion build failed: no tx');
+    return {
+      to: q.raw.to,
+      data: q.raw.data,
+      value: BigInt(q.raw.value || 0),
+      spender: q.raw.spender || q.raw.to,
+    };
   },
 };
 
@@ -406,9 +416,10 @@ export const ADAPTERS = {
   zerion: Zerion,
 };
 
-// Which adapters need keys — used to show "key missing" state instead of failing silently
+// Which adapters need keys — used to show "key missing" state instead of failing silently.
+// uniswap + zerion are server-proxied (keys server-side), so they never show key-missing.
 export function adapterNeedsKey(src) {
-  return ['oneinch', 'zerox', 'zerion'].includes(src);
+  return ['oneinch', 'zerox'].includes(src);
 }
 
 export function adapterKeySet(src) {
