@@ -57,6 +57,8 @@ async function main() {
     `${process.env.HOME}/workspace/user/files/${FILE}`,
     `./${FILE}`,
     `../${FILE}`,
+    `../../contracts/${FILE}`,
+    `../contracts/${FILE}`,
   ];
   let srcPath = null;
   for (const g of guesses) if (fs.existsSync(g)) { srcPath = g; break; }
