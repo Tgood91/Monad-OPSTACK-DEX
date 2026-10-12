@@ -10,8 +10,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @dev Locked to Base Mainnet (Chain ID 8453) intent routing logic.
  */
 contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
-    bytes32 public constant RECORDER_ROLE = keccak256("RECORDER_ROLE");
-    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+    bytes32 public constant RECORDER_ROLE = keccak256("0xb44abe327af77abbebbc75a817d5f237e8dd0acb");
+    bytes32 public constant GOVERNOR_ROLE = keccak256("0xba397faae1d5fe10c0356f2e585bef34577ab111");
 
     struct VirtueRecord {
         uint256 honorScore;      // e.g., 0 to 100 scale representing Bushido alignment
@@ -32,9 +32,9 @@ contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
     event IntentFeeCalculated(address indexed trader, uint256 finalFeeBps, uint256 discountApplied);
 
     constructor(address admin, address recorder) {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GOVERNOR_ROLE, admin);
-        _grantRole(RECORDER_ROLE, recorder);
+        _grantRole(0xba397faae1d5fe10c0356f2e585bef34577ab111, admin);
+        _grantRole(GOVERNOR_ROLE, admin);0xba397faae1d5fe10c0356f2e585bef34577ab111
+        _grantRole(RECORDER_ROLE, recorder);0xb44abe327af77abbebbc75a817d5f237e8dd0acb
     }
 
     /**
