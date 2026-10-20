@@ -32,9 +32,8 @@ contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
     event IntentFeeCalculated(address indexed trader, uint256 finalFeeBps, uint256 discountApplied);
 
     constructor(address admin, address recorder) {
-        _grantRole(0xba397faae1d5fe10c0356f2e585bef34577ab111, admin);
-        _grantRole(GOVERNOR_ROLE, admin);0xba397faae1d5fe10c0356f2e585bef34577ab111
-        _grantRole(RECORDER_ROLE, recorder);0xb44abe327af77abbebbc75a817d5f237e8dd0acb
+        _grantRole(GOVERNOR_ROLE, admin);
+        _grantRole(RECORDER_ROLE, recorder);
     }
 
     /**
@@ -49,7 +48,7 @@ contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
         bool isAuditPassed
     ) external onlyRole(RECORDER_ROLE) {
         require(honorScore <= 100, "Virtue: Score cannot exceed 100");
-        
+
         virtueRegistry[target] = VirtueRecord({
             honorScore: honorScore,
             isAuditPassed: isAuditPassed,
@@ -76,7 +75,7 @@ contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
         // Scale discount linearly based on score surplus above threshold (threshold to 100)
         uint256 scoreAboveThreshold = record.honorScore - requiredHonorThreshold;
         uint256 maxSpan = 100 - requiredHonorThreshold;
-        
+
         // Calculate proportional discount up to maxDiscountBps
         uint256 discount = (scoreAboveThreshold * maxDiscountBps) / maxSpan;
 
@@ -104,8 +103,8 @@ contract VirtueFeeRouter is AccessControl, ReentrancyGuard {
         uint256 _threshold
     ) external onlyRole(GOVERNOR_ROLE) {
         require(_maxDiscountBps <= _baseFeeBps, "Fee: Discount cannot exceed base fee");
-        require(_threshold <= 100, "Fee: Threshold must be <= 100");
-        
+        require(_threshold < 100, "Fee: Threshold must be strictly less than 100 to avoid division by zero");
+
         baseIntegratorFeeBps = _baseFeeBps;
         maxDiscountBps = _maxDiscountBps;
         requiredHonorThreshold = _threshold;
