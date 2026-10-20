@@ -1,15 +1,19 @@
 # Multi-Chain DEX
 
-A swap aggregator and cross-chain bridge in one app. Connect your wallet,
+A swap aggregator and cross-chain bridge in one app.
+Connect your wallet,
 pick tokens, and it compares live quotes across 10 sources — best price wins.
-Need to move funds between chains? The Bridge tab handles that too.
-
+Need to move funds between chains?
+The Bridge tab' handles that too.
+the gas refill is included with the hot protocol sdk.
+we have all have a gas station or "refill"
+or just use one is the several intents/bridges!
 No accounts, no custody. Your wallet signs every transaction; the app never
 holds your funds or keys.
 
 ## What it does
 
-**⇄ Swap tab** — Same-chain swaps on 5 chains (Celo, Optimism, Ink, Base,
+**⇄ Swap tab** — Same-chain swaps on 5 chains (monad,  Optimism, Ink, Base,
 Unichain). Quotes are fetched in parallel from every enabled source and
 ranked by output. Tap any row to pick a different source than the winner.
 
@@ -116,6 +120,29 @@ dex-app/
     │   └── engine.js     # parallel fan-out, best-wins
     └── utils/            # wallet helpers, formatting, ABIs
 ```
+UPDATE 10/19
+dex-app/
+├── index.html            # UI shell + styles (Swap | Bridge tabs)
+├── vite.config.js        # build config, dev /api proxy
+├── server/
+│   ├── index.js          # Express: /api/* + serves the frontend
+│   ├── uniswap.js        # Uniswap Trading API (vault key, server-side)
+│   ├── coinbase.js       # CDP Swap quotes + spot prices
+│   ├── near.js           # NEAR Intents 1Click client (keyless bridging)
+│   ├── relayer.js        # NEW: intent relay + tx submission service
+│   ├── merkl.js          # NEW: Merkl v4 API client (incentives)
+│   └── stream.js         # Live price ticker (WebSocket, REST fallback)
+└── src/
+    ├── main.js           # swap tab: rendering, quoting, swap flow
+    ├── bridge.js         # bridge tab: quote → intent → deposit → status
+    ├── config.js         # wallet (AppKit) setup
+    ├── dex/
+    │   ├── chains.js     # chain + token + source registry (Ink/Unichain removed)
+    │   ├── adapters.js   # one quote()/buildTx() adapter per source
+    │   ├── engine.js     # parallel fan-out, best-wins
+    │   └── solvers.js    # NEW: solver registry, selection + quoting
+    └── utils/            # wallet helpers, formatting, ABIs
+
 
 ## Notes & limits
 
