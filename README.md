@@ -55,9 +55,9 @@ standard pattern for these providers.
 ## How a bridge works
 
 1. Pick from/to chains and tokens, enter an amount, get a NEAR Intents quote
-   (keyless; a 0.25% fee applies without an API key).
+   (keyless; a 0.25% fee applies without an API key). ##NOT FOREVER##
 2. Hit Bridge: the backend creates an intent and returns a deposit address
-   (valid ~10 minutes).
+   (valid ~10 minutes).##USUALLY 10MIN MAX-IF FAILS REFUNDED IMMEDIATELY AFTERWARDS##
 3. Your wallet switches to the origin chain and sends the exact amount —
    native transfer or ERC-20 `transfer`, no approval needed.
 4. Status polls every 10 seconds: deposit → processing → done. Refunds go
@@ -153,3 +153,5 @@ dex-app/
   chains it supports.
 - Quotes are point-in-time. The pre-sign simulation is the safety net, not a
   guarantee — always double-check amounts in your wallet before signing.
+-CCTPV2 will also be integrated for faster bridging of stables. 
+-also hot-protocol has a gas refill that I've built in. in the meantime trying to get drip-tools/gas . Zip Integrated ASAP!
