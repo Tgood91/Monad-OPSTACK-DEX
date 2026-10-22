@@ -1,0 +1,68 @@
+import { ConnectButton, darkTheme } from "thirdweb/react";
+import { createThirdwebClient } from "thirdweb";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
+
+// Your thirdweb client — real Client ID goes here
+const client = createThirdwebClient({
+  clientId: "....",
+});
+
+// Muted dark theme, Aave-style (near-black, subtle borders, one accent)
+const theme = darkTheme({
+  colors: {
+    modalBg: "#12141a",
+    borderColor: "#26272e",
+    accentText: "#d4af37",
+    accentButtonBg: "#d4af37",
+    accentButtonText: "#12141a",
+    primaryText: "#ffffff",
+    secondaryText: "#a5a5b0",
+  },
+});
+
+// Wallets FIRST, like Aave — browser wallets up top,
+// email/social login last as the fallback option
+const wallets = [
+  createWallet("io.metamask"),
+  createWallet("com.coinbase.wallet"),
+  createWallet("me.rainbow"),
+  createWallet("io.rabby"),
+  createWallet("io.zerion.wallet"),
+  inAppWallet({
+    auth: {
+      options: [
+        "google",
+        "discord",
+        "telegram",
+        "farcaster",
+        "email",
+        "x",
+        "passkey",
+        "phone",
+      ],
+    },
+  }),
+];
+
+export default function Example() {
+  return (
+    <ConnectButton
+      client={client}
+      theme={theme}
+      wallets={wallets}
+      appMetadata={{
+        name: "Bushido Labs",
+      }}
+      connectButton={{
+        label: "Connect Wallet",
+      }}
+      connectModal={{
+        size: "compact",
+        title: "Connect a wallet",
+        showThirdwebBranding: false,
+        termsOfServiceUrl: "https://your-site.com/terms",
+        privacyPolicyUrl: "https://your-site.com/privacy",
+      }}
+    />
+  );
+}
