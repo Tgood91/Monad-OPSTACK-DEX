@@ -18,13 +18,15 @@ Replit → Tools → Secrets. `VITE_*` values are baked into the frontend
 | Secret | Required | Notes |
 |---|---|---|
 | `VITE_PROJECT_ID` | Yes | Reown AppKit project ID — https://cloud.reown.com |
-| `CDP_API_KEY_ID` | No | Enables the Coinbase quote source (Base/Ethereum) |
+| `VITE_0X_API_KEY` | No | 0x quotes (browser-side key) |
+| `CDP_API_KEY_ID` | No | Enables the Coinbase quote source (Base); server-side only |
 | `CDP_API_KEY_SECRET` | No | Pairs with the key ID; server-side only |
-| `VITE_1INCH_API_KEY` | No | 1inch quotes |
-| `VITE_ZEROX_API_KEY` | No | 0x quotes |
+| `UNISWAP_API_KEY` | No | Uniswap quotes; server-side only |
+| `ONEINCH_API_KEY` | No | 1inch quotes; server-side only |
+| `ZERION_API_KEY` | No | Zerion quotes; server-side only |
 
-Without the CDP keys the Coinbase source simply shows unkeyed — everything
-else works. There is no `coinbase` CLI on Replit, so the env vars are the
+Without a source's key, that source just shows an error in the quote list —
+everything else works. There is no `coinbase` CLI on Replit, so the env vars are the
 only way to key CDP there.
 
 ## 3. Create the Deployment

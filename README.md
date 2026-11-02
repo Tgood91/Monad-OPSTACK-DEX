@@ -26,14 +26,14 @@ Base, Optimism, Arbitrum, Monad, BNB). See [CHAINS.md](CHAINS.md).
 
 | Source | Type | Chains | Key |
 |---|---|---|---|
-| Uniswap | Trading API (routing) | Base, Optimism, Ink, Unichain | Server-side (vault) |
+| Uniswap | Trading API (routing) | Base, Optimism, Ink, Unichain | Server-side (`UNISWAP_API_KEY`) |
 | Coinbase | CDP Swap API | Base | Server-side (`CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`) |
 | Aerodrome | On-chain | Base | None |
 | Velodrome | On-chain | Optimism, Ink | None |
 | KyberSwap | Aggregator | Base, Monad, Optimism, Unichain | None |
 | LI.FI | Aggregator | All 5 | None |
 | Velora | Aggregator (ex-ParaSwap) | Base, Monad, Optimism, Unichain | None |
-| 1inch | Aggregator | Base, Monad, Optimism, Unichain | Server-side (vault) |
+| 1inch | Aggregator | Base, Monad, Optimism, Unichain | Server-side (`ONEINCH_API_KEY`) |
 | 0x | Aggregator | All 5 | `VITE_0X_API_KEY` (browser) |
 | Zerion | Aggregator | Base, Optimism, Ink, Unichain | Server-side (`ZERION_API_KEY`) |
 
@@ -89,10 +89,11 @@ modal. Optional: `VITE_0X_API_KEY` (enables the 0x source).
 **Server env** — copy `server/.env.example` to `server/.env`. The backend
 reads the CDP secret from `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`, falling
 back to the `coinbase` CLI config on the machine. Zerion needs
-`ZERION_API_KEY`. The Uniswap and 1inch keys live in the Secure Vault and are
-applied server-side via a short-lived surrogate — the raw key never touches
-the server's memory. (NEAR Intents uses the vault too when available and
-falls back to keyless.)
+`ZERION_API_KEY`, Uniswap needs `UNISWAP_API_KEY`, and 1inch needs
+`ONEINCH_API_KEY`. (If the Uniswap/1inch env keys are unset, the server falls
+back to the Secure Vault surrogate socket, which only exists on the original
+dev machine. NEAR Intents uses the vault when available and otherwise runs
+keyless.)
 
 ## Deploying
 
@@ -110,9 +111,9 @@ them before building.
 ├── vite.config.js        # build config, dev /api proxy
 ├── server/
 │   ├── index.js          # Express: /api/* + serves the frontend
-│   ├── uniswap.js        # Uniswap Trading API (vault key, server-side)
+│   ├── uniswap.js        # Uniswap Trading API (UNISWAP_API_KEY, server-side)
 │   ├── coinbase.js       # CDP Swap quotes + spot prices
-│   ├── oneinch.js        # 1inch swap API (vault key, server-side)
+│   ├── oneinch.js        # 1inch swap API (ONEINCH_API_KEY, server-side)
 │   ├── zerion.js         # Zerion swap quotes (ZERION_API_KEY, server-side)
 │   ├── near.js           # NEAR Intents 1Click client (bridging)
 │   ├── stargate.js       # Stargate V2 bridging (on-chain, keyless)

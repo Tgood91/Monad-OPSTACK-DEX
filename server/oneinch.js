@@ -3,6 +3,7 @@
 // short-lived surrogate from authd over its Unix socket and sends it as
 // Authorization: Bearer. Egress swaps the surrogate for the real key.
 // The raw key never touches this process's memory.
+// Set ONEINCH_API_KEY in the server env to skip the vault (any normal host).
 // Docs: https://docs.1inch.dev/
 
 import net from "node:net";
@@ -45,12 +46,20 @@ function authdPost(payload) {
 }
 
 async function getSurrogate() {
+  // Plain env key (Vercel/Replit/any host) takes priority over the vault.
+  const envKey = process.env.ONEINCH_API_KEY?.trim();
+  if (envKey) return envKey;
   if (surrogate && Date.now() - surrogateAt < SURROGATE_TTL_MS) return surrogate;
-  const j = await authdPost({ name: "custom.1inch" });
+  let j;
+  try {
+    j = await authdPost({ name: "custom.1inch" });
+  } catch {
+    throw new Error("ONEINCH_API_KEY not set");
+  }
   const entry = (j.credentials || []).find((c) => c.name === "access_token");
   const s = entry?.surrogate;
   if (typeof s !== "string" || !s.startsWith("hsurr:")) {
-    throw new Error("no 1inch surrogate from authd");
+    throw new Error("ONEINCH_API_KEY not set");
   }
   surrogate = s;
   surrogateAt = Date.now();
