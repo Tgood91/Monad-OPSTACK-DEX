@@ -137,7 +137,7 @@ async function main() {
     const disc = (await ask("  maxDiscountBps [50]: ")).trim() || "50";
     const thresh = (await ask("  requiredHonorThreshold [55]: ")).trim() || "55";
     if (Number(disc) > Number(base)) throw new Error("maxDiscount cannot exceed base fee (contract reverts)");
-    if (Number(thresh) > 100) throw new Error("threshold must be <= 100");
+    if (Number(thresh) >= 100) throw new Error("threshold must be < 100 (contract reverts otherwise)");
     // Note: only works if deployer is admin (GOVERNOR_ROLE). If admin is the Safe,
     // run setFeeParameters via a Safe transaction instead.
     const isGovernor = await c.hasRole(await c.GOVERNOR_ROLE(), wallet.address);
