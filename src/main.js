@@ -16,7 +16,7 @@ import { showStatus, showLoading, clearStatus, fmtAmount, fmtUsd, setButtonLoadi
 import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- state ---------------- */
-let chainKey = 'optimism';
+let chainKey = 'base';
 let enabledSources = new Set(['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion']);
 let quotes = null;
 let selectedQuote = null;

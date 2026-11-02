@@ -3,7 +3,7 @@
 
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { optimism, base, defineChain } from '@reown/appkit/networks';
+import { base, optimism, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
 
 const projectId = import.meta.env.VITE_PROJECT_ID || 'YOUR_PROJECT_ID_HERE';
@@ -25,12 +25,12 @@ const unichain = defineChain({
   blockExplorers: { default: { name: 'Uniscan', url: 'https://uniscan.xyz' } },
 });
 
-const networks = [optimism, ink, base, unichain];
+const networks = [base, optimism, ink, unichain];
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
-  defaultNetwork: optimism,
+  defaultNetwork: base,
   projectId,
   metadata: {
     name: import.meta.env.VITE_APP_NAME || 'Multi-Chain DEX',
@@ -46,7 +46,7 @@ export const appKit = createAppKit({
 });
 
 // Map our internal chain key → AppKit network object
-const NETWORK_BY_KEY = { optimism, ink, base, unichain };
+const NETWORK_BY_KEY = { base, optimism, ink, unichain };
 
 export function appKitNetworkFor(chainKey) {
   return NETWORK_BY_KEY[chainKey];

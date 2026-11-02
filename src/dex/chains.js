@@ -5,6 +5,33 @@
 export const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 export const CHAINS = {
+  base: {
+    key: 'base',
+    label: 'Base',
+    chainId: 8453,
+    native: 'ETH',
+    color: '#0052ff',
+    rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'],
+    explorer: 'https://basescan.org',
+    // 1inch routers for Base — primary + fallbacks for direct execution
+    routers: {
+      primary: '0x111111125421cA6dc452d289314280a0f8842A65',   // 1inch v5
+      fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae',
+      fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
+    },
+    sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'zerox', 'zerion'],
+    kyberName: 'base',
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+    ],
+    // Aerodrome on Base (Velodrome's ve(3,3) fork). Router2 Route struct is
+    // 4 fields: (from, to, stable, factory). Keyless on-chain quotes.
+    aero: {
+      v2Router: '0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43',
+      v2Factory: '0x420DD381b31aEf6683db6B902084cB0FFECe40Da',
+    },
+  },
   optimism: {
     key: 'optimism',
     label: 'Optimism',
@@ -52,33 +79,6 @@ export const CHAINS = {
       clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
       clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
       v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
-    },
-  },
-  base: {
-    key: 'base',
-    label: 'Base',
-    chainId: 8453,
-    native: 'ETH',
-    color: '#0052ff',
-    rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'],
-    explorer: 'https://basescan.org',
-    // 1inch routers for Base — primary + fallbacks for direct execution
-    routers: {
-      primary: '0x111111125421cA6dc452d289314280a0f8842A65',   // 1inch v5
-      fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae',
-      fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
-    },
-    sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'zerox', 'zerion'],
-    kyberName: 'base',
-    tokens: [
-      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
-      { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
-    ],
-    // Aerodrome on Base (Velodrome's ve(3,3) fork). Router2 Route struct is
-    // 4 fields: (from, to, stable, factory). Keyless on-chain quotes.
-    aero: {
-      v2Router: '0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43',
-      v2Factory: '0x420DD381b31aEf6683db6B902084cB0FFECe40Da',
     },
   },
   unichain: {
