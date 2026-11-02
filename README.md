@@ -97,7 +97,8 @@ keyless.)
 
 ## Deploying
 
-See [REPLIT_DEPLOY.md](REPLIT_DEPLOY.md) for Replit (Reserved VM). Any
+See [DEPLOY.md](DEPLOY.md) for a full Node.js guide (env, build, pm2,
+nginx, `TRUST_PROXY`) and [REPLIT_DEPLOY.md](REPLIT_DEPLOY.md) for Replit. Any
 Node host works: build the frontend, run `node server/index.js`, set `PORT`.
 
 Remember: `VITE_*` values are baked into the frontend at build time, so set

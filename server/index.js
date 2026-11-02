@@ -54,6 +54,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 
+// Behind a reverse proxy (nginx, Cloudflare, Render, Railway…) req.ip would be
+// the proxy's address, so every visitor shares one rate-limit bucket.
+// TRUST_PROXY=1 trusts one proxy hop (use 2 for Cloudflare -> nginx, etc.).
+// Leave unset when clients connect directly — otherwise X-Forwarded-For can be spoofed.
+const TRUST_PROXY = process.env.TRUST_PROXY?.trim();
+if (TRUST_PROXY) {
+  app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
+}
+
 app.use(express.json({ limit: "64kb" }));
 app.use(
   cors({
