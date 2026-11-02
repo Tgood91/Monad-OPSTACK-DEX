@@ -292,8 +292,8 @@ async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
     body: JSON.stringify({
       fromChainKey: state.fromChain,
       toChainKey: state.toChain,
-      fromToken: ofi.address || 'native',
-      toToken: oti.address || 'native',
+      fromToken: fi.address || 'native',
+      toToken: ti.address || 'native',
       amountAtomic, wallet,
     }),
   });
@@ -518,7 +518,7 @@ async function startAoriBridge(wallet) {
 
 async function pollAoriStatus() {
   clearInterval(state.statusTimer);
-  const orderHash = state.quote.orderHash;
+  const orderHash = state.quote.order.orderHash;
   const tick = async () => {
     try {
       const s = await api(`/api/aori/status?orderHash=${orderHash}`);
