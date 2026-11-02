@@ -23,7 +23,8 @@
     "build": "vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "node --test"
   },
   "type": "module",
   "version": "1.0.0"
