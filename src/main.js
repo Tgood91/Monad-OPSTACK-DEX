@@ -16,7 +16,7 @@ import { showStatus, showLoading, clearStatus, fmtAmount, fmtUsd, setButtonLoadi
 import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- state ---------------- */
-let chainKey = 'base';
+let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
 let enabledSources = new Set(['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion']);
 let quotes = null;
 let selectedQuote = null;
@@ -366,6 +366,7 @@ subscribeToNetworkChanges(() => {
 renderChains();
 renderSources();
 renderTokens();
+$('fromAmount').value = '1'; // default pair on Monad is MON -> USDC
 updateWalletUI();
 scheduleQuote();
 

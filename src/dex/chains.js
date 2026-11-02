@@ -43,7 +43,8 @@ export const CHAINS = {
     // Monad has no on-chain Velodrome/Aerodrome/Uniswap deployment in this app and
     // Zerion does not support Monad, so quotes come from the aggregators below.
     // A source that doesn't route on Monad reports "no liquidity" in the quote list.
-    sources: ['lifi', 'kyberswap', 'velora', 'oneinch', 'zerox'],
+    // Velora (ParaSwap) rejects chain 143 — 'Invalid network' (checked 2026-11-02).
+    sources: ['lifi', 'kyberswap', 'oneinch', 'zerox'],
     kyberName: 'monad',
     tokens: [
       { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
