@@ -1,4 +1,7 @@
-export function getDexIntelligenceResponse(query: string) {
+// Canned, keyword-matched DEX research answers. NOTE: the SQL results and
+// chart values below are fixed SAMPLE data, not live queries — the UI labels
+// them as such.
+export function getDexIntelligenceResponse(query) {
   const q = query.toLowerCase();
 
   if (q.includes("1inch") || q.includes("pathfinder") || q.includes("local evm") || q.includes("capital")) {

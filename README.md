@@ -22,6 +22,15 @@ NEAR Intents (Base, Ethereum, Optimism, Monad), Stargate V2 (Ethereum, Base,
 Optimism, Arbitrum, Avalanche, BNB — same-asset only), and Aori (Ethereum,
 Base, Optimism, Arbitrum, Monad, BNB). See [CHAINS.md](CHAINS.md).
 
+**🧠 Intel tab** — Ask about DEX routing (1inch, Aerodrome, 0xSplits…) and get
+a structured answer with a query, result table and chart. The figures are
+fixed **sample data**, labeled as such in the UI — not live on-chain results.
+
+**⛩ Bushido tab** — The connected wallet's 7 virtue scores and the Seykota
+trend signal (EMA12/26 on hourly ETH-USD). Scores read from the
+`BUSHIDO_REGISTRY` contract when set; otherwise they show neutral 50% and the
+signal stays virtue-gated.
+
 ## Quote sources
 
 | Source | Type | Chains | Key |
@@ -120,11 +129,15 @@ them before building.
 │   ├── stargate.js       # Stargate V2 bridging (on-chain, keyless)
 │   ├── aori.js           # Aori intent bridging (EIP-712 orders)
 │   ├── bushido.js        # virtue scores + Seykota trend signals
+│   ├── Dex-intellegence.js # Intel tab answers (canned SAMPLE data)
 │   └── stream.js         # Live price ticker (WebSocket, REST fallback)
 ├── src/
 │   ├── main.js           # swap tab: rendering, quoting, swap flow
 │   ├── bridge.js         # bridge tab: NEAR / Stargate / Aori flows
-│   ├── config.js         # wallet (AppKit) setup
+│   ├── intel.js          # Intel tab: ask -> reasoning, table, chart, answer
+│   ├── bushido-mount.jsx # mounts the React Bushido tab (lazy-loaded)
+│   ├── BushidoTradingDashboard.jsx # virtue scores + strategy signals (React + Tailwind)
+│   ├── config.js         # wallet (AppKit) setup, Aave-style modal theme
 │   ├── dex/
 │   │   ├── chains.js     # chain + token + source registry
 │   │   ├── adapters.js   # one quote()/buildTx() adapter per source

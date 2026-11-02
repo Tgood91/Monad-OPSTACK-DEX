@@ -371,11 +371,13 @@ updateWalletUI();
 scheduleQuote();
 
 /* ---------------- tabs: Swap | Bridge ---------------- */
-$('tabSwap').onclick = () => switchTab('swap');
-$('tabBridge').onclick = () => switchTab('bridge');
-function switchTab(which) {
-  $('tabSwap').classList.toggle('active', which === 'swap');
-  $('tabBridge').classList.toggle('active', which === 'bridge');
-  $('swapPane').style.display = which === 'swap' ? '' : 'none';
-  $('bridgePane').style.display = which === 'bridge' ? '' : 'none';
+const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'] };
+for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchTab(name);
+async function switchTab(which) {
+  for (const [name, [tab, pane]] of Object.entries(TABS)) {
+    $(tab).classList.toggle('active', name === which);
+    $(pane).style.display = name === which ? '' : 'none';
+  }
+  // React + the dashboard load only when the Bushido tab is first opened.
+  if (which === 'bushido') (await import('./bushido-mount.jsx')).showBushido();
 }

@@ -1,0 +1,10 @@
+/* Tailwind for the Bushido dashboard only (see tailwind.config.js).
+   `base` is included for Tailwind's --tw-* variable defaults (gradients,
+   rings, etc. break without them); preflight is disabled in the config, so
+   no global reset is applied to the rest of the app. */
+@tailwind base;
+@tailwind utilities;
+
+/* Without preflight, buttons don't inherit text styles. :where() keeps this at
+   zero specificity so the component's own Tailwind classes still win. */
+:where(#bushidoRoot) button { color: inherit; font: inherit; background-color: transparent; cursor: pointer; }

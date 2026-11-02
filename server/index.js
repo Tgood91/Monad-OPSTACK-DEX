@@ -47,6 +47,23 @@ import {
 } from "./bushido.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap } from "./oneinch.js";
+import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
+
+// Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
+// cached 5 min. Feeds the Bushido Seykota signal, which needs >= 30 points.
+let ethCloses = { at: 0, data: [] };
+async function getEthCloses() {
+  if (Date.now() - ethCloses.at < 5 * 60_000 && ethCloses.data.length) return ethCloses.data;
+  const r = await fetch("https://api.exchange.coinbase.com/products/ETH-USD/candles?granularity=3600", {
+    headers: { "User-Agent": "monad-dex/1.0" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!r.ok) throw new Error(`candles ${r.status}`);
+  const rows = await r.json(); // [time, low, high, open, close, volume], newest first
+  const data = rows.slice(0, 72).map((c) => Number(c[4])).reverse();
+  ethCloses = { at: Date.now(), data };
+  return data;
+}
 
 dotenv.config();
 
@@ -410,10 +427,20 @@ app.get("/api/bushido/dashboard", async (req, res) => {
   try {
     const trader = String(req.query.trader || "");
     if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
-    res.json(await dashboardData(trader));
+    let feeds = {};
+    try { feeds = { "ETH-USD": await getEthCloses() }; } catch { /* signal falls back to WAIT */ }
+    res.json(await dashboardData(trader, feeds));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
+});
+
+// ---- DEX Intelligence (canned research answers; SAMPLE data, not live) ----
+// POST /api/intel/ask — { query } -> { messages: [...] }
+app.post("/api/intel/ask", (req, res) => {
+  const query = String(req.body?.query || "").trim().slice(0, 300);
+  if (!query) return res.status(400).json({ error: "missing query" });
+  res.json({ messages: getDexIntelligenceResponse(query), sample: true });
 });
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----
