@@ -20,7 +20,6 @@ export const ZERION_CHAINS = {
   130: "unichain",
   8453: "base",
   42161: "arbitrum",
-  42220: "celo",
   43114: "avalanche",
   57073: "ink",
 };

@@ -5,30 +5,6 @@
 export const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 export const CHAINS = {
-  celo: {
-    key: 'celo',
-    label: 'Celo',
-    chainId: 42220,
-    native: 'CELO',
-    color: '#35d07f',
-    rpcs: ['https://rpc.ankr.com/celo', 'https://forno.celo.org'],
-    explorer: 'https://celoscan.io',
-    sources: ['velodrome', 'uniswap', 'lifi', 'zerion'],
-    tokens: [
-      { symbol: 'CELO', address: '0x471EcE3750Da237f93B8E339c536989b8978a438', decimals: 18, isNative: true },
-      { symbol: 'USDC', address: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C', decimals: 6 },
-      { symbol: 'USDT', address: '0x48065fbBE25f71C9282ddF5A9CDA2F9A8eCC70F', decimals: 6 },
-      { symbol: 'cUSD', address: '0x765DE816845861e75A25fCA122bb6898B8B1282a', decimals: 18 },
-    ],
-    // Velodrome Superchain v1.1 — verified on-chain 2026-10-07
-    velo: {
-      clQuoter: '0x426ef6F781bA0Fbc1A7b0D3399D6FA6548464C85',
-      clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
-      clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
-      v2Factory: '0x31832f2a97Fd20664D76Cc421207669b55CE4BC0',
-      v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
-    },
-  },
   optimism: {
     key: 'optimism',
     label: 'Optimism',

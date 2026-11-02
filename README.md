@@ -28,7 +28,7 @@ from your wallet, and watch the status track to completion.
 | Uniswap | Trading API (routing) | All 5 | Server-side (vault) |
 | Coinbase | CDP Swap API | Base, Ethereum | Server-side (vault/env) |
 | Aerodrome | On-chain | Base | None |
-| Velodrome | On-chain | Celo, Optimism, Ink | None |
+| Velodrome | On-chain | Optimism, Ink | None |
 | KyberSwap | Aggregator | Optimism, Ink, Base, Unichain | None |
 | LI.FI | Aggregator | All 5 | None |
 | Velora | Aggregator (ex-ParaSwap) | Optimism, Ink, Base, Unichain | None |
@@ -149,7 +149,7 @@ dex-app/
 - Monad is bridgeable (via NEAR Intents) but not swappable in-app: its
   Uniswap V3 factory uses a non-canonical pool init-code hash, so direct
   on-chain swaps revert. Aggregators are the swap path there if ever added.
-- 1Click doesn't list Celo, Ink, or Unichain — bridging is limited to the
+- 1Click doesn't list Ink or Unichain — bridging is limited to the
   chains it supports.
 - Quotes are point-in-time. The pre-sign simulation is the safety net, not a
   guarantee — always double-check amounts in your wallet before signing.
