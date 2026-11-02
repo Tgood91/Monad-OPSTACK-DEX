@@ -32,6 +32,24 @@ export const CHAINS = {
       v2Factory: '0x420DD381b31aEf6683db6B902084cB0FFECe40Da',
     },
   },
+  monad: {
+    key: 'monad',
+    label: 'Monad',
+    chainId: 143,
+    native: 'MON',
+    color: '#836ef9',
+    rpcs: ['https://rpc.monad.xyz', 'https://monad-mainnet.drpc.org'],
+    explorer: 'https://monadscan.com',
+    // Monad has no on-chain Velodrome/Aerodrome/Uniswap deployment in this app and
+    // Zerion does not support Monad, so quotes come from the aggregators below.
+    // A source that doesn't route on Monad reports "no liquidity" in the quote list.
+    sources: ['lifi', 'kyberswap', 'velora', 'oneinch', 'zerox'],
+    kyberName: 'monad',
+    tokens: [
+      { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
+      { symbol: 'USDC', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', decimals: 6 },
+    ],
+  },
   optimism: {
     key: 'optimism',
     label: 'Optimism',

@@ -25,7 +25,15 @@ const unichain = defineChain({
   blockExplorers: { default: { name: 'Uniscan', url: 'https://uniscan.xyz' } },
 });
 
-const networks = [base, optimism, ink, unichain];
+const monad = defineChain({
+  id: 143,
+  name: 'Monad',
+  nativeCurrency: { name: 'Monad', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.monad.xyz'] } },
+  blockExplorers: { default: { name: 'Monadscan', url: 'https://monadscan.com' } },
+});
+
+const networks = [base, monad, optimism, ink, unichain];
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
@@ -34,7 +42,7 @@ export const appKit = createAppKit({
   projectId,
   metadata: {
     name: import.meta.env.VITE_APP_NAME || 'Multi-Chain DEX',
-    description: import.meta.env.VITE_APP_DESCRIPTION || 'Best-price DEX across Optimism, Ink, Base, Unichain',
+    description: import.meta.env.VITE_APP_DESCRIPTION || 'Best-price DEX across Base, Monad, Optimism, Ink, Unichain',
     url: import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
     icons: [import.meta.env.VITE_APP_ICON || 'https://velodrome.finance/favicon.ico'],
   },
@@ -46,7 +54,7 @@ export const appKit = createAppKit({
 });
 
 // Map our internal chain key → AppKit network object
-const NETWORK_BY_KEY = { base, optimism, ink, unichain };
+const NETWORK_BY_KEY = { base, monad, optimism, ink, unichain };
 
 export function appKitNetworkFor(chainKey) {
   return NETWORK_BY_KEY[chainKey];
