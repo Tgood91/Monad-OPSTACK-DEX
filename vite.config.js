@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  // React is only used for the Bushido tab (src/BushidoTradingDashboard.jsx).
+  plugins: [react()],
   server: {
     port: 5173,
     host: true,
@@ -18,6 +21,7 @@ export default defineConfig({
         manualChunks: {
           appkit: ['@reown/appkit', '@reown/appkit-adapter-ethers'],
           ethers: ['ethers'],
+          react: ['react', 'react-dom', 'lucide-react'],
         },
       },
     },

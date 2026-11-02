@@ -45,7 +45,9 @@
   .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 12px; margin-top: 10px; }
   .detail-grid .k { color: var(--muted); } .detail-grid .v { text-align: right; font-weight: 600; overflow-wrap: anywhere; }
   .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .15s; }
-  .btn-connect { background: var(--accent); color: #fff; }
+  /* Aave-style connect button: pink -> teal gradient */
+  .btn-connect { background: linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%); color: #fff; }
+  .btn-connect:hover { filter: brightness(1.08); }
   .btn-swap { background: var(--green); color: #fff; margin-top: 8px; }
   .btn-swap:disabled { background: #2a2a35; color: #666; cursor: not-allowed; }
   .btn-bridge { background: var(--green); color: #fff; margin-top: 8px; }
@@ -73,6 +75,40 @@
   .step.failed { color: var(--red); border: 1px solid var(--red); }
   a { color: var(--accent); }
   w3m-button { display: none; }
+  /* ---- tabs: 4 across, compact on phones ---- */
+  .tab-btn { white-space: nowrap; }
+  @media (max-width: 480px) { .tab-btn { padding: 10px 4px; font-size: 13px; } }
+
+  /* ---- Intel tab ---- */
+  .intel-ask-row { display: flex; gap: 8px; }
+  .intel-input { flex: 1; min-width: 0; font-size: 15px !important; text-align: left !important; }
+  .intel-btn { width: auto !important; padding: 0 20px; margin: 0 !important; }
+  .intel-suggest { margin-top: 12px; flex-wrap: wrap; }
+  .intel-suggest .src-chip { text-align: left; }
+  .intel-q { font-weight: 700; margin-bottom: 6px; }
+  .intel-sample { font-size: 11px; color: var(--amber); border: 1px solid #f59e0b44; background: #f59e0b11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
+  .intel-thoughts { font-size: 12px; color: var(--muted); padding-left: 18px; margin-bottom: 12px; line-height: 1.6; }
+  .intel-sql { margin-bottom: 12px; font-size: 12px; }
+  .intel-sql summary { cursor: pointer; color: var(--muted); }
+  .intel-sql pre { overflow-x: auto; background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 6px; font-size: 11px; }
+  .intel-table-wrap { overflow-x: auto; margin-bottom: 12px; }
+  .intel-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .intel-table th, .intel-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+  .intel-table th:first-child, .intel-table td:first-child { text-align: left; }
+  .intel-table th { color: var(--muted); font-weight: 600; }
+  .intel-chart { margin-bottom: 14px; }
+  .intel-chart-title { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .intel-bar-row { display: grid; grid-template-columns: minmax(70px, 30%) 1fr auto; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 6px; }
+  .intel-bar-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+  .intel-bar-track { height: 10px; background: #ffffff10; border-radius: 5px; overflow: hidden; }
+  .intel-bar { display: block; height: 100%; border-radius: 5px; }
+  .intel-bar-val { font-variant-numeric: tabular-nums; }
+  .intel-answer { font-size: 14px; line-height: 1.6; }
+  .intel-answer h4 { font-size: 15px; margin-bottom: 6px; }
+  .intel-answer code { background: #ffffff12; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  /* ---- Bushido tab: the React component brings its own Tailwind padding ---- */
+  .bushido-card { padding: 0; }
 </style>
 </head>
 <body>
@@ -88,6 +124,8 @@
   <div class="tab-bar">
     <button class="tab-btn active" id="tabSwap">⇄ Swap</button>
     <button class="tab-btn" id="tabBridge">🌉 Bridge</button>
+    <button class="tab-btn" id="tabIntel">🧠 Intel</button>
+    <button class="tab-btn" id="tabBushido">⛩ Bushido</button>
   </div>
 
   <!-- ============ SWAP PANE ============ -->
@@ -194,8 +232,27 @@
     <button class="btn btn-bridge" id="bBridgeBtn" disabled>Enter an amount</button>
     <div class="status" id="bTxStatus"></div>
   </div>
+
+  <!-- ============ INTEL PANE (DEX Intelligence) ============ -->
+  <div id="intelPane" style="display:none;">
+    <div class="card">
+      <span class="lbl">Ask about DEX routing, liquidity and settlement</span>
+      <div class="intel-ask-row">
+        <input class="amount-input intel-input" id="intelInput" type="text" placeholder="e.g. How does 1inch split capital?" maxlength="300">
+        <button class="btn intel-btn" id="intelAsk">Ask</button>
+      </div>
+      <div class="src-row intel-suggest" id="intelSuggest"></div>
+    </div>
+    <div class="card" id="intelResult"><div class="status">Ask a question or tap a suggestion</div></div>
+  </div>
+
+  <!-- ============ BUSHIDO PANE (React dashboard) ============ -->
+  <div id="bushidoPane" style="display:none;">
+    <div class="card bushido-card" id="bushidoRoot"></div>
+  </div>
 </div>
 <script type="module" src="/src/main.js"></script>
 <script type="module" src="/src/bridge.js"></script>
+<script type="module" src="/src/intel.js"></script>
 </body>
 </html>

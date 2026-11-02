@@ -51,6 +51,26 @@ export const appKit = createAppKit({
     email: false,
     socials: [],
   },
+  // ---- Aave-style modal: dark navy surface, Aave pink->teal accent, rounded,
+  // a short list of popular wallets up front, the full list behind "All wallets".
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#B6509E',             // Aave pink (buttons, links, focus)
+    '--w3m-color-mix': '#1B2030',          // Aave navy tint over the modal surface
+    '--w3m-color-mix-strength': 40,
+    '--w3m-border-radius-master': '4px',   // rounder corners, like Aave's modal
+    '--w3m-font-family': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    '--w3m-z-index': 1000,
+  },
+  // WalletConnect Explorer ids: MetaMask, Coinbase Wallet, Rainbow, Trust, Zerion
+  featuredWalletIds: [
+    'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96',
+    'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa',
+    '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369',
+    '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0',
+    'ecc4036f814562b41a5268adc86270fba1365471402006302e70169465b7ac18',
+  ],
+  allWallets: 'SHOW',
 });
 
 // Map our internal chain key → AppKit network object
