@@ -32,7 +32,7 @@ Base, Optimism, Arbitrum, Monad, BNB). See [CHAINS.md](CHAINS.md).
 | Velodrome | On-chain | Optimism, Ink | None |
 | KyberSwap | Aggregator | Base, Monad, Optimism, Unichain | None |
 | LI.FI | Aggregator | All 5 | None |
-| Velora | Aggregator (ex-ParaSwap) | Base, Monad, Optimism, Unichain | None |
+| Velora | Aggregator (ex-ParaSwap) | Base, Optimism, Unichain | None |
 | 1inch | Aggregator | Base, Monad, Optimism, Unichain | Server-side (`ONEINCH_API_KEY`) |
 | 0x | Aggregator | All 5 | `VITE_0X_API_KEY` (browser) |
 | Zerion | Aggregator | Base, Optimism, Ink, Unichain | Server-side (`ZERION_API_KEY`) |
@@ -140,8 +140,8 @@ submission), `server/merkl.js` (Merkl v4 incentives), `src/dex/solvers.js`
 
 ## Notes & limits
 
-- Monad swaps go through aggregators only (LI.FI, KyberSwap, Velora, 1inch,
-  0x). Direct Uniswap V3 swaps aren't used there: its factory uses a
+- Monad swaps go through aggregators only (LI.FI, KyberSwap, 1inch, 0x).
+  The app opens on Monad with 1 MON → USDC prefilled. Direct Uniswap V3 swaps aren't used there: its factory uses a
   non-canonical pool init-code hash, so direct on-chain swaps revert. A
   source that doesn't route on Monad shows "no liquidity".
 - 1Click doesn't list Ink or Unichain — bridging is limited to the
