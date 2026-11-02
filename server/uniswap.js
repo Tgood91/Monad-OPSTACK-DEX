@@ -110,7 +110,9 @@ export async function uniswapQuote({ chainId, tokenIn, tokenOut, amountAtomic, t
     tokenIn,
     tokenOut,
     swapper: taker,
-    slippageTolerance: slippageBps,
+    // Uniswap expects a PERCENT (0.5 = 0.5%), not basis points. Sending bps
+    // (50) would allow 50% slippage.
+    slippageTolerance: slippageBps / 100,
     routingPreference: "BEST_PRICE",
   });
   const q = j.quote;
