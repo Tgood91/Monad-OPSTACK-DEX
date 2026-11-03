@@ -132,6 +132,7 @@
     <button class="tab-btn" id="tabBridge">🌉 Bridge</button>
     <button class="tab-btn" id="tabIntel">🧠 Intel</button>
     <button class="tab-btn" id="tabBushido">⛩ Bushido</button>
+    <button class="tab-btn" id="tabMerkl">🎁 Rewards</button>
   </div>
 
   <!-- ============ SWAP PANE ============ -->
@@ -259,6 +260,26 @@
   <!-- ============ BUSHIDO PANE (React dashboard) ============ -->
   <div id="bushidoPane" style="display:none;">
     <div class="card bushido-card" id="bushidoRoot"></div>
+  </div>
+
+  <!-- ============ MERKL REWARDS PANE ============ -->
+  <div id="merklPane" style="display:none;">
+    <div class="card">
+      <span class="lbl">Your Merkl rewards — Ethereum · Base · Monad</span>
+      <div id="merklRewards"><div class="status">Connect a wallet to see your Merkl rewards.</div></div>
+      <div id="merklStatus"></div>
+      <button class="btn" id="merklRefresh" style="width:auto;padding:8px 16px;">Refresh</button>
+    </div>
+    <div class="card">
+      <span class="lbl">Top live opportunities</span>
+      <select class="chain-select" id="merklOppChain">
+        <option value="8453" selected>Base</option>
+        <option value="143">Monad</option>
+        <option value="1">Ethereum</option>
+        <option value="10">Optimism</option>
+      </select>
+      <div id="merklOpps"></div>
+    </div>
   </div>
 </div>
 <script type="module" src="/src/main.js"></script>
