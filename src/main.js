@@ -371,7 +371,7 @@ updateWalletUI();
 scheduleQuote();
 
 /* ---------------- tabs: Swap | Bridge ---------------- */
-const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'] };
+const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'], merkl: ['tabMerkl', 'merklPane'] };
 for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchTab(name);
 async function switchTab(which) {
   for (const [name, [tab, pane]] of Object.entries(TABS)) {
@@ -380,4 +380,6 @@ async function switchTab(which) {
   }
   // React + the dashboard load only when the Bushido tab is first opened.
   if (which === 'bushido') (await import('./bushido-mount.jsx')).showBushido();
+  // Merkl module loads only when the Rewards tab is first opened.
+  if (which === 'merkl') (await import('./merkl.js')).showMerkl();
 }
