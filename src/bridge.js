@@ -9,6 +9,7 @@ import {
   isConnected, getAddress, getSigner, subscribeToAccountChanges,
 } from './utils/web3.js';
 import { ERC20_ABI } from './utils/abis.js';
+import { setChainLogo, setTokenLogo, setSourceLogo, showErrorImage } from './ui/images.js';
 
 /* ---------------- config ---------------- */
 const BRIDGE_CHAINS = {
@@ -26,6 +27,7 @@ const SOURCE_CHAINS = {
   near: ['base', 'optimism', 'ethereum', 'monad'],
   stargate: ['ethereum', 'base', 'optimism', 'arbitrum', 'avalanche', 'bsc'],
   aori: ['ethereum', 'base', 'optimism', 'arbitrum', 'monad', 'bsc'],
+  oneinchFusion: ['ethereum', 'base', 'optimism', 'arbitrum', 'monad', 'bsc'],
 };
 
 const $ = id => document.getElementById('b' + id[0].toUpperCase() + id.slice(1));
@@ -50,6 +52,12 @@ async function api(path, opts = {}) {
 
 async function loadTokens(chainKey) {
   const chainId = BRIDGE_CHAINS[chainKey].chainId;
+  if (state.source === 'oneinchFusion') {
+    // Fusion+ quotes arbitrary tokens; reuse the verified NEAR bridge token
+    // universe for the selects. Unsupported pairs fail at quote time.
+    const { tokens } = await api(`/api/near/tokens?chainId=${chainId}`);
+    return tokens;
+  }
   if (state.source === 'aori') {
     const { tokens } = await api(`/api/aori/tokens?chainKey=${chainKey}`);
     return tokens;
@@ -117,6 +125,27 @@ function renderChains() {
   if (!keys.includes(state.toChain)) state.toChain = keys[1] || keys[0];
   $('fromChain').value = state.fromChain;
   $('toChain').value = state.toChain;
+  updateBridgeChainLogos();
+  updateBridgeSourceLogo();
+}
+
+function updateBridgeChainLogos() {
+  setChainLogo(document.getElementById('bFromChainLogo'), state.fromChain);
+  setChainLogo(document.getElementById('bToChainLogo'), state.toChain);
+}
+
+/** Same standard token logos as Swap, beside each Bridge token dropdown.
+ *  Tokens with no standard logo keep ticker text alone (img hidden). */
+function updateBridgeTokenLogos() {
+  const fi = state.fromTokens[Number($('fromToken').value)] || null;
+  const ti = state.toTokens[Number($('toToken').value)] || null;
+  setTokenLogo($('fromTokenLogo'), fi?.symbol);
+  setTokenLogo($('toTokenLogo'), ti?.symbol);
+}
+
+/** Source logo beside the "Bridge via" dropdown. Hidden until the logo file exists. */
+function updateBridgeSourceLogo() {
+  setSourceLogo(document.getElementById('bBridgeSourceLogo'), state.source);
 }
 
 async function refreshTokens(side) {
@@ -137,6 +166,7 @@ async function refreshTokens(side) {
       : Math.max(0, toks.findIndex(t => !t.address));
   }
   sel.selectedIndex = defIdx;
+  updateBridgeTokenLogos();
   if (side === 'from') updateBalance();
   scheduleQuote();
 }
@@ -209,12 +239,16 @@ async function refreshQuote() {
     return;
   }
 
-  const sourceLabel = state.source === 'stargate' ? 'Stargate' : state.source === 'aori' ? 'Aori' : 'NEAR Intents';
+  const sourceLabel = state.source === 'stargate' ? 'Stargate' : state.source === 'aori' ? 'Aori' : state.source === 'oneinchFusion' ? '1inch Fusion+' : 'NEAR Intents';
   box.innerHTML = `<div class="status"><span class="spinner"></span>Quoting via ${sourceLabel}…</div>`;
   detail.innerHTML = '';
   btn.disabled = true;
 
   try {
+    if (state.source === 'oneinchFusion') {
+      await refreshFusionQuote({ btn, box, detail, wallet, amtStr, fi, ti });
+      return;
+    }
     if (state.source === 'aori') {
       await refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti });
       return;
@@ -292,8 +326,8 @@ async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
     body: JSON.stringify({
       fromChainKey: state.fromChain,
       toChainKey: state.toChain,
-      fromToken: fi.address || 'native',
-      toToken: ti.address || 'native',
+      fromToken: ofi.address || 'native',
+      toToken: oti.address || 'native',
       amountAtomic, wallet,
     }),
   });
@@ -312,6 +346,37 @@ async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
   btn.textContent = wallet ? 'Bridge via Aori' : 'Connect wallet to bridge';
 }
 
+/* ---------------- 1inch Fusion+ quoting (quotes only — execution not wired) ---------------- */
+async function refreshFusionQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
+  const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+  const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
+  const q = await api('/api/oneinch-fusion/quote', {
+    method: 'POST',
+    body: JSON.stringify({
+      srcChainId: BRIDGE_CHAINS[state.fromChain].chainId,
+      dstChainId: BRIDGE_CHAINS[state.toChain].chainId,
+      srcToken: fi.address || NATIVE_SENTINEL,
+      dstToken: ti.address || NATIVE_SENTINEL,
+      amountAtomic, wallet,
+    }),
+  });
+  state.quote = { ...q, fi, ti, amountAtomic, oneinchFusion: true };
+  const out = Number(ethers.formatUnits(BigInt(q.dstTokenAmount), ti.decimals));
+  const inp = Number(amtStr);
+  $('toAmount').value = out.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  const preset = (q.presets || {})[q.recommendedPreset] || {};
+  const estMin = preset.auctionDuration ? Math.max(1, Math.round(Number(preset.auctionDuration) / 60)) : null;
+  box.innerHTML = `<div class="status success">1 ${fi.symbol} → ${(out / inp).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${ti.symbol}</div>`;
+  detail.innerHTML = `<div class="detail-grid">
+    <span class="k">You receive</span><span class="v">${out.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}</span>
+    <span class="k">Est. time</span><span class="v">${estMin ? `~${estMin} min (${q.recommendedPreset} auction)` : '—'}</span>
+    <span class="k">Source</span><span class="v">1inch Fusion+</span>
+  </div>`;
+  // Execution (order build/sign/submit) is not wired yet — quotes only.
+  btn.disabled = true;
+  btn.textContent = '1inch Fusion+ — quotes only';
+}
+
 /* ---------------- bridge flow ---------------- */
 function renderSteps(activeIdx, failed = false) {
   const labels = ['Deposit', 'Processing', 'Done'];
@@ -324,6 +389,10 @@ function renderSteps(activeIdx, failed = false) {
 async function startBridge() {
   const wallet = getAddress();
   if (!state.quote || !wallet) return;
+  if (state.quote.oneinchFusion) {
+    setStatus('1inch Fusion+ execution is not wired yet — quotes only for now.', 'warn');
+    return;
+  }
   if (state.quote.aori) return startAoriBridge(wallet);
   if (state.quote.stargate) return startStargateBridge(wallet);
   const q = state.quote;
@@ -359,6 +428,7 @@ async function startBridge() {
     btn.textContent = 'Intent created — send deposit above';
   } catch (e) {
     setStatus('Intent failed: ' + e.message.slice(0, 140), 'error');
+    showErrorImage();
     btn.disabled = false;
     btn.textContent = 'Bridge via NEAR Intents';
   }
@@ -402,6 +472,7 @@ async function sendDeposit() {
     pollStatus();
   } catch (e) {
     setStatus('Deposit failed: ' + (e.reason || e.message || '').slice(0, 140), 'error');
+    showErrorImage();
     btn.disabled = false;
   }
 }
@@ -420,6 +491,7 @@ async function pollStatus() {
       } else if (['FAILED', 'REFUNDED', 'INCOMPLETE_DEPOSIT'].includes(st)) {
         renderSteps(st === 'FAILED' ? 1 : 0, true);
         $('statusBox').innerHTML = `<div class="status ${st === 'REFUNDED' ? 'warn' : 'error'}">${st === 'REFUNDED' ? 'Refunded — funds returned to your wallet' : st === 'INCOMPLETE_DEPOSIT' ? 'Incomplete deposit — partial amount sent' : 'Bridge failed'}</div>`;
+        if (st !== 'REFUNDED') showErrorImage();
         clearInterval(state.statusTimer);
       } else {
         const idx = st === 'PENDING_DEPOSIT' || st === 'KNOWN_DEPOSIT_TX' ? 0 : 1;
@@ -475,6 +547,7 @@ async function startStargateBridge(wallet) {
     btn.disabled = false;
   } catch (e) {
     setStatus('Bridge failed: ' + (e.reason || e.message || '').slice(0, 140), 'error');
+    showErrorImage();
     btn.disabled = false;
     btn.textContent = 'Bridge via Stargate';
   }
@@ -511,6 +584,7 @@ async function startAoriBridge(wallet) {
     pollAoriStatus();
   } catch (e) {
     setStatus('Aori bridge failed: ' + (e.reason || e.message || '').slice(0, 140), 'error');
+    showErrorImage();
     btn.disabled = false;
     btn.textContent = 'Bridge via Aori';
   }
@@ -518,7 +592,7 @@ async function startAoriBridge(wallet) {
 
 async function pollAoriStatus() {
   clearInterval(state.statusTimer);
-  const orderHash = state.quote.order.orderHash;
+  const orderHash = state.quote.orderHash;
   const tick = async () => {
     try {
       const s = await api(`/api/aori/status?orderHash=${orderHash}`);
@@ -531,6 +605,7 @@ async function pollAoriStatus() {
       } else if (['failed', 'cancelled', 'expired'].includes(st)) {
         renderSteps(1, true);
         $('statusBox').innerHTML = `<div class="status error">Bridge ${st}</div>`;
+        showErrorImage();
         clearInterval(state.statusTimer);
       } else {
         renderSteps(1);
@@ -549,6 +624,7 @@ function bindEvents() {
   $('bridgeBtn').onclick = startBridge;
   $('bridgeSource').addEventListener('change', e => {
     state.source = e.target.value;
+    updateBridgeSourceLogo();
     state.quote = null; state.intent = null;
     $('depositCard').style.display = 'none';
     $('statusCard').style.display = 'none';
@@ -557,14 +633,15 @@ function bindEvents() {
     refreshTokens('from');
     refreshTokens('to');
   });
-  $('fromChain').addEventListener('change', e => { state.fromChain = e.target.value; refreshTokens('from'); });
-  $('toChain').addEventListener('change', e => { state.toChain = e.target.value; refreshTokens('to'); });
-  $('fromToken').addEventListener('change', () => { updateBalance(); scheduleQuote(); });
-  $('toToken').addEventListener('change', scheduleQuote);
+  $('fromChain').addEventListener('change', e => { state.fromChain = e.target.value; updateBridgeChainLogos(); refreshTokens('from'); });
+  $('toChain').addEventListener('change', e => { state.toChain = e.target.value; updateBridgeChainLogos(); refreshTokens('to'); });
+  $('fromToken').addEventListener('change', () => { updateBridgeTokenLogos(); updateBalance(); scheduleQuote(); });
+  $('toToken').addEventListener('change', () => { updateBridgeTokenLogos(); scheduleQuote(); });
   $('fromAmount').addEventListener('input', scheduleQuote);
   $('flipBtn').onclick = () => {
     [state.fromChain, state.toChain] = [state.toChain, state.fromChain];
     $('fromChain').value = state.fromChain; $('toChain').value = state.toChain;
+    updateBridgeChainLogos();
     [state.fromTokens, state.toTokens] = [state.toTokens, state.fromTokens];
     const fi = $('fromToken').value, ti = $('toToken').value;
     fillTokenSelect($('fromToken'), state.fromTokens); fillTokenSelect($('toToken'), state.toTokens);
@@ -576,6 +653,7 @@ function bindEvents() {
       const matchIdx = state.toTokens.findIndex(t => t.symbol === sym);
       if (matchIdx >= 0) $('toToken').value = String(matchIdx);
     }
+    updateBridgeTokenLogos();
     updateBalance(); scheduleQuote();
   };
   $('maxBtn').onclick = async () => {

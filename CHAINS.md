@@ -6,7 +6,7 @@ EVM chain IDs and LayerZero V2 endpoint IDs for all chains in this DEX.
 
 | Chain | EVM Chain ID | Native | LayerZero EID |
 |-------|-------------|--------|---------------|
-
+| Celo | 42220 | CELO | — |
 | Optimism | 10 | ETH | 30111 |
 | Ink | 57073 | ETH | — |
 | Base | 8453 | ETH | 30184 |

@@ -245,6 +245,33 @@ const OneInch = {
   },
 };
 
+/* ================= 1inch Fusion+ (cross-chain intents via server proxy) ================= */
+// Quotes only for now — order build/submit not wired. Same vault key as the
+// 1inch swap API (server/oneinch-fusion.js), Bearer auth via surrogate.
+// Cross-chain, so the signature differs from the same-chain adapters above.
+const OneInchFusion = {
+  async quote({ fromChainId, toChainId, srcToken, dstToken, amountAtomic, wallet }) {
+    let r;
+    try {
+      r = await fetch('/api/oneinch-fusion/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ srcChainId, dstChainId, srcToken, dstToken, amountAtomic, wallet }),
+      });
+    } catch { return null; }
+    if (!r.ok) return null;
+    const j = await r.json().catch(() => null);
+    if (!j?.dstTokenAmount || !j?.quoteId) return null;
+    return {
+      source: 'oneinchFusion',
+      amountOut: BigInt(j.dstTokenAmount),
+      quoteId: j.quoteId,
+      recommendedPreset: j.recommendedPreset,
+      raw: j,
+    };
+  },
+};
+
 /* ================= 0x (keyed) ================= */
 const ZeroX = {
   key() { return env('VITE_0X_API_KEY'); },
@@ -278,7 +305,7 @@ const ZeroX = {
 // surrogate pattern can't produce, so the backend holds the key.
 // EVM chains only — Zerion's swap API does not support Monad (verified 2026-10-07).
 const Zerion = {
-  supported: { 1: true, 10: true, 56: true, 130: true, 8453: true, 42161: true, 43114: true, 57073: true },
+  supported: { 1: true, 10: true, 56: true, 130: true, 8453: true, 42161: true, 42220: true, 43114: true, 57073: true },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const id = CHAINS[chainKey].chainId;
     if (!this.supported[id]) return null;
@@ -367,7 +394,7 @@ const Coinbase = {
 // Native token entries in chains.js use the wrapped address, so quotes are for
 // e.g. WETH; the normal ERC20 approval flow applies (spender = Universal Router).
 const Uniswap = {
-  supported: { 10: true, 57073: true, 8453: true, 130: true },
+  supported: { 42220: true, 10: true, 57073: true, 8453: true, 130: true },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const id = CHAINS[chainKey].chainId;
     if (!this.supported[id]) return null;
@@ -424,6 +451,7 @@ export const ADAPTERS = {
   velora: Velora,
   coinbase: Coinbase,
   oneinch: OneInch,
+  oneinchFusion: OneInchFusion,
   zerox: ZeroX,
   zerion: Zerion,
 };

@@ -47,38 +47,14 @@ import {
 } from "./bushido.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap } from "./oneinch.js";
-import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
-
-// Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
-// cached 5 min. Feeds the Bushido Seykota signal, which needs >= 30 points.
-let ethCloses = { at: 0, data: [] };
-async function getEthCloses() {
-  if (Date.now() - ethCloses.at < 5 * 60_000 && ethCloses.data.length) return ethCloses.data;
-  const r = await fetch("https://api.exchange.coinbase.com/products/ETH-USD/candles?granularity=3600", {
-    headers: { "User-Agent": "monad-dex/1.0" },
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!r.ok) throw new Error(`candles ${r.status}`);
-  const rows = await r.json(); // [time, low, high, open, close, volume], newest first
-  const data = rows.slice(0, 72).map((c) => Number(c[4])).reverse();
-  ethCloses = { at: Date.now(), data };
-  return data;
-}
+import { fusionQuote } from "./oneinch-fusion.js";
+import { macroFeed } from "./macro.js";
 
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
-
-// Behind a reverse proxy (nginx, Cloudflare, Render, Railway…) req.ip would be
-// the proxy's address, so every visitor shares one rate-limit bucket.
-// TRUST_PROXY=1 trusts one proxy hop (use 2 for Cloudflare -> nginx, etc.).
-// Leave unset when clients connect directly — otherwise X-Forwarded-For can be spoofed.
-const TRUST_PROXY = process.env.TRUST_PROXY?.trim();
-if (TRUST_PROXY) {
-  app.set("trust proxy", /^\d+$/.test(TRUST_PROXY) ? Number(TRUST_PROXY) : TRUST_PROXY);
-}
 
 app.use(express.json({ limit: "64kb" }));
 app.use(
@@ -402,6 +378,16 @@ app.get("/api/bushido/virtues", async (req, res) => {
   }
 });
 
+// GET /api/macro?trader=0x… — standalone live macro feed (Druckenmiller × Seykota)
+app.get("/api/macro", async (req, res) => {
+  try {
+    const trader = String(req.query.trader || "");
+    res.json(await macroFeed(/^0x[0-9a-fA-F]{40}$/.test(trader) ? trader : null));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
 // GET /api/bushido/strategies — strategy list
 app.get("/api/bushido/strategies", (_req, res) => {
   res.json({ strategies: listStrategies() });
@@ -427,20 +413,10 @@ app.get("/api/bushido/dashboard", async (req, res) => {
   try {
     const trader = String(req.query.trader || "");
     if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
-    let feeds = {};
-    try { feeds = { "ETH-USD": await getEthCloses() }; } catch { /* signal falls back to WAIT */ }
-    res.json(await dashboardData(trader, feeds));
+    res.json(await dashboardData(trader));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
-});
-
-// ---- DEX Intelligence (canned research answers; SAMPLE data, not live) ----
-// POST /api/intel/ask — { query } -> { messages: [...] }
-app.post("/api/intel/ask", (req, res) => {
-  const query = String(req.body?.query || "").trim().slice(0, 300);
-  if (!query) return res.status(400).json({ error: "missing query" });
-  res.json({ messages: getDexIntelligenceResponse(query), sample: true });
 });
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----
@@ -482,6 +458,21 @@ app.post("/api/oneinch/swap", async (req, res) => {
       return res.status(400).json({ error: "missing params" });
     }
     res.json(await oneinchSwap({ chainId, src, dst, amountAtomic, from, slippageBps }));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// ---- 1inch Fusion+ cross-chain quotes (server-side proxy, vault key) ----
+// POST /api/oneinch-fusion/quote — { srcChainId, dstChainId, srcToken, dstToken, amountAtomic, wallet }
+// QUOTES ONLY — order build/submit is not wired yet.
+app.post("/api/oneinch-fusion/quote", async (req, res) => {
+  try {
+    const { srcChainId, dstChainId, srcToken, dstToken, amountAtomic, wallet } = req.body || {};
+    if (!srcChainId || !dstChainId || !srcToken || !dstToken || !amountAtomic || !wallet) {
+      return res.status(400).json({ error: "missing params" });
+    }
+    res.json(await fusionQuote({ srcChainId, dstChainId, srcToken, dstToken, amountAtomic, wallet }));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }

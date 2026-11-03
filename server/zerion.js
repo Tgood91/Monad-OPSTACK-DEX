@@ -16,10 +16,11 @@ const ALLOWED_HOST = "api.zerion.io";
 export const ZERION_CHAINS = {
   1: "ethereum",
   10: "optimism",
-  56: "binance-smart-chain", // Zerion's id (GET /v1/chains), not "bsc"
+  56: "bsc",
   130: "unichain",
   8453: "base",
   42161: "arbitrum",
+  42220: "celo",
   43114: "avalanche",
   57073: "ink",
 };
@@ -79,12 +80,8 @@ export async function zerionQuote({ chainId, tokenIn, tokenOut, amountHuman, tak
   const swapTx = q.transaction_swap.evm || q.transaction_swap;
   const ap = q.transaction_approve?.evm || q.transaction_approve;
   return {
-    // Amount fields are objects: { quantity (human-readable token amount),
-    // value, usd_value, currency }. output_amount_after_fees has NO quantity,
-    // only USD values — the token amount is output_amount.quantity.
-    amountOut: String(q.output_amount?.quantity ?? "0"),
-    minAmountOut: q.minimum_output_amount?.quantity ?? null,
-    amountOutUsd: Number(q.output_amount_after_fees?.usd_value ?? q.output_amount?.usd_value) || undefined,
+    amountOut: String(q.output_amount_after_fees ?? q.output_amount ?? "0"),
+    amountOutUsd: parseFloat(q.output_amount_usd ?? 0) || undefined,
     to: swapTx.to,
     data: swapTx.data,
     value: String(swapTx.value || 0),

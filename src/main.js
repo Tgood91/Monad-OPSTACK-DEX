@@ -13,10 +13,11 @@ import {
   openConnect,
 } from './utils/web3.js';
 import { showStatus, showLoading, clearStatus, fmtAmount, fmtUsd, setButtonLoading, el } from './utils/ui.js';
+import { chainLogoFor, setTokenLogo, sourceLogoFor, showErrorImage, showSwapSuccessImage, showConnectSplash, CONNECT_SPLASH_MS } from './ui/images.js';
 import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- state ---------------- */
-let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
+let chainKey = 'celo';
 let enabledSources = new Set(['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion']);
 let quotes = null;
 let selectedQuote = null;
@@ -25,13 +26,24 @@ let slippageBps = 50;
 
 const $ = id => document.getElementById(id);
 
+// Small source-logo <img> for a router/aggregator key; empty string when the
+// source has no logo file yet.
+function srcLogoImg(source) {
+  const logo = sourceLogoFor(source);
+  return logo ? `<img class="src-logo" src="${logo}" alt="">` : '';
+}
+
 /* ---------------- rendering ---------------- */
 function renderChains() {
   const g = $('chainGrid');
   g.innerHTML = '';
   for (const [key, c] of Object.entries(CHAINS)) {
+    const logo = chainLogoFor(key);
+    const icon = logo
+      ? `<img class="chain-logo" src="${logo}" alt="">`
+      : `<span class="dot" style="background:${c.color}"></span>`;
     const b = el('button', 'chain-btn' + (key === chainKey ? ' active' : ''),
-      `<span class="dot" style="background:${c.color}"></span>${c.label}`);
+      `${icon}${c.label}`);
     b.onclick = () => switchChainUI(key);
     g.appendChild(b);
   }
@@ -46,7 +58,7 @@ function renderSources() {
     const keySet = !needsKey || !!ADAPTERS[src].key?.();
     const chip = el('button',
       'src-chip' + (enabledSources.has(src) ? ' active' : ' off') + (keySet ? '' : ' no-key'),
-      `${m.label}${keySet ? '' : ' 🔑'}`);
+      `${srcLogoImg(src)}${m.label}${keySet ? '' : ' 🔑'}`);
     chip.title = `${m.tag}${keySet ? '' : ' — API key not set (see .env)'}`;
     chip.onclick = () => {
       enabledSources.has(src) ? enabledSources.delete(src) : enabledSources.add(src);
@@ -65,6 +77,13 @@ function renderTokens() {
   }
   $('fromToken').selectedIndex = 0;
   $('toToken').selectedIndex = Math.min(1, toks.length - 1);
+  updateSwapTokenLogos();
+}
+
+function updateSwapTokenLogos() {
+  const { in: tIn, out: tOut } = selTokens();
+  setTokenLogo($('fromTokenLogo'), tIn?.symbol);
+  setTokenLogo($('toTokenLogo'), tOut?.symbol);
 }
 
 function selTokens() {
@@ -190,13 +209,13 @@ function renderQuotes(tIn, tOut, amtStr) {
   for (const r of quotes.all) {
     const m = SOURCE_META[r.source];
     if (!r.ok) {
-      html += `<div class="qr"><span class="qsrc">${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`;
+      html += `<div class="qr"><span class="qsrc">${srcLogoImg(r.source)}${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`;
       continue;
     }
     const q = r.quote;
     const isBest = r === quotes.best, isSel = q === selectedQuote;
     html += `<div class="qr${isBest ? ' winner' : ''}${isSel ? ' selected' : ''}" data-src="${r.source}">
-      <span class="qsrc">${m.label}<span class="tag">${m.tag}${q.raw?.kind ? ' · ' + q.raw.kind : ''}</span></span>
+      <span class="qsrc">${srcLogoImg(r.source)}${m.label}<span class="tag">${m.tag}${q.raw?.kind ? ' · ' + q.raw.kind : ''}</span></span>
       <span class="qout">${fmtAmount(q.amountOut, tOut.decimals)} ${tOut.symbol}${q.amountOutUsd ? `<span class="usd">${fmtUsd(q.amountOutUsd)}</span>` : ''}</span>
       <span>${isBest ? '<span class="qbadge">BEST</span>' : ''}</span></div>`;
   }
@@ -212,7 +231,7 @@ function renderQuotes(tIn, tOut, amtStr) {
   const rate = parseFloat(ethers.formatUnits(q.amountOut, tOut.decimals)) / parseFloat(amtStr);
   const minOut = q.amountOut * BigInt(10000 - slippageBps) / 10000n;
   detail.innerHTML = `<div class="detail-grid">
-    <span class="k">Source</span><span class="v">${SOURCE_META[q.source].label}</span>
+    <span class="k">Source</span><span class="v">${srcLogoImg(q.source)}${SOURCE_META[q.source].label}</span>
     <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
     <span class="k">Min received</span><span class="v">${fmtAmount(minOut, tOut.decimals)} ${tOut.symbol}</span>
     ${q.gasUsd ? `<span class="k">Est. gas</span><span class="v">${fmtUsd(q.gasUsd)}</span>` : ''}
@@ -229,7 +248,7 @@ async function checkApproval() {
   const q = selectedQuote;
   if (q.tokenIn.isNative) {
     swapBtn.disabled = false;
-    swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+    swapBtn.innerHTML = `${srcLogoImg(q.source)}Swap via ${SOURCE_META[q.source].label}`;
     return;
   }
   try {
@@ -239,24 +258,26 @@ async function checkApproval() {
     const al = await getAllowance(q.tokenIn.address, getAddress(), tx.spender, chainKey);
     if (al < q.amountInWei) {
       approveBtn.style.display = 'block';
-      approveBtn.textContent = `Approve ${q.tokenIn.symbol} for ${SOURCE_META[q.source].label}`;
+      approveBtn.innerHTML = `${srcLogoImg(q.source)}Approve ${q.tokenIn.symbol} for ${SOURCE_META[q.source].label}`;
       swapBtn.disabled = true;
       swapBtn.textContent = 'Approve first';
     } else {
       swapBtn.disabled = false;
-      swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+      swapBtn.innerHTML = `${srcLogoImg(q.source)}Swap via ${SOURCE_META[q.source].label}`;
     }
   } catch {
     // buildTx needs a fresh quote at swap time — allow the attempt anyway
     swapBtn.disabled = false;
-    swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+    swapBtn.innerHTML = `${srcLogoImg(q.source)}Swap via ${SOURCE_META[q.source].label}`;
   }
 }
 
 /* ---------------- actions ---------------- */
 $('connectBtn').onclick = () => {
-  if (isConnected()) appKit.open({ view: 'Account' });
-  else openConnect();
+  if (isConnected()) { appKit.open({ view: 'Account' }); return; }
+  // Toad Gang splash first, then the wallet modal.
+  showConnectSplash();
+  setTimeout(() => openConnect(), CONNECT_SPLASH_MS);
 };
 
 $('flipBtn').onclick = () => {
@@ -284,8 +305,8 @@ $('maxBtn').onclick = async () => {
 };
 
 $('fromAmount').addEventListener('input', scheduleQuote);
-$('fromToken').addEventListener('change', () => { scheduleQuote(); updateBalances(); });
-$('toToken').addEventListener('change', () => { scheduleQuote(); updateBalances(); });
+$('fromToken').addEventListener('change', () => { updateSwapTokenLogos(); scheduleQuote(); updateBalances(); });
+$('toToken').addEventListener('change', () => { updateSwapTokenLogos(); scheduleQuote(); updateBalances(); });
 
 document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-slip]').forEach(x => x.classList.remove('active'));
@@ -318,6 +339,7 @@ $('approveBtn').onclick = async () => {
     checkApproval();
   } catch (e) {
     showStatus('Approval failed: ' + (e.reason || e.message || '').slice(0, 100), 'error');
+    showErrorImage();
   }
 };
 
@@ -344,19 +366,74 @@ $('swapBtn').onclick = async () => {
     showLoading(`Confirming… <a href="${ex}/tx/${sent.hash}" target="_blank">view</a>`);
     const rc = await sent.wait();
     showStatus(`Swapped ✓ <a href="${ex}/tx/${rc.hash}" target="_blank">view tx</a>`, 'success');
+    showSwapSuccessImage();
     q._tx = null;
     updateBalances();
     scheduleQuote();
   } catch (e) {
     showStatus('Swap failed: ' + (e.reason || e.message || '').slice(0, 140), 'error');
+    showErrorImage();
   }
 };
+
+/* ---------------- Bushido virtues + cron tabs ---------------- */
+// Virtue scores come from /api/bushido/virtues (needs a connected wallet
+// address; the endpoint 400s without one). Cards show — until then.
+const VIRTUE_IDS = ['gi', 'yu', 'jin', 'makoto', 'meiyo', 'chugi'];
+async function loadVirtues() {
+  const addr = getAddress();
+  if (!addr) return;
+  try {
+    const res = await fetch(`/api/bushido/virtues?trader=${addr}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const byId = Object.fromEntries((data.virtues || []).map(v => [v.id, v.score ?? 0.5]));
+    for (const id of VIRTUE_IDS) {
+      const score = byId[id];
+      if (score == null) continue;
+      const scoreEl = $('vScore-' + id);
+      if (scoreEl) scoreEl.textContent = score.toFixed(2);
+      const barEl = $('vBar-' + id);
+      if (barEl) barEl.style.width = Math.round(score * 100) + '%';
+    }
+    if (byId.gi != null) $('gateGi').textContent = `${byId.gi.toFixed(2)} (needs ≥ 0.60)`;
+    if (byId.yu != null) $('gateYu').textContent = `${byId.yu.toFixed(2)} (needs ≥ 0.50)`;
+    const gateOpen = (byId.gi ?? 0) >= 0.6 && (byId.yu ?? 0) >= 0.5;
+    $('gateStatus').textContent = gateOpen ? 'Gate open — signals can fire' : 'Gate closed — signals blocked (WAIT)';
+  } catch { /* leave scores as — */ }
+}
+
+/* Live macro feed (standalone, /api/macro). On failure the static
+   "no live feed" note stays — the tab never shows a fake regime. */
+async function loadMacro() {
+  try {
+    const res = await fetch('/api/macro');
+    if (!res.ok) return;
+    const d = await res.json();
+    const r = $('macroRegime');
+    if (r) r.textContent = `${d.regime} (${d.regimeScore >= 0 ? '+' : ''}${d.regimeScore})`;
+    const b = $('macroBlended');
+    if (b) b.textContent = (d.signals || []).map(s => `${s.label}: ${s.blended} · ${s.virtue?.name ?? '—'}`).join(' | ') || '—';
+    const n = $('macroNote');
+    if (n) n.textContent = 'Live — standalone feed at /macro.html, refreshes every 60s.';
+  } catch { /* leave the static note */ }
+}
+
+function initCronTabs() {
+  document.querySelectorAll('[data-cron-tab]').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('[data-cron-tab]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('[data-cron-panel]').forEach(p => { p.style.display = p.dataset.cronPanel === btn.dataset.cronTab ? '' : 'none'; });
+    };
+  });
+}
 
 /* ---------------- subscriptions ---------------- */
 subscribeToAccountChanges(() => {
   updateWalletUI();
   updateBalances();
   scheduleQuote();
+  loadVirtues();
 });
 subscribeToNetworkChanges(() => {
   updateWalletUI();
@@ -366,18 +443,18 @@ subscribeToNetworkChanges(() => {
 renderChains();
 renderSources();
 renderTokens();
-$('fromAmount').value = '1'; // default pair on Monad is MON -> USDC
 updateWalletUI();
 scheduleQuote();
+initCronTabs();
+loadVirtues();
+loadMacro();
 
 /* ---------------- tabs: Swap | Bridge ---------------- */
-const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'] };
-for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchTab(name);
-async function switchTab(which) {
-  for (const [name, [tab, pane]] of Object.entries(TABS)) {
-    $(tab).classList.toggle('active', name === which);
-    $(pane).style.display = name === which ? '' : 'none';
-  }
-  // React + the dashboard load only when the Bushido tab is first opened.
-  if (which === 'bushido') (await import('./bushido-mount.jsx')).showBushido();
+$('tabSwap').onclick = () => switchTab('swap');
+$('tabBridge').onclick = () => switchTab('bridge');
+function switchTab(which) {
+  $('tabSwap').classList.toggle('active', which === 'swap');
+  $('tabBridge').classList.toggle('active', which === 'bridge');
+  $('swapPane').style.display = which === 'swap' ? '' : 'none';
+  $('bridgePane').style.display = which === 'bridge' ? '' : 'none';
 }

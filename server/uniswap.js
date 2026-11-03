@@ -3,11 +3,9 @@
 // surrogate from authd over its Unix socket and sends it as x-api-key.
 // Sentinel replaces the surrogate with the real key on egress to the
 // approved host. The raw key never touches this process's memory.
-// Set UNISWAP_API_KEY in the server env to skip the vault (any normal host).
 // Docs: https://developers.uniswap.org/docs/trading/swapping-api
 
 import net from "node:net";
-import fs from "node:fs";
 
 const AUTHD_SOCK = process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock";
 const API = "https://trade-api.gateway.uniswap.org/v1";
@@ -15,7 +13,7 @@ const ALLOWED_HOST = "trade-api.gateway.uniswap.org";
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
 // Chains the DEX supports that Uniswap classic routing covers.
-export const UNISWAP_CHAINS = new Set([1, 10, 8453, 130, 57073]);
+export const UNISWAP_CHAINS = new Set([1, 10, 8453, 130, 42220, 57073]);
 
 let surrogate = null;
 let surrogateAt = 0;
@@ -51,20 +49,12 @@ function authdPost(payload) {
 }
 
 async function getSurrogate() {
-  // Plain env key (Vercel/Replit/any host) takes priority over the vault.
-  const envKey = process.env.UNISWAP_API_KEY?.trim();
-  if (envKey) return envKey;
   if (surrogate && Date.now() - surrogateAt < SURROGATE_TTL_MS) return surrogate;
-  let j;
-  try {
-    j = await authdPost({ name: "custom.uniswap" });
-  } catch {
-    throw new Error("UNISWAP_API_KEY not set");
-  }
+  const j = await authdPost({ name: "custom.uniswap" });
   const entry = (j.credentials || []).find((c) => c.name === "access_token");
   const s = entry?.surrogate;
   if (typeof s !== "string" || !s.startsWith("hsurr:")) {
-    throw new Error("UNISWAP_API_KEY not set");
+    throw new Error("no uniswap surrogate from authd");
   }
   surrogate = s;
   surrogateAt = Date.now();
@@ -110,9 +100,7 @@ export async function uniswapQuote({ chainId, tokenIn, tokenOut, amountAtomic, t
     tokenIn,
     tokenOut,
     swapper: taker,
-    // Uniswap expects a PERCENT (0.5 = 0.5%), not basis points. Sending bps
-    // (50) would allow 50% slippage.
-    slippageTolerance: slippageBps / 100,
+    slippageTolerance: slippageBps,
     routingPreference: "BEST_PRICE",
   });
   const q = j.quote;
@@ -146,6 +134,5 @@ export async function uniswapBuildSwap(rawQuote) {
 }
 
 export function uniswapConfigured() {
-  // Env key, or the vault socket (surrogates fetched on demand).
-  return Boolean(process.env.UNISWAP_API_KEY?.trim()) || fs.existsSync(AUTHD_SOCK);
+  return true; // credential lives in the vault; surrogates fetched on demand
 }
