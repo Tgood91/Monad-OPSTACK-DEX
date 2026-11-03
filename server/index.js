@@ -47,7 +47,7 @@ import {
 } from "./bushido.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap } from "./oneinch.js";
-import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
+import { bridgeHealth } from "./bridge-health.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
 
 // Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
@@ -104,6 +104,16 @@ app.use("/api", (req, res, next) => {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, coinbase: cdpConfigured(), stream: streamStatus(), time: new Date().toISOString() });
+});
+
+// Bridge source health: cached probe round (1-USDC quotes, read-only).
+// ?refresh=1 forces a fresh round.
+app.get("/api/bridge/health", async (req, res) => {
+  try {
+    res.json(await bridgeHealth({ force: req.query.refresh === "1" }));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
 });
 
 // GET /api/coinbase/prices?products=ETH-USD,BTC-USD
@@ -483,38 +493,6 @@ app.post("/api/oneinch/swap", async (req, res) => {
       return res.status(400).json({ error: "missing params" });
     }
     res.json(await oneinchSwap({ chainId, src, dst, amountAtomic, from, slippageBps }));
-  } catch (e) {
-    res.status(502).json({ error: String(e.message).slice(0, 200) });
-  }
-});
-
-app.get("/api/merkl/rewards", async (req, res) => {
-  try {
-    const { address, chainId } = req.query || {};
-    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
-      return res.status(400).json({ error: "bad address" });
-    }
-    res.json(await merklRewards(address, chainId));
-  } catch (e) {
-    res.status(502).json({ error: String(e.message).slice(0, 200) });
-  }
-});
-
-app.get("/api/merkl/claim-data", async (req, res) => {
-  try {
-    const { address, chainId } = req.query || {};
-    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address) || !chainId) {
-      return res.status(400).json({ error: "missing params" });
-    }
-    res.json(await merklClaimData(address, chainId));
-  } catch (e) {
-    res.status(502).json({ error: String(e.message).slice(0, 200) });
-  }
-});
-
-app.get("/api/merkl/opportunities", async (req, res) => {
-  try {
-    res.json(await merklOpportunities({ chainId: req.query.chainId, items: req.query.items }));
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }

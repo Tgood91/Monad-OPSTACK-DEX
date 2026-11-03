@@ -107,6 +107,12 @@
   .intel-answer h4 { font-size: 15px; margin-bottom: 6px; }
   .intel-answer code { background: #ffffff12; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 
+  /* ---- Bridge health strip ---- */
+  .bh-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bh-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .bh-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .bh-routes { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.7; }
+
   /* ---- Bushido tab: the React component brings its own Tailwind padding ---- */
   .bushido-card { padding: 0; }
 </style>
@@ -126,7 +132,6 @@
     <button class="tab-btn" id="tabBridge">🌉 Bridge</button>
     <button class="tab-btn" id="tabIntel">🧠 Intel</button>
     <button class="tab-btn" id="tabBushido">⛩ Bushido</button>
-    <button class="tab-btn" id="tabMerkl">🎁 Rewards</button>
   </div>
 
   <!-- ============ SWAP PANE ============ -->
@@ -183,6 +188,10 @@
 
   <!-- ============ BRIDGE PANE ============ -->
   <div id="bridgePane" style="display:none;">
+    <div class="card">
+      <span class="lbl">Bridge health — live probes (1 USDC quotes)</span>
+      <div id="bridgeHealth"><div class="status">Probing bridge sources…</div></div>
+    </div>
     <div class="card">
       <span class="lbl">Bridge via</span>
       <div class="chain-row">
@@ -251,29 +260,10 @@
   <div id="bushidoPane" style="display:none;">
     <div class="card bushido-card" id="bushidoRoot"></div>
   </div>
-
-  <!-- ============ MERKL REWARDS PANE ============ -->
-  <div id="merklPane" style="display:none;">
-    <div class="card">
-      <span class="lbl">Your Merkl rewards — Ethereum · Base · Monad</span>
-      <div id="merklRewards"><div class="status">Connect a wallet to see your Merkl rewards.</div></div>
-      <div id="merklStatus"></div>
-      <button class="btn" id="merklRefresh" style="width:auto;padding:8px 16px;">Refresh</button>
-    </div>
-    <div class="card">
-      <span class="lbl">Top live opportunities</span>
-      <select class="chain-select" id="merklOppChain">
-        <option value="8453" selected>Base</option>
-        <option value="143">Monad</option>
-        <option value="1">Ethereum</option>
-        <option value="10">Optimism</option>
-      </select>
-      <div id="merklOpps"></div>
-    </div>
-  </div>
 </div>
 <script type="module" src="/src/main.js"></script>
 <script type="module" src="/src/bridge.js"></script>
+<script type="module" src="/src/bridge-health.js"></script>
 <script type="module" src="/src/intel.js"></script>
 </body>
 </html>
