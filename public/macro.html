@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Macro Feed — BUSHIDO · Druckenmiller × Seykota</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg: #070d1a; --card: #101a2e; --border: #1e2d4a; --accent: #d4a574; --text: #e8e8ec; --muted: #8fa3c0; --green: #22c55e; --red: #f87171; --gold: #fbbf24; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: radial-gradient(1200px 600px at 50% -10%, #12325c 0%, var(--bg) 55%); color: var(--text); min-height: 100vh; }
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 24px; letter-spacing: 2px; background: linear-gradient(90deg, #f5d48b, #d4a574 55%, #9a6b2f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: 13px; margin: 4px 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .regime { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+  .regime.RISK-ON { color: var(--green); } .regime.RISK-OFF { color: var(--red); } .regime.NEUTRAL { color: var(--gold); }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { text-align: left; color: var(--muted); font-size: 11px; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 4px; border-bottom: 1px solid #16263f; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .sig { font-weight: 700; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .err { color: var(--red); font-size: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>MACRO FEED <span style="font-size:18px;">八德</span></h1>
+  <div class="sub">Druckenmiller factors × Seykota trend · keyless sources (Yahoo Finance) · <a href="/">← back to DEX</a></div>
+
+  <div class="card"><div class="regime" id="regime">—</div><div class="meta" id="regimeMeta"></div></div>
+
+  <div class="card">
+    <h2 style="font-size:15px;">Factors</h2>
+    <table><thead><tr><th>Factor</th><th>Last</th><th>1d</th><th>vs EMA26</th><th>Vote</th><th>Seykota</th></tr></thead>
+    <tbody id="factors"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:15px;">Blended signals</h2>
+    <table><thead><tr><th>Asset</th><th>Trend</th><th>Regime</th><th>Virtue gate</th><th>Blended</th><th>Virtue</th></tr></thead>
+    <tbody id="signals"></tbody></table>
+    <div class="note" id="gateNote"></div>
+  </div>
+
+  <div class="card"><div class="note" id="notes"></div><div class="meta" id="updated"></div></div>
+</div>
+<script>
+const q = new URLSearchParams(location.search);
+const trader = q.get('trader') || '';
+async function load() {
+  try {
+    const res = await fetch('/api/macro' + (trader ? `?trader=${trader}` : ''));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    const r = document.getElementById('regime');
+    r.textContent = d.regime + '  (' + (d.regimeScore >= 0 ? '+' : '') + d.regimeScore + ')';
+    r.className = 'regime ' + d.regime;
+    document.getElementById('regimeMeta').textContent = 'Score = sum of 7 factor votes vs EMA26 (≥ +3 RISK-ON, ≤ −3 RISK-OFF)' + (d.cached ? ' · cached' : '');
+    document.getElementById('factors').innerHTML = d.factors.map(f => {
+      if (!f.available) return `<tr><td>${f.label}</td><td colspan="5" class="err">unavailable</td></tr>`;
+      const chg = f.change1dPct >= 0 ? '+' + f.change1dPct.toFixed(2) : f.change1dPct.toFixed(2);
+      const chgCls = f.change1dPct >= 0 ? 'up' : 'down';
+      const vote = f.vote > 0 ? '+1 risk-on' : '−1 risk-off';
+      return `<tr><td>${f.label}</td><td>${f.last.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td class="${chgCls}">${chg}%</td><td>${f.trend}</td><td>${vote}</td><td class="sig">${f.seykota}</td></tr>`;
+    }).join('');
+    document.getElementById('signals').innerHTML = d.signals.map(s =>
+      `<tr><td>${s.label}</td><td class="sig">${s.trend}</td><td>${s.regime}</td><td>${s.virtueGate}</td><td class="sig">${s.blended}</td><td title="Gi ${s.virtueScores.gi.toFixed(2)} · Yu ${s.virtueScores.yu.toFixed(2)} · Jin ${s.virtueScores.jin == null ? '—' : s.virtueScores.jin.toFixed(2)}">${s.virtue.name} — ${s.virtue.meaning}</td></tr>`
+    ).join('') || '<tr><td colspan="6">no signals</td></tr>';
+    document.getElementById('gateNote').textContent =
+      d.virtueGate.status === 'unknown'
+        ? 'Virtue gate unknown — add ?trader=0x… to check Gi ≥ 0.60 / Yu ≥ 0.50.'
+        : `Virtue gate ${d.virtueGate.status} (Gi ${d.virtueGate.gi.toFixed(2)}, Yu ${d.virtueGate.yu.toFixed(2)}).`;
+    document.getElementById('notes').innerHTML = d.notes.map(n => `<div>· ${n}</div>`).join('');
+    document.getElementById('updated').textContent = 'Updated ' + new Date(d.updatedAt).toLocaleString() + ' · auto-refreshes every 60s';
+  } catch (e) {
+    document.getElementById('regime').textContent = 'Feed unavailable';
+    document.getElementById('regime').className = 'regime';
+    document.getElementById('regimeMeta').textContent = String(e.message || e);
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
