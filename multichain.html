@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velodrome Multi-Chain DEX — Celo / Optimism / Ink</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e8e8ec; min-height: 100vh; }
+  .container { max-width: 520px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #14141b; border: 1px solid #23232e; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .chain-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .chain-btn { flex: 1; padding: 12px 8px; border-radius: 12px; border: 1px solid #2a2a35; background: #16161e; color: #ccc; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+  .chain-btn:hover { border-color: #4a4a5a; }
+  .chain-btn.active { border-color: #7c5cff; background: #1e1836; color: #fff; }
+  .chain-btn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .token-card label { font-size: 12px; color: #888; display: block; margin-bottom: 8px; }
+  .token-row { display: flex; gap: 10px; align-items: center; }
+  .token-select { flex: 0 0 130px; padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .amount-input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 18px; text-align: right; }
+  .amount-input:focus, .token-select:focus { outline: none; border-color: #7c5cff; }
+  .balance-row { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 8px; }
+  .balance-row button { background: none; border: none; color: #7c5cff; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .flip-row { display: flex; justify-content: center; margin: 4px 0; }
+  .flip-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; cursor: pointer; font-size: 18px; }
+  .flip-btn:hover { border-color: #7c5cff; }
+  .quote-box { min-height: 60px; }
+  .quote-line { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #1e1e28; }
+  .quote-line:last-child { border-bottom: none; }
+  .quote-line .k { color: #888; }
+  .quote-line .v { font-weight: 600; }
+  .quote-line .v.good { color: #4ade80; }
+  .quote-line .v.warn { color: #fbbf24; }
+  .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .15s; }
+  .btn-connect { background: #7c5cff; color: #fff; }
+  .btn-connect:hover { background: #6a4de0; }
+  .btn-swap { background: #22c55e; color: #fff; }
+  .btn-swap:hover { background: #16a34a; }
+  .btn-swap:disabled { background: #2a2a35; color: #666; cursor: not-allowed; }
+  .btn-approve { background: #f59e0b; color: #000; margin-bottom: 8px; }
+  .status { font-size: 13px; color: #888; text-align: center; padding: 12px; }
+  .status.error { color: #f87171; }
+  .status.success { color: #4ade80; }
+  .wallet-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; }
+  .wallet-addr { background: #1c1c26; padding: 8px 12px; border-radius: 10px; font-family: monospace; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #333; border-top-color: #7c5cff; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pool-info { font-size: 11px; color: #666; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>⚡ Velodrome DEX</h1>
+  <div class="subtitle">Multi-chain swaps via Velodrome Finance</div>
+
+  <div class="wallet-bar">
+    <span id="networkStatus">Not connected</span>
+    <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect Wallet</button>
+  </div>
+
+  <div class="card">
+    <label style="font-size:12px;color:#888;display:block;margin-bottom:8px;">Chain</label>
+    <div class="chain-row" id="chainRow">
+      <button class="chain-btn active" data-chain="celo"><span class="dot" style="background:#35d07f"></span>Celo</button>
+      <button class="chain-btn" data-chain="optimism"><span class="dot" style="background:#ff0420"></span>Optimism</button>
+      <button class="chain-btn" data-chain="ink"><span class="dot" style="background:#7c5cff"></span>Ink</button>
+    </div>
+  </div>
+
+  <div class="card token-card">
+    <label>From</label>
+    <div class="token-row">
+      <select class="token-select" id="fromToken"></select>
+      <input class="amount-input" id="fromAmount" type="number" placeholder="0.0" min="0" step="any">
+    </div>
+    <div class="balance-row">
+      <span id="fromBalance">Balance: —</span>
+      <button id="maxBtn">MAX</button>
+    </div>
+  </div>
+
+  <div class="flip-row">
+    <button class="flip-btn" id="flipBtn">⇅</button>
+  </div>
+
+  <div class="card token-card">
+    <label>To</label>
+    <div class="token-row">
+      <select class="token-select" id="toToken"></select>
+      <input class="amount-input" id="toAmount" type="text" placeholder="0.0" readonly>
+    </div>
+    <div class="balance-row">
+      <span id="toBalance">Balance: —</span>
+      <span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="quote-box" id="quoteBox">
+      <div class="status">Enter an amount to get a Velodrome quote</div>
+    </div>
+    <div class="pool-info" id="poolInfo"></div>
+  </div>
+
+  <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
+  <button class="btn btn-swap" id="swapBtn" disabled>Select tokens</button>
+  <div class="status" id="txStatus"></div>
+</div>
+
+<script>
+// ============ CHAIN CONFIGS ============
+const CHAINS = {
+  celo: {
+    chainId: 42220, name: 'Celo', native: 'CELO',
+    rpcs: ['https://rpc.ankr.com/celo', 'https://forno.celo.org'],
+    explorer: 'https://celoscan.io',
+    // Velodrome Superchain (v1.1)
+    velo: {
+      clQuoter: '0x426ef6F781bA0Fbc1A7b0D3399D6FA6548464C85',
+      clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
+      v2Factory: '0x31832f2a97Fd20664D76Cc421207669b55CE4BC0',
+      v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
+      clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
+    },
+    tokens: [
+      { symbol: 'CELO', address: '0x471EcE3750Da237f93B8E339c536989b8978a438', decimals: 18, native: true },
+      { symbol: 'USDC', address: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C', decimals: 6 },
+      { symbol: 'USDT', address: '0x48065fbBE25f71C9282ddF5A9CDA2F9A8eCC70F', decimals: 6 },
+      { symbol: 'cUSD', address: '0x765DE816845861e75A25fCA122bb6898B8B1282a', decimals: 18 },
+      { symbol: 'cEUR', address: '0xD8763CBF729b740535fB71F36f21d0FC0A3973D70', decimals: 18 },
+    ],
+  },
+  optimism: {
+    chainId: 10, name: 'Optimism', native: 'ETH',
+    rpcs: ['https://optimism.drpc.org', 'https://1rpc.io/op'],
+    explorer: 'https://optimistic.etherscan.io',
+    // Velodrome original deployment
+    velo: {
+      clQuoter: '0xAd432b2ca49965266133F2bd4c17dc1Ec12f5DEB',
+      clFactory: '0xe13Dd1fbA721Aa81a1826D9523AC9BC7d260c879',
+      clRouter: '0xbA3aEe516399388C779463183d00bB579f5041Ca',
+      v2Factory: '0xF1046053aa5682b4F9a81b5481394DA16BE5FF5a',
+      v2Router: '0xa062aE8A9c5e11aaA026fc2670B0D65cCc8B2858',
+    },
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, native: true },
+      { symbol: 'USDC', address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals: 6 },
+      { symbol: 'USDT', address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', decimals: 6 },
+      { symbol: 'DAI', address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18 },
+      { symbol: 'VELO', address: '0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db', decimals: 18 },
+      { symbol: 'OP', address: '0x4200000000000000000000000000000000000042', decimals: 18 },
+      { symbol: 'WBTC', address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', decimals: 8 },
+    ],
+  },
+  ink: {
+    chainId: 57073, name: 'Ink', native: 'ETH',
+    rpcs: ['https://rpc-gel.inkonchain.com'],
+    explorer: 'https://explorer.inkonchain.com',
+    // Velodrome Superchain
+    velo: {
+      clQuoter: '0x426ef6F781bA0Fbc1A7b0D3399D6FA6548464C85',
+      clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
+      v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
+      clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
+    },
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, native: true },
+      { symbol: 'USDC', address: '0x2D270e6886d130D724215A266106e6832161EAEd', decimals: 6 },
+    ],
+  },
+};
+
+// ============ ABIs (minimal) ============
+const ABI = {
+  clFactoryGetPool: ['function getPool(address,address,uint24) view returns (address)'],
+  clFactoryGetPoolInt: ['function getPool(address,address,int24) view returns (address)'],
+  clQuoter: ['function quoteExactInputSingle(address tokenIn, address tokenOut, int24 tickSpacing, uint256 amountIn, uint160 sqrtPriceLimitX96) returns (uint256 amountOut)'],
+  v2FactoryGetPool: ['function getPool(address,address,bool) view returns (address)'],
+  v2RouterQuote: ['function getAmountsOut(uint256 amountIn, tuple(address from, address to, bool stable)[] routes) view returns (uint256[] amounts)'],
+  v2RouterSwap: ['function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, tuple(address from, address to, bool stable)[] routes, address to, uint256 deadline) returns (uint256[] amounts)'],
+  v2RouterSwapETH: ['function swapExactETHForTokens(uint256 amountOutMin, tuple(address from, address to, bool stable)[] routes, address to, uint256 deadline) payable returns (uint256[] amounts)'],
+  clRouterSwap: ['function exactInputSingle(tuple(address tokenIn, address tokenOut, int24 tickSpacing, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)'],
+  erc20: ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)', 'function allowance(address,address) view returns (uint256)', 'function approve(address,uint256) returns (bool)'],
+};
+
+const TICK_SPACINGS = [1, 10, 50, 200];
+let provider = null, signer = null, walletAddress = null;
+let currentChain = 'celo';
+let quoteResult = null;
+let quoteTimer = null;
+
+// ============ PROVIDER ============
+async function getReadProvider() {
+  const cfg = CHAINS[currentChain];
+  for (const rpc of cfg.rpcs) {
+    try {
+      const p = new ethers.JsonRpcProvider(rpc);
+      await p.getBlockNumber();
+      return p;
+    } catch (e) { /* try next */ }
+  }
+  throw new Error('No RPC available for ' + cfg.name);
+}
+
+// ============ VELODROME QUOTER ============
+async function quoteVelodrome(tokenIn, tokenOut, amountInWei) {
+  const cfg = CHAINS[currentChain];
+  const velo = cfg.velo;
+  const rp = await getReadProvider();
+  const results = [];
+
+  // --- Try CL pools ---
+  if (velo.clFactory && velo.clQuoter) {
+    const factory = new ethers.Contract(velo.clFactory, ABI.clFactoryGetPool, rp);
+    const factoryInt = new ethers.Contract(velo.clFactory, ABI.clFactoryGetPoolInt, rp);
+    const quoter = new ethers.Contract(velo.clQuoter, ABI.clQuoter, rp);
+    for (const ts of TICK_SPACINGS) {
+      let pool = ethers.ZeroAddress;
+      try { pool = await factory.getPool(tokenIn.address, tokenOut.address, ts); } catch (e) {}
+      if (pool === ethers.ZeroAddress) {
+        try { pool = await factoryInt.getPool(tokenIn.address, tokenOut.address, ts); } catch (e) {}
+      }
+      if (pool !== ethers.ZeroAddress) {
+        try {
+          const out = await quoter.quoteExactInputSingle.staticCall(tokenIn.address, tokenOut.address, ts, amountInWei, 0);
+          if (out > 0) results.push({ type: 'CL', tickSpacing: ts, pool, amountOut: out, quoter: velo.clQuoter, router: velo.clRouter });
+        } catch (e) { /* quote reverted */ }
+      }
+    }
+  }
+
+  // --- Try v2 pools ---
+  if (velo.v2Factory && velo.v2Router) {
+    const factory = new ethers.Contract(velo.v2Factory, ABI.v2FactoryGetPool, rp);
+    const router = new ethers.Contract(velo.v2Router, ABI.v2RouterQuote, rp);
+    for (const stable of [true, false]) {
+      let pool = ethers.ZeroAddress;
+      try { pool = await factory.getPool(tokenIn.address, tokenOut.address, stable); } catch (e) {}
+      if (pool !== ethers.ZeroAddress) {
+        try {
+          const routes = [{ from: tokenIn.address, to: tokenOut.address, stable }];
+          const amounts = await router.getAmountsOut.staticCall(amountInWei, routes);
+          const out = amounts[amounts.length - 1];
+          if (out > 0) results.push({ type: stable ? 'v2-stable' : 'v2-volatile', pool, amountOut: out, routes, router: velo.v2Router });
+        } catch (e) { /* quote reverted */ }
+      }
+    }
+  }
+
+  if (results.length === 0) return null;
+  results.sort((a, b) => (b.amountOut > a.amountOut ? 1 : -1));
+  return results[0];
+}
+
+// ============ UI LOGIC ============
+function fmtAmount(wei, decimals) {
+  const s = ethers.formatUnits(wei, decimals);
+  const n = parseFloat(s);
+  return n < 0.0001 ? n.toExponential(2) : n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+}
+
+function populateTokens() {
+  const cfg = CHAINS[currentChain];
+  const fromSel = document.getElementById('fromToken');
+  const toSel = document.getElementById('toToken');
+  fromSel.innerHTML = ''; toSel.innerHTML = '';
+  cfg.tokens.forEach((t, i) => {
+    fromSel.add(new Option(t.symbol, i));
+    toSel.add(new Option(t.symbol, i));
+  });
+  fromSel.selectedIndex = 0;
+  toSel.selectedIndex = Math.min(1, cfg.tokens.length - 1);
+}
+
+function getSelectedTokens() {
+  const cfg = CHAINS[currentChain];
+  return {
+    in: cfg.tokens[document.getElementById('fromToken').value],
+    out: cfg.tokens[document.getElementById('toToken').value],
+  };
+}
+
+async function updateBalances() {
+  if (!walletAddress) return;
+  const cfg = CHAINS[currentChain];
+  const { in: tIn, out: tOut } = getSelectedTokens();
+  const rp = signer ? signer.provider : await getReadProvider();
+  for (const [tok, elId] of [[tIn, 'fromBalance'], [tOut, 'toBalance']]) {
+    try {
+      let bal;
+      if (tok.native) {
+        // native balance: use WETH/CELO wrapper address balance for ERC20, else eth balance
+        // For simplicity, check the wrapped token balance
+        const c = new ethers.Contract(tok.address, ABI.erc20, rp);
+        bal = await c.balanceOf(walletAddress);
+        const ethBal = await rp.getBalance(walletAddress);
+        document.getElementById(elId).textContent = `Balance: ${fmtAmount(ethBal, 18)} ${cfg.native} (wrapped: ${fmtAmount(bal, tok.decimals)})`;
+      } else {
+        const c = new ethers.Contract(tok.address, ABI.erc20, rp);
+        bal = await c.balanceOf(walletAddress);
+        document.getElementById(elId).textContent = `Balance: ${fmtAmount(bal, tok.decimals)} ${tok.symbol}`;
+      }
+    } catch (e) {
+      document.getElementById(elId).textContent = 'Balance: —';
+    }
+  }
+}
+
+async function refreshQuote() {
+  const box = document.getElementById('quoteBox');
+  const poolInfo = document.getElementById('poolInfo');
+  const swapBtn = document.getElementById('swapBtn');
+  const approveBtn = document.getElementById('approveBtn');
+  quoteResult = null;
+  approveBtn.style.display = 'none';
+
+  const amtStr = document.getElementById('fromAmount').value;
+  const { in: tIn, out: tOut } = getSelectedTokens();
+
+  if (!amtStr || parseFloat(amtStr) <= 0) {
+    box.innerHTML = '<div class="status">Enter an amount to get a Velodrome quote</div>';
+    poolInfo.textContent = '';
+    swapBtn.disabled = true; swapBtn.textContent = 'Enter an amount';
+    document.getElementById('toAmount').value = '';
+    return;
+  }
+  if (tIn.address.toLowerCase() === tOut.address.toLowerCase()) {
+    box.innerHTML = '<div class="status error">Pick two different tokens</div>';
+    swapBtn.disabled = true; swapBtn.textContent = 'Select tokens';
+    return;
+  }
+
+  box.innerHTML = '<div class="status"><span class="spinner"></span>Quoting via Velodrome…</div>';
+  swapBtn.disabled = true;
+
+  try {
+    const amountInWei = ethers.parseUnits(amtStr, tIn.decimals);
+    const q = await quoteVelodrome(tIn, tOut, amountInWei);
+    if (!q) {
+      box.innerHTML = '<div class="status warn">No Velodrome liquidity for this pair on ' + CHAINS[currentChain].name + ' yet.</div>';
+      poolInfo.textContent = 'Velodrome is deployed here but pools for this pair don\'t exist yet.';
+      swapBtn.disabled = true; swapBtn.textContent = 'No liquidity';
+      document.getElementById('toAmount').value = '';
+      return;
+    }
+    quoteResult = { ...q, tokenIn: tIn, tokenOut: tOut, amountInWei };
+
+    const outFmt = fmtAmount(q.amountOut, tOut.decimals);
+    document.getElementById('toAmount').value = outFmt;
+    const rate = (parseFloat(ethers.formatUnits(q.amountOut, tOut.decimals)) / parseFloat(amtStr));
+
+    box.innerHTML = `
+      <div class="quote-line"><span class="k">You receive</span><span class="v good">${outFmt} ${tOut.symbol}</span></div>
+      <div class="quote-line"><span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span></div>
+      <div class="quote-line"><span class="k">Pool type</span><span class="v">${q.type}</span></div>
+      <div class="quote-line"><span class="k">Source</span><span class="v">Velodrome Finance</span></div>`;
+    poolInfo.textContent = 'Pool: ' + q.pool;
+
+    if (!walletAddress) {
+      swapBtn.disabled = true; swapBtn.textContent = 'Connect wallet to swap';
+    } else {
+      // check allowance for ERC20 (non-native input)
+      if (!tIn.native) {
+        const rp = signer.provider;
+        const c = new ethers.Contract(tIn.address, ABI.erc20, rp);
+        const allowance = await c.allowance(walletAddress, q.router);
+        if (allowance < amountInWei) {
+          approveBtn.style.display = 'block';
+          approveBtn.textContent = `Approve ${tIn.symbol}`;
+          swapBtn.disabled = true; swapBtn.textContent = 'Approve first';
+          return;
+        }
+      }
+      swapBtn.disabled = false; swapBtn.textContent = 'Swap via Velodrome';
+    }
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = '<div class="status error">Quote failed: ' + (e.message || e).toString().slice(0, 120) + '</div>';
+    swapBtn.disabled = true; swapBtn.textContent = 'Quote failed';
+  }
+}
+
+function scheduleQuote() {
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(() => { refreshQuote(); updateBalances(); }, 600);
+}
+
+// ============ WALLET ============
+document.getElementById('connectBtn').onclick = async () => {
+  if (!window.ethereum) { alert('No wallet found'); return; }
+  try {
+    const wp = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await wp.send('eth_requestAccounts', []);
+    walletAddress = accounts[0];
+    signer = await wp.getSigner();
+    const cfg = CHAINS[currentChain];
+    const net = await wp.getNetwork();
+    document.getElementById('networkStatus').textContent = `Chain: ${net.chainId} (${net.chainId == cfg.chainId ? cfg.name + ' ✓' : 'switch to ' + cfg.name})`;
+    document.getElementById('connectBtn').textContent = walletAddress.slice(0, 6) + '…' + walletAddress.slice(-4);
+    // ask to switch to selected chain
+    if (Number(net.chainId) !== cfg.chainId) await switchChain();
+    updateBalances(); refreshQuote();
+  } catch (e) { console.error(e); }
+};
+
+async function switchChain() {
+  const cfg = CHAINS[currentChain];
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + cfg.chainId.toString(16) }] });
+  } catch (e) {
+    if (e.code === 4902) {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{ chainId: '0x' + cfg.chainId.toString(16), chainName: cfg.name, nativeCurrency: { name: cfg.native, symbol: cfg.native, decimals: 18 }, rpcUrls: cfg.rpcs, blockExplorerUrls: [cfg.explorer] }],
+      });
+    }
+  }
+  if (signer) {
+    const wp = new ethers.BrowserProvider(window.ethereum);
+    signer = await wp.getSigner();
+  }
+  document.getElementById('networkStatus').textContent = 'Chain: ' + cfg.name + ' ✓';
+}
+
+// ============ CHAIN SWITCH ============
+document.getElementById('chainRow').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.chain-btn');
+  if (!btn) return;
+  document.querySelectorAll('.chain-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentChain = btn.dataset.chain;
+  populateTokens();
+  document.getElementById('fromAmount').value = '';
+  document.getElementById('toAmount').value = '';
+  if (walletAddress) await switchChain();
+  updateBalances(); refreshQuote();
+});
+
+// ============ ACTIONS ============
+document.getElementById('flipBtn').onclick = () => {
+  const f = document.getElementById('fromToken'), t = document.getElementById('toToken');
+  const tmp = f.value; f.value = t.value; t.value = tmp;
+  scheduleQuote();
+};
+document.getElementById('maxBtn').onclick = async () => {
+  if (!walletAddress) return;
+  const { in: tIn } = getSelectedTokens();
+  const rp = signer.provider;
+  try {
+    if (tIn.native) {
+      const bal = await rp.getBalance(walletAddress);
+      document.getElementById('fromAmount').value = ethers.formatUnits(bal * 95n / 100n, 18); // keep gas
+    } else {
+      const c = new ethers.Contract(tIn.address, ABI.erc20, rp);
+      const bal = await c.balanceOf(walletAddress);
+      document.getElementById('fromAmount').value = ethers.formatUnits(bal, tIn.decimals);
+    }
+    scheduleQuote();
+  } catch (e) {}
+};
+document.getElementById('fromAmount').addEventListener('input', scheduleQuote);
+document.getElementById('fromToken').addEventListener('change', scheduleQuote);
+document.getElementById('toToken').addEventListener('change', scheduleQuote);
+
+document.getElementById('approveBtn').onclick = async () => {
+  if (!quoteResult || !signer) return;
+  const { tokenIn, amountInWei, router } = quoteResult;
+  const st = document.getElementById('txStatus');
+  try {
+    st.textContent = 'Approving…'; st.className = 'status';
+    const c = new ethers.Contract(tokenIn.address, ABI.erc20, signer);
+    const tx = await c.approve(router, amountInWei);
+    st.innerHTML = '<span class="spinner"></span>Waiting for approval…';
+    await tx.wait();
+    st.textContent = 'Approved ✓'; st.className = 'status success';
+    refreshQuote();
+  } catch (e) {
+    st.textContent = 'Approval failed: ' + (e.reason || e.message || e).toString().slice(0, 100);
+    st.className = 'status error';
+  }
+};
+
+document.getElementById('swapBtn').onclick = async () => {
+  if (!quoteResult || !signer) return;
+  const q = quoteResult;
+  const st = document.getElementById('txStatus');
+  const deadline = Math.floor(Date.now() / 1000) + 600;
+  const minOut = q.amountOut * 995n / 1000n; // 0.5% slippage
+  try {
+    st.innerHTML = '<span class="spinner"></span>Swapping…'; st.className = 'status';
+    let tx;
+    if (q.type === 'CL') {
+      const router = new ethers.Contract(q.router, ABI.clRouterSwap, signer);
+      const params = {
+        tokenIn: q.tokenIn.address, tokenOut: q.tokenOut.address,
+        tickSpacing: q.tickSpacing, recipient: walletAddress,
+        deadline, amountIn: q.amountInWei, amountOutMinimum: minOut, sqrtPriceLimitX96: 0,
+      };
+      const isNativeIn = q.tokenIn.native;
+      tx = await router.exactInputSingle(params, { value: isNativeIn ? q.amountInWei : 0 });
+    } else {
+      const router = new ethers.Contract(q.router, q.tokenIn.native ? ABI.v2RouterSwapETH : ABI.v2RouterSwap, signer);
+      if (q.tokenIn.native) {
+        tx = await router.swapExactETHForTokens(minOut, q.routes, walletAddress, deadline, { value: q.amountInWei });
+      } else {
+        tx = await router.swapExactTokensForTokens(q.amountInWei, minOut, q.routes, walletAddress, deadline);
+      }
+    }
+    st.innerHTML = '<span class="spinner"></span>Confirming…';
+    const receipt = await tx.wait();
+    const ex = CHAINS[currentChain].explorer;
+    st.innerHTML = `Swapped ✓ <a href="${ex}/tx/${receipt.hash}" target="_blank" style="color:#7c5cff">view tx</a>`;
+    st.className = 'status success';
+    updateBalances(); refreshQuote();
+  } catch (e) {
+    console.error(e);
+    st.textContent = 'Swap failed: ' + (e.reason || e.message || e).toString().slice(0, 120);
+    st.className = 'status error';
+  }
+};
+
+// ============ INIT ============
+populateTokens();
+refreshQuote();
+</script>
+</body>
+</html>

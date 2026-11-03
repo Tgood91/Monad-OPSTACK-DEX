@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monad Swap</title>
+<style>
+  :root{
+    --bg:#07070c; --card:#101016; --panel:#17171f; --panel2:#1e1e28;
+    --border:#262633; --text:#f2f2f7; --muted:#8e8ea3; --faint:#5c5c70;
+    --accent:#836ef9; --accent2:#a78bfa; --green:#34d399; --red:#f87171;
+    --radius:20px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 48px;
+    background-image:radial-gradient(600px 300px at 50% -80px, rgba(131,110,249,.14), transparent);
+  }
+  .wrap{width:100%; max-width:460px;}
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:.2px;}
+  .brand svg{display:block;}
+  #connectBtn{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:999px; padding:9px 18px; font-size:14px; font-weight:600; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  #connectBtn:hover{border-color:var(--accent);}
+  #connectBtn.connected{background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.4); color:var(--green);}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:8px; box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .panel{background:var(--panel); border-radius:14px; padding:14px 16px;}
+  .panel + .panel{margin-top:4px;}
+  .prow{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .plabel{font-size:13px; color:var(--muted); font-weight:500;}
+  .bal{font-size:13px; color:var(--muted);}
+  .bal button{
+    background:none; border:none; color:var(--accent2); font-size:12px; font-weight:700;
+    cursor:pointer; margin-left:8px; padding:2px 6px; border-radius:6px;
+  }
+  .bal button:hover{background:rgba(131,110,249,.15);}
+  .bal button:disabled{color:var(--faint); cursor:default; background:none;}
+  .irow{display:flex; align-items:center; gap:10px;}
+  .amount{
+    flex:1; min-width:0; background:transparent; border:none; outline:none;
+    color:var(--text); font-size:30px; font-weight:600; font-variant-numeric:tabular-nums;
+  }
+  .amount::placeholder{color:var(--faint);}
+  .amount[readonly]{cursor:default;}
+  .token-btn{
+    display:flex; align-items:center; gap:8px; flex-shrink:0;
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    border-radius:999px; padding:7px 12px 7px 8px; font-size:15px; font-weight:600; cursor:pointer;
+    transition:border-color .15s;
+  }
+  .token-btn:hover{border-color:var(--accent);}
+  .token-btn .chev{color:var(--muted); font-size:11px;}
+  .ticon{
+    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:800; color:#fff; flex-shrink:0;
+  }
+  .ticon.MON{background:linear-gradient(135deg,#836ef9,#4c1d95);}
+  .ticon.USDC{background:linear-gradient(135deg,#2775ca,#1b4b8a);}
+  .ticon.WMON{background:linear-gradient(135deg,#6d5df6,#3730a3);}
+  .ticon.USDT0{background:linear-gradient(135deg,#26a17b,#166b52);}
+  .flipwrap{display:flex; justify-content:center; margin:-2px 0; position:relative; z-index:2;}
+  #flipBtn{
+    width:38px; height:38px; border-radius:12px; margin:-8px 0;
+    background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    font-size:16px; cursor:pointer; transition:transform .2s, color .15s, border-color .15s;
+  }
+  #flipBtn:hover{color:var(--text); border-color:var(--accent); transform:rotate(180deg);}
+  .settings{display:flex; align-items:center; justify-content:space-between; padding:12px 8px 4px;}
+  .settings label{font-size:13px; color:var(--muted); font-weight:500;}
+  #srcSel{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:7px 10px; font-size:13px; font-weight:600; cursor:pointer; outline:none;
+  }
+  .details{padding:6px 8px 2px; font-size:13px;}
+  .drow{display:flex; justify-content:space-between; padding:4px 0; color:var(--muted);}
+  .drow b{color:var(--text); font-weight:600; font-variant-numeric:tabular-nums;}
+  .drow .src-tag{
+    background:rgba(131,110,249,.14); color:var(--accent2); border-radius:6px;
+    padding:2px 8px; font-size:12px; font-weight:700;
+  }
+  #actionBtn{
+    width:100%; margin-top:12px; padding:16px; border:none; border-radius:14px;
+    font-size:16px; font-weight:700; cursor:pointer; color:#fff;
+    background:linear-gradient(135deg,var(--accent),#6d5df6);
+    transition:opacity .15s, transform .1s;
+  }
+  #actionBtn:hover:not(:disabled){opacity:.92;}
+  #actionBtn:active:not(:disabled){transform:scale(.99);}
+  #actionBtn:disabled{background:var(--panel2); color:var(--faint); cursor:default;}
+  #actionBtn .spin{
+    display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff; border-radius:50%; animation:sp 0.7s linear infinite;
+    vertical-align:-3px; margin-right:8px;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+  #status{min-height:22px; text-align:center; font-size:13px; color:var(--muted); margin-top:10px; padding:0 8px;}
+  #status.err{color:var(--red);}
+  #status.ok{color:var(--green);}
+  #txLinks{display:flex; flex-direction:column; gap:6px; margin-top:6px; padding:0 8px;}
+  #txLinks a{
+    color:var(--accent2); font-size:13px; text-decoration:none;
+    background:rgba(131,110,249,.08); border:1px solid rgba(131,110,249,.25);
+    border-radius:10px; padding:8px 12px; text-align:center;
+  }
+  #txLinks a:hover{background:rgba(131,110,249,.16);}
+  footer{margin-top:22px; text-align:center; font-size:12px; color:var(--faint);}
+  /* token modal */
+  #modalOverlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
+    display:none; align-items:flex-start; justify-content:center; padding:80px 16px 16px; z-index:50;
+  }
+  #modalOverlay.open{display:flex;}
+  #modal{
+    width:100%; max-width:380px; background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:10px; animation:pop .18s ease-out;
+  }
+  @keyframes pop{from{transform:translateY(10px) scale(.98); opacity:0;}}
+  #modal h3{font-size:15px; padding:10px 12px 6px; color:var(--muted); font-weight:600;}
+  .trow{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    background:none; border:none; color:var(--text); padding:12px; border-radius:12px; cursor:pointer;
+  }
+  .trow:hover{background:var(--panel);}
+  .trow .sym{font-weight:700; font-size:15px;}
+  .trow .nm{font-size:12px; color:var(--muted);}
+  .trow .tb{margin-left:auto; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .trow.selected{background:rgba(131,110,249,.12);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 32 32"><path d="M16 2 L28 16 L16 30 L4 16 Z" fill="none" stroke="#836ef9" stroke-width="2.5"/><path d="M16 9 L22 16 L16 23 L10 16 Z" fill="#836ef9"/></svg>
+      Monad Swap
+    </div>
+    <button id="connectBtn">Connect wallet</button>
+  </header>
+
+  <div class="card">
+    <div class="panel">
+      <div class="prow"><span class="plabel">From</span>
+        <span class="bal">Balance: <span id="fromBal">–</span><button id="maxBtn" disabled>MAX</button></span>
+      </div>
+      <div class="irow">
+        <input id="fromAmount" class="amount" placeholder="0.0" inputmode="decimal" autocomplete="off">
+        <button class="token-btn" id="fromTokenBtn"><span class="ticon USDC">U</span><span id="fromSym">USDC</span><span class="chev">▾</span></button>
+      </div>
+    </div>
+
+    <div class="flipwrap"><button id="flipBtn" title="Flip direction">⇅</button></div>
+
+    <div class="panel">
+      <div class="prow"><span class="plabel">To</span>
+        <span class="bal">Balance: <span id="toBal">–</span></span>
+      </div>
+      <div class="irow">
+        <input id="toAmount" class="amount" placeholder="0.0" readonly tabindex="-1">
+        <button class="token-btn" id="toTokenBtn"><span class="ticon MON">M</span><span id="toSym">MON</span><span class="chev">▾</span></button>
+      </div>
+    </div>
+
+    <div class="settings">
+      <label>Quote source</label>
+      <select id="srcSel">
+        <option value="auto">Auto (best of all)</option>
+          <option value="kyber">KyberSwap</option>
+        <option value="oneinch">1inch</option>
+        <option value="zerox">0x</option>
+        <option value="lifi">LI.FI</option>
+        <option value="openocean">OpenOcean</option>
+      </select>
+    </div>
+
+    <div class="details" id="details" style="display:none">
+      <div class="drow"><span>Rate</span><b id="dRate">–</b></div>
+      <div class="drow"><span>Source</span><span class="src-tag" id="dSource">–</span></div>
+      <div class="drow"><span>Max slippage</span><b>1.0%</b></div>
+      <div class="drow"><span>Min. received</span><b id="dMin">–</b></div>
+    </div>
+
+    <button id="actionBtn" disabled>Connect wallet</button>
+    <div id="status"></div>
+    <div id="txLinks"></div>
+  </div>
+
+  <footer>Monad · Chain 143 · quotes fail over across sources</footer>
+</div>
+
+<div id="modalOverlay"><div id="modal">
+  <h3>Select token</h3>
+  <div id="tokenList"></div>
+</div></div>
+
+<script>
+// ── Config (Monad mainnet, chain 143) ──
+const CHAIN_ID   = 143;
+const CHAIN_HEX  = '0x8f';
+const NATIVE     = '0x0000000000000000000000000000000000000000';
+const EXPLORER   = 'https://monadvision.com';
+
+// ── Aggregator API keys: fill in locally for testing. Never commit real keys. ──
+const API_KEYS = {
+  zeroX: '',    // 0x API key
+  oneInch: '',  // 1inch API key
+  // Zerion key kept for reference — Zerion's swap API does not support Monad (verified 2026-10-07).
+  // zerion: 'PUT_KEY_HERE', // Zerion API key
+  // KyberSwap, LI.FI and OpenOcean need no key for quotes
+};
+const FAILOVER = { timeoutMs: 8000, maxSlippageBps: 100 }; // 100 bps = 1% max
+const NATIVE_EEE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+// ── Uniswap on Monad: official deployments, verified on-chain 2026-10-07 ──
+// Direct execution DISABLED: Monad's V3 factory uses a non-canonical pool init
+// code hash, so canonical routers derive pool addresses with no code.
+const UNI = {
+  universalRouter: '0xa6CE4F10d83dBdDAc17E68e1837ca9cE6a1b596e',
+  v3Factory:       '0x204faca1764b154221e35c0d20abb3c525710498',
+  swapRouter02:    '0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900',
+};
+
+// ── Fallback public RPCs (chain 143), tried in order for read-only calls ──
+const FALLBACK_RPCS = [
+  'https://rpc.monad.xyz',
+  'https://rpc1.monad.xyz',
+  'https://rpc4.monad.xyz',
+  'https://rpc-mainnet.monadinfra.com',
+  'https://monad-mainnet.gateway.tatum.io',
+  'https://monad-mainnet.drpc.org',
+];
+let _rpcIdx = 0;
+async function rpcRead(method, params) {
+  let lastErr;
+  for (let i = 0; i < FALLBACK_RPCS.length; i++) {
+    const url = FALLBACK_RPCS[(_rpcIdx + i) % FALLBACK_RPCS.length];
+    try {
+      const res = await withTimeout(fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      }), FAILOVER.timeoutMs);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      if (j.error) throw new Error(j.error.message || 'RPC error');
+      _rpcIdx = (_rpcIdx + i) % FALLBACK_RPCS.length;
+      return j.result;
+    } catch (e) { lastErr = e; }
+  }
+  throw new Error('All Monad RPCs failed: ' + (lastErr?.message || lastErr));
+}
+
+// ── Tokens (verified Monad mainnet addresses) ──
+const TOKENS = [
+  { symbol: 'MON',   name: 'Monad',      address: NATIVE,                                       decimals: 18 },
+  { symbol: 'USDC',  name: 'USD Coin',   address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', decimals: 6  },
+  { symbol: 'WMON',  name: 'Wrapped MON',address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18 },
+  { symbol: 'USDT0', name: 'USDT0',      address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', decimals: 6  },
+];
+
+let account = null;
+let lastQuote = null;
+let fromTok = TOKENS[1]; // USDC
+let toTok = TOKENS[0];   // MON
+let modalSide = 'from';
+let quoteTimer = null;
+
+const $ = id => document.getElementById(id);
+const shortAddr = a => a.slice(0, 6) + '…' + a.slice(-4);
+function status(msg, cls='') { const el = $('status'); el.textContent = msg; el.className = cls; }
+function toUnits(str, decimals) {
+  const [w = '0', f = ''] = String(str).trim().split('.');
+  if (!/^\d+$/.test(w) || !/^\d*$/.test(f)) throw new Error('Bad amount');
+  const frac = (f + '0'.repeat(decimals)).slice(0, decimals);
+  return (BigInt(w) * 10n**BigInt(decimals) + BigInt(frac || '0')).toString();
+}
+function fmtUnits(v, d, trim=true) {
+  const s = v.toString().padStart(d + 1, '0');
+  const w = s.slice(0, -d) || '0';
+  let f = s.slice(-d).replace(/0+$/, '');
+  if (trim) f = f.slice(0, 6);
+  return f ? w + '.' + f : w;
+}
+const toHex = v => '0x' + BigInt(v).toString(16);
+
+// ── Quote sources ──────────────────────────────────────────────
+// Each returns { outFormatted, outSymbol, rate, impactUsd, impactPct, steps }
+// where steps = [{ id, to, data, value }] executed in order.
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+}
+async function ethCall(to, data) {
+  return window.ethereum.request({ method: 'eth_call', params: [{ to, data, from: account }, 'latest'] });
+}
+async function allowanceOf(token, owner, spender) {
+  const data = '0xdd62ed3e' + owner.slice(2).padStart(64, '0') + spender.slice(2).padStart(64, '0');
+  return BigInt(await ethCall(token, data));
+}
+function approveCalldata(spender) {
+  return '0x095ea7b3' + spender.slice(2).padStart(64, '0') + 'f'.repeat(64);
+}
+async function maybeApprove(token, owner, spender, amount) {
+  const allow = await allowanceOf(token, owner, spender);
+  if (allow < BigInt(amount))
+    return [{ id: 'approve', to: token, data: approveCalldata(spender), value: '0x0' }];
+  return [];
+}
+
+async function quoteZerion(from, to, amount) {
+  if (!API_KEYS.zerion) throw new Error('Zerion API key not set');
+  const H = { 'Authorization': 'Basic ' + btoa(API_KEYS.zerion + ':') };
+  const fin  = from.address === NATIVE ? '0x0000000000000000000000000000000000000000' : from.address;
+  const fout = to.address === NATIVE ? '0x0000000000000000000000000000000000000000' : to.address;
+  const p = new URLSearchParams({
+    from: account, to: account,
+    'input[chain_id]': 'monad',
+    'input[fungible_id]': fin,
+    'input[amount]': fmtUnits(BigInt(amount), from.decimals ?? 18, false),
+    'output[fungible_id]': fout,
+    'slippage_percent': String(FAILOVER.maxSlippageBps / 100),
+    currency: 'usd',
+  });
+  const res = await fetch('https://api.zerion.io/v1/swap/quotes/?' + p.toString(), { headers: H });
+  if (!res.ok) throw new Error('Zerion HTTP ' + res.status);
+  const j = await res.json();
+  const quotes = (j.data || []).map(x => x.attributes || x);
+  const q = quotes.find(a => {
+    const s = a.transaction_swap?.evm || a.transaction_swap;
+    return s && s.to && s.data;
+  });
+  if (!q) throw new Error('Zerion returned no executable quote');
+  const swapTx = q.transaction_swap.evm || q.transaction_swap;
+  const steps = [];
+  const ap = q.transaction_approve?.evm || q.transaction_approve;
+  if (ap && ap.to && ap.data && from.address !== NATIVE) {
+    const spender = '0x' + ap.data.slice(34, 74);
+    if ((await maybeApprove(from.address, account, spender, amount)).length)
+      steps.push({ id: 'approve', to: ap.to, data: ap.data, value: '0x0' });
+  }
+  steps.push({ id: 'swap', to: swapTx.to, data: swapTx.data, value: toHex(swapTx.value || '0') });
+  const dec = to.decimals ?? 18;
+  const outRaw = String(q.output_amount_after_fees ?? q.output_amount ?? '0');
+  const outFormatted = outRaw.includes('.') ? outRaw : fmtUnits(BigInt(outRaw), dec);
+  return { outFormatted, outSymbol: to.symbol, rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+async function quoteKyber(from, to, amount) {
+  const inA = from.address === NATIVE ? NATIVE_EEE : from.address;
+  const outA = to.address === NATIVE ? NATIVE_EEE : to.address;
+  const base = 'https://aggregator-api.kyberswap.com/monad/api/v1';
+  const qr = await fetch(`${base}/routes?tokenIn=${inA}&tokenOut=${outA}&amountIn=${amount}&source=tanner-dex`);
+  if (!qr.ok) throw new Error('KyberSwap routes HTTP ' + qr.status);
+  const qd = await qr.json();
+  const rs = qd.data && qd.data.routeSummary;
+  if (qd.code !== 0 || !rs) throw new Error('KyberSwap returned no route');
+  const br = await fetch(`${base}/route/build`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ routeSummary: rs, sender: account, recipient: account,
+      slippageTolerance: FAILOVER.maxSlippageBps,
+      deadline: Math.floor(Date.now() / 1000) + 1200, source: 'tanner-dex' }),
+  });
+  if (!br.ok) throw new Error('KyberSwap build HTTP ' + br.status);
+  const bd = await br.json();
+  const b = bd.data;
+  if (bd.code !== 0 || !b || !b.data || !b.routerAddress) throw new Error('KyberSwap build failed');
+  const steps = (from.address !== NATIVE)
+    ? await maybeApprove(from.address, account, b.routerAddress, amount) : [];
+  steps.push({ id: 'swap', to: b.routerAddress, data: b.data, value: toHex(b.transactionValue || '0') });
+  return { outFormatted: fmtUnits(BigInt(b.amountOut), to.decimals ?? 18), outSymbol: to.symbol,
+           rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+async function quote1inch(from, to, amount) {
+  if (!API_KEYS.oneInch) throw new Error('1inch API key not set');
+  const H = { 'Authorization': 'Bearer ' + API_KEYS.oneInch };
+  const src = from.address === NATIVE ? NATIVE_EEE : from.address;
+  const dst = to.address === NATIVE ? NATIVE_EEE : to.address;
+  const base = 'https://api.1inch.dev/swap/v6.0/143';
+  const qr = await fetch(`${base}/quote?src=${src}&dst=${dst}&amount=${amount}`, { headers: H });
+  if (!qr.ok) throw new Error('1inch quote HTTP ' + qr.status);
+  const qq = await qr.json();
+  const sr = await fetch(`${base}/swap?src=${src}&dst=${dst}&amount=${amount}&from=${account}&slippage=${FAILOVER.maxSlippageBps / 100}&disableEstimate=true`, { headers: H });
+  if (!sr.ok) throw new Error('1inch swap HTTP ' + sr.status);
+  const sq = await sr.json();
+  const steps = from.address === NATIVE ? [] : await maybeApprove(from.address, account, sq.tx.to, amount);
+  steps.push({ id: 'swap', to: sq.tx.to, data: sq.tx.data, value: toHex(sq.tx.value || '0') });
+  return { outFormatted: fmtUnits(BigInt(qq.dstAmount), to.decimals ?? 18), outSymbol: to.symbol,
+           rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+async function quote0x(from, to, amount) {
+  if (!API_KEYS.zeroX) throw new Error('0x API key not set');
+  const sellToken = from.address === NATIVE ? NATIVE_EEE : from.address;
+  const buyToken = to.address === NATIVE ? NATIVE_EEE : to.address;
+  const url = `https://api.0x.org/swap/allowance-holder/quote?chainId=143` +
+    `&sellToken=${sellToken}&buyToken=${buyToken}&sellAmount=${amount}` +
+    `&taker=${account}&slippageBps=${FAILOVER.maxSlippageBps}`;
+  const res = await fetch(url, { headers: { '0x-api-key': API_KEYS.zeroX, '0x-version': 'v2' } });
+  if (!res.ok) throw new Error('0x HTTP ' + res.status);
+  const q = await res.json();
+  const tx = q.transaction || q;
+  if (!tx.to || !tx.data) throw new Error('0x returned no transaction');
+  const spender = q.issues?.allowance?.spender || q.allowanceTarget;
+  const steps = (from.address !== NATIVE && spender)
+    ? await maybeApprove(from.address, account, spender, amount) : [];
+  steps.push({ id: 'swap', to: tx.to, data: tx.data, value: toHex(tx.value || '0') });
+  return { outFormatted: fmtUnits(BigInt(q.buyAmount), to.decimals ?? 18), outSymbol: to.symbol,
+           rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+async function quoteLifi(from, to, amount) {
+  const url = `https://li.quest/v1/quote?fromChain=143&toChain=143&fromToken=${from.address}&toToken=${to.address}` +
+    `&fromAmount=${amount}&fromAddress=${account}&slippage=${(FAILOVER.maxSlippageBps / 10000).toFixed(4)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('LI.FI HTTP ' + res.status);
+  const q = await res.json();
+  const t = q.transactionRequest;
+  if (!t || !t.data) throw new Error('LI.FI returned no transaction');
+  const steps = (q.estimate?.approvalAddress && from.address !== NATIVE)
+    ? await maybeApprove(from.address, account, q.estimate.approvalAddress, amount) : [];
+  steps.push({ id: 'swap', to: t.to, data: t.data, value: toHex(t.value || '0') });
+  return { outFormatted: fmtUnits(BigInt(q.estimate.toAmount), to.decimals ?? 18), outSymbol: to.symbol,
+           rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+async function quoteOpenOcean(from, to, amount) {
+  const inA = from.address === NATIVE ? NATIVE_EEE : from.address;
+  const outA = to.address === NATIVE ? NATIVE_EEE : to.address;
+  const gasPrice = parseInt(await window.ethereum.request({ method: 'eth_gasPrice', params: [] }), 16);
+  const qurl = `https://open-api.openocean.finance/v4/143/quote?inTokenAddress=${inA}&outTokenAddress=${outA}&amount=${amount}&gasPrice=${gasPrice}`;
+  const qr = await fetch(qurl);
+  if (!qr.ok) throw new Error('OpenOcean quote HTTP ' + qr.status);
+  const qq = await qr.json();
+  const surl = `https://open-api.openocean.finance/v4/143/swap?inTokenAddress=${inA}&outTokenAddress=${outA}` +
+    `&amount=${amount}&account=${account}&slippage=${FAILOVER.maxSlippageBps / 100}&gasPrice=${gasPrice}`;
+  const sr = await fetch(surl);
+  if (!sr.ok) throw new Error('OpenOcean swap HTTP ' + sr.status);
+  const sq = await sr.json();
+  const d = sq.data || {};
+  if (!d.data || !d.to) throw new Error('OpenOcean returned no transaction');
+  const steps = (from.address !== NATIVE && d.approveTo)
+    ? await maybeApprove(from.address, account, d.approveTo, amount) : [];
+  steps.push({ id: 'swap', to: d.to, data: d.data, value: toHex(d.value || '0') });
+  const outAmt = d.outAmount || qq.data?.outAmount || '0';
+  return { outFormatted: fmtUnits(BigInt(outAmt), to.decimals ?? 18), outSymbol: to.symbol,
+           rate: null, impactUsd: null, impactPct: null, steps };
+}
+
+// Failover order: KyberSwap (keyless) → 1inch → 0x → LI.FI → OpenOcean
+const SOURCES = [
+  { id: 'kyber',     label: 'KyberSwap',  fn: quoteKyber },
+  { id: 'oneinch',   label: '1inch',      fn: quote1inch },
+  { id: 'zerox',     label: '0x',         fn: quote0x },
+  { id: 'lifi',      label: 'LI.FI',      fn: quoteLifi },
+  { id: 'openocean', label: 'OpenOcean',  fn: quoteOpenOcean },
+];
+
+async function getQuoteAuto(from, to, amount) {
+  const errors = [];
+  for (const s of SOURCES) {
+    try {
+      const q = await withTimeout(s.fn(from, to, amount), FAILOVER.timeoutMs);
+      return { ...q, source: s.label };
+    } catch (e) { errors.push(s.label + ': ' + (e.message || e)); }
+  }
+  throw new Error('All sources failed — ' + errors.join(' | '));
+}
+
+// ── Wallet & balances ──
+async function connect() {
+  if (!window.ethereum) { status('No wallet found in this browser.', 'err'); return; }
+  try {
+    const accts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    account = accts[0];
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+    } catch (e) {
+      if (e.code === 4902) {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
+          chainId: CHAIN_HEX, chainName: 'Monad', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+          rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: [EXPLORER] }] });
+      } else throw e;
+    }
+    const btn = $('connectBtn');
+    btn.textContent = shortAddr(account);
+    btn.classList.add('connected');
+    status('');
+    await refreshBalances();
+    scheduleQuote();
+  } catch (e) { status('Connection failed: ' + (e.message || e), 'err'); }
+}
+
+async function tokenDecimals(t) {
+  if (t.decimals != null) return t.decimals;
+  const hex = await ethCall(t.address, '0x313ce567');
+  return parseInt(hex, 16);
+}
+async function getBalance(t) {
+  if (t.address === NATIVE) {
+    const hex = await window.ethereum.request({ method: 'eth_getBalance', params: [account, 'latest'] });
+    return { raw: BigInt(hex), decimals: 18 };
+  }
+  const decimals = await tokenDecimals(t);
+  const data = '0x70a08231' + account.slice(2).padStart(64, '0');
+  const hex = await window.ethereum.request({ method: 'eth_call', params: [{ to: t.address, data }, 'latest'] });
+  return { raw: BigInt(hex), decimals };
+}
+async function refreshBalances() {
+  if (!account) return;
+  try {
+    const [fb, tb] = await Promise.all([getBalance(fromTok), getBalance(toTok)]);
+    $('fromBal').textContent = fmtUnits(fb.raw, fb.decimals) + ' ' + fromTok.symbol;
+    $('fromBal').dataset.raw = fb.raw.toString();
+    $('toBal').textContent = fmtUnits(tb.raw, tb.decimals) + ' ' + toTok.symbol;
+    $('maxBtn').disabled = false;
+    renderTokenList();
+    updateAction();
+  } catch (e) { /* balances refresh next time */ }
+}
+
+// ── Token modal ──
+function tokenIcon(sym) {
+  return `<span class="ticon ${sym}">${sym[0]}</span>`;
+}
+function renderTokenList() {
+  const el = $('tokenList');
+  el.innerHTML = '';
+  for (const t of TOKENS) {
+    const b = document.createElement('button');
+    b.className = 'trow' + ((modalSide === 'from' ? fromTok : toTok).address === t.address ? ' selected' : '');
+    b.innerHTML = `${tokenIcon(t.symbol)}<span><div class="sym">${t.symbol}</div><div class="nm">${t.name}</div></span><span class="tb" data-bal="${t.address}"></span>`;
+    b.onclick = () => {
+      if (modalSide === 'from') {
+        if (t.address === toTok.address) { toTok = fromTok; }
+        fromTok = t;
+      } else {
+        if (t.address === fromTok.address) { fromTok = toTok; }
+        toTok = t;
+      }
+      closeModal();
+      renderPair();
+      refreshBalances();
+      scheduleQuote();
+    };
+    el.appendChild(b);
+  }
+  if (account) {
+    for (const t of TOKENS) {
+      getBalance(t).then(b => {
+        const s = el.querySelector(`[data-bal="${t.address}"]`);
+        if (s) s.textContent = fmtUnits(b.raw, b.decimals);
+      }).catch(() => {});
+    }
+  }
+}
+function openModal(side) {
+  modalSide = side;
+  renderTokenList();
+  $('modalOverlay').classList.add('open');
+}
+function closeModal() { $('modalOverlay').classList.remove('open'); }
+
+function renderPair() {
+  $('fromTokenBtn').innerHTML = `${tokenIcon(fromTok.symbol)}<span>${fromTok.symbol}</span><span class="chev">▾</span>`;
+  $('toTokenBtn').innerHTML = `${tokenIcon(toTok.symbol)}<span>${toTok.symbol}</span><span class="chev">▾</span>`;
+  $('fromBal').textContent = '–'; $('toBal').textContent = '–';
+  $('fromBal').dataset.raw = '0';
+}
+
+// ── Quote flow (auto, debounced) ──
+function scheduleQuote() {
+  clearTimeout(quoteTimer);
+  lastQuote = null;
+  updateAction();
+  const raw = $('fromAmount').value.trim();
+  if (!account || !raw || Number(raw) <= 0) { $('toAmount').value = ''; $('details').style.display = 'none'; return; }
+  quoteTimer = setTimeout(runQuote, 700);
+}
+
+async function runQuote() {
+  const btn = $('actionBtn');
+  let amount;
+  try { amount = toUnits($('fromAmount').value.trim(), fromTok.decimals); }
+  catch (e) { return; }
+  if (BigInt(amount) <= 0n) return;
+  const fromBal = BigInt($('fromBal').dataset.raw || '0');
+  if (account && fromBal < BigInt(amount)) {
+    status('Amount exceeds your ' + fromTok.symbol + ' balance.', 'err');
+    updateAction(); return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Getting quote…';
+  status('');
+  $('txLinks').innerHTML = '';
+  try {
+    const pick = $('srcSel').value;
+    let q;
+    if (pick === 'auto') {
+      q = await getQuoteAuto(fromTok, toTok, amount);
+    } else {
+      const s = SOURCES.find(x => x.id === pick);
+      q = { ...(await withTimeout(s.fn(fromTok, toTok, amount), FAILOVER.timeoutMs)), source: s.label };
+    }
+    lastQuote = { ...q, amount };
+    $('toAmount').value = q.outFormatted;
+    const dec = toTok.decimals ?? 18, fdec = fromTok.decimals ?? 18;
+    const rate = q.rate != null ? q.rate
+      : (Number(BigInt(toUnits(q.outFormatted, dec))) / Number(BigInt(amount))) * 10 ** (fdec - dec);
+    $('dRate').textContent = '1 ' + fromTok.symbol + ' ≈ ' + Number(rate).toFixed(6) + ' ' + toTok.symbol;
+    $('dSource').textContent = q.source;
+    $('dMin').textContent = fmtUnits(BigInt(toUnits(q.outFormatted, dec)) * BigInt(10000 - FAILOVER.maxSlippageBps) / 10000n, dec) + ' ' + toTok.symbol;
+    $('details').style.display = 'block';
+    status('');
+  } catch (e) {
+    lastQuote = null;
+    $('toAmount').value = '';
+    $('details').style.display = 'none';
+    status('Quote failed: ' + (e.message || e), 'err');
+  }
+  updateAction();
+}
+
+function updateAction() {
+  const btn = $('actionBtn');
+  if (btn.innerHTML.includes('spin')) btn.innerHTML = ''; // clear loading state
+  btn.classList.remove('connected');
+  if (!account) { btn.disabled = false; btn.textContent = 'Connect wallet'; return; }
+  const raw = $('fromAmount').value.trim();
+  if (!raw || Number(raw) <= 0) { btn.disabled = true; btn.textContent = 'Enter an amount'; return; }
+  const fromBal = BigInt($('fromBal').dataset.raw || '0');
+  let amount;
+  try { amount = BigInt(toUnits(raw, fromTok.decimals)); } catch (e) { btn.disabled = true; btn.textContent = 'Enter an amount'; return; }
+  if (amount > fromBal && $('fromBal').dataset.raw) { btn.disabled = true; btn.textContent = 'Insufficient balance'; return; }
+  if (!lastQuote) { btn.disabled = true; btn.textContent = 'Enter an amount'; return; }
+  btn.disabled = false;
+  btn.textContent = 'Swap';
+}
+
+// ── Swap execution ──
+async function doSwap() {
+  if (!lastQuote) return;
+  const btn = $('actionBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Swapping…';
+  $('txLinks').innerHTML = '';
+  try {
+    for (const step of lastQuote.steps) {
+      status((step.id === 'approve' ? 'Approving ' + fromTok.symbol + '…' : 'Swapping…'));
+      const hash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: account, to: step.to, data: step.data, value: step.value || '0x0' }],
+      });
+      const link = document.createElement('a');
+      link.href = EXPLORER + '/tx/' + hash;
+      link.target = '_blank'; link.rel = 'noopener';
+      link.textContent = 'View ' + (step.id === 'approve' ? 'approval' : 'swap') + ' on MonadVision';
+      $('txLinks').appendChild(link);
+      status('Waiting for confirmation…');
+      await waitReceipt(hash);
+    }
+    status('Swap complete.', 'ok');
+    lastQuote = null;
+    $('toAmount').value = '';
+    $('details').style.display = 'none';
+    await refreshBalances();
+  } catch (e) {
+    status('Swap failed: ' + (e.message || e), 'err');
+  }
+  updateAction();
+}
+
+async function waitReceipt(hash) {
+  for (let i = 0; i < 120; i++) {
+    const r = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] });
+    if (r && r.blockNumber) {
+      if (r.status === '0x0') throw new Error('transaction reverted on-chain');
+      return r;
+    }
+    await new Promise(res => setTimeout(res, 1000));
+  }
+  throw new Error('receipt timeout');
+}
+
+// ── Wiring ──
+$('connectBtn').onclick = async () => {
+  if (!account) await connect();
+};
+$('actionBtn').onclick = async () => {
+  if (!account) { await connect(); return; }
+  await doSwap();
+};
+$('fromAmount').addEventListener('input', scheduleQuote);
+$('srcSel').addEventListener('change', scheduleQuote);
+$('flipBtn').onclick = () => {
+  [fromTok, toTok] = [toTok, fromTok];
+  $('fromAmount').value = '';
+  renderPair(); refreshBalances(); scheduleQuote();
+};
+$('fromTokenBtn').onclick = () => openModal('from');
+$('toTokenBtn').onclick = () => openModal('to');
+$('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
+$('maxBtn').onclick = () => {
+  const raw = $('fromBal').dataset.raw || '0';
+  if (raw === '0') return;
+  $('fromAmount').value = fmtUnits(BigInt(raw), fromTok.decimals, false);
+  scheduleQuote();
+};
+if (window.ethereum) {
+  window.ethereum.on?.('accountsChanged', () => location.reload());
+  window.ethereum.on?.('chainChanged', () => location.reload());
+}
+renderPair();
+renderTokenList();
+</script>
+</body>
+</html>

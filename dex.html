@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Chain DEX — Velodrome · KyberSwap · LI.FI · Velora</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg: #0a0a0f; --card: #14141b; --border: #23232e; --accent: #7c5cff; --green: #22c55e; --red: #f87171; --amber: #f59e0b; --text: #e8e8ec; --muted: #888; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 560px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 22px; } .subtitle { color: var(--muted); font-size: 13px; margin: 4px 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .lbl { font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; }
+  .chain-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .chain-btn { padding: 10px 4px; border-radius: 12px; border: 1px solid #2a2a35; background: #16161e; color: #ccc; cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
+  .chain-btn:hover { border-color: #4a4a5a; }
+  .chain-btn.active { border-color: var(--accent); background: #1e1836; color: #fff; }
+  .chain-btn .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+  .token-row { display: flex; gap: 10px; align-items: center; }
+  .token-select { flex: 0 0 128px; padding: 12px 8px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .amount-input { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 18px; text-align: right; }
+  .amount-input:focus, .token-select:focus { outline: none; border-color: var(--accent); }
+  .balance-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .balance-row button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 700; }
+  .flip-row { display: flex; justify-content: center; margin: 2px 0; }
+  .flip-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; cursor: pointer; font-size: 16px; }
+  .flip-btn:hover { border-color: var(--accent); }
+  .src-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .src-chip { padding: 8px 12px; border-radius: 20px; border: 1px solid #2a2a35; background: #16161e; font-size: 12px; font-weight: 600; color: #aaa; cursor: pointer; }
+  .src-chip.active { border-color: var(--accent); color: #fff; background: #1e1836; }
+  .src-chip.off { opacity: .35; }
+  .quote-table { width: 100%; font-size: 13px; }
+  .quote-table .qr { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid #1e1e28; align-items: center; cursor: pointer; }
+  .quote-table .qr:last-child { border-bottom: none; }
+  .quote-table .qr.winner { background: #14241a; margin: 0 -16px; padding: 8px 16px; border-radius: 8px; border-bottom: none; }
+  .quote-table .qr.selected { outline: 1px solid var(--accent); border-radius: 8px; }
+  .qsrc { font-weight: 700; } .qsrc .tag { font-size: 10px; color: var(--muted); font-weight: 400; display: block; }
+  .qout { text-align: right; font-weight: 600; } .qout .usd { font-size: 11px; color: var(--muted); font-weight: 400; display: block; }
+  .qbadge { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: #1c2a1e; color: var(--green); font-weight: 700; }
+  .qbadge.stale { background: #2a1e1e; color: var(--amber); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 12px; margin-top: 10px; }
+  .detail-grid .k { color: var(--muted); } .detail-grid .v { text-align: right; font-weight: 600; }
+  .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .15s; }
+  .btn-connect { background: var(--accent); color: #fff; }
+  .btn-swap { background: var(--green); color: #fff; margin-top: 8px; }
+  .btn-swap:disabled { background: #2a2a35; color: #666; cursor: not-allowed; }
+  .btn-approve { background: var(--amber); color: #000; margin-top: 8px; }
+  .status { font-size: 13px; color: var(--muted); text-align: center; padding: 10px; }
+  .status.error { color: var(--red); } .status.success { color: var(--green); }
+  .wallet-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; gap: 8px; }
+  .wallet-addr { background: #1c1c26; padding: 8px 12px; border-radius: 10px; font-family: monospace; font-size: 12px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .slip-row { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+  .slip-row button { padding: 6px 10px; border-radius: 8px; border: 1px solid #2a2a35; background: #16161e; color: #ccc; cursor: pointer; font-size: 12px; }
+  .slip-row button.active { border-color: var(--accent); color: #fff; }
+  .slip-row input { width: 60px; padding: 6px; border-radius: 8px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 12px; text-align: center; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>⚡ Multi-Chain DEX</h1>
+  <div class="subtitle">Velodrome · KyberSwap · LI.FI · Velora — best price wins</div>
+
+  <div class="wallet-bar">
+    <span id="networkStatus">Not connected</span>
+    <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect</button>
+  </div>
+
+  <div class="card">
+    <span class="lbl">Chain</span>
+    <div class="chain-grid" id="chainGrid"></div>
+  </div>
+
+  <div class="card">
+    <span class="lbl">From</span>
+    <div class="token-row">
+      <select class="token-select" id="fromToken"></select>
+      <input class="amount-input" id="fromAmount" type="number" placeholder="0.0" min="0" step="any">
+    </div>
+    <div class="balance-row"><span id="fromBalance">Balance: —</span><button id="maxBtn">MAX</button></div>
+  </div>
+
+  <div class="flip-row"><button class="flip-btn" id="flipBtn">⇅</button></div>
+
+  <div class="card">
+    <span class="lbl">To</span>
+    <div class="token-row">
+      <select class="token-select" id="toToken"></select>
+      <input class="amount-input" id="toAmount" type="text" placeholder="0.0" readonly>
+    </div>
+    <div class="balance-row"><span id="toBalance">Balance: —</span><span></span></div>
+  </div>
+
+  <div class="card">
+    <span class="lbl">Quote sources <span style="opacity:.6">(tap to toggle)</span></span>
+    <div class="src-row" id="srcRow"></div>
+  </div>
+
+  <div class="card">
+    <div id="quoteBox"><div class="status">Enter an amount to compare quotes</div></div>
+    <div id="quoteDetail"></div>
+  </div>
+
+  <div class="card">
+    <div class="slip-row">
+      <span>Slippage</span>
+      <button data-slip="0.3">0.3%</button>
+      <button data-slip="0.5" class="active">0.5%</button>
+      <button data-slip="1">1%</button>
+      <input id="slipCustom" type="number" placeholder="custom" min="0.05" max="10" step="0.1"> <span>%</span>
+    </div>
+  </div>
+
+  <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
+  <button class="btn btn-swap" id="swapBtn" disabled>Enter an amount</button>
+  <div class="status" id="txStatus"></div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIG — add a chain here and it appears in the UI. Add a source to
+   a chain's `sources` list to enable it there. No other changes needed.
+   ===================================================================== */
+const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+const CHAINS = {
+  celo: {
+    label: 'Celo', chainId: 42220, native: 'CELO', color: '#35d07f',
+    rpcs: ['https://rpc.ankr.com/celo', 'https://forno.celo.org'],
+    explorer: 'https://celoscan.io',
+    sources: ['velodrome', 'lifi'],
+    tokens: [
+      { symbol: 'CELO', address: '0x471EcE3750Da237f93B8E339c536989b8978a438', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0xcebA9300f2b948710d2653dD7B07f33A8B32118C', decimals: 6 },
+      { symbol: 'USDT', address: '0x48065fbBE25f71C9282ddF5A9CDA2F9A8eCC70F', decimals: 6 },
+      { symbol: 'cUSD', address: '0x765DE816845861e75A25fCA122bb6898B8B1282a', decimals: 18 },
+    ],
+    velo: {
+      clQuoter: '0x426ef6F781bA0Fbc1A7b0D3399D6FA6548464C85',
+      clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
+      clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
+      v2Factory: '0x31832f2a97Fd20664D76Cc421207669b55CE4BC0',
+      v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
+    },
+  },
+  optimism: {
+    label: 'Optimism', chainId: 10, native: 'ETH', color: '#ff0420',
+    rpcs: ['https://optimism.drpc.org', 'https://1rpc.io/op'],
+    explorer: 'https://optimistic.etherscan.io',
+    sources: ['velodrome', 'kyberswap', 'lifi', 'velora'],
+    kyberName: 'optimism',
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals: 6 },
+      { symbol: 'USDT', address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', decimals: 6 },
+      { symbol: 'DAI', address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18 },
+      { symbol: 'VELO', address: '0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db', decimals: 18 },
+      { symbol: 'OP', address: '0x4200000000000000000000000000000000000042', decimals: 18 },
+      { symbol: 'WBTC', address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', decimals: 8 },
+    ],
+    velo: {
+      clQuoter: '0xAd432b2ca49965266133F2bd4c17dc1Ec12f5DEB',
+      clFactory: '0xe13Dd1fbA721Aa81a1826D9523AC9BC7d260c879',
+      clRouter: '0xbA3aEe516399388C779463183d00bB579f5041Ca',
+      v2Factory: '0xF1046053aa5682b4F9a81b5481394DA16BE5FF5a',
+      v2Router: '0xa062aE8A9c5e11aaA026fc2670B0D65cCc8B2858',
+    },
+  },
+  ink: {
+    label: 'Ink', chainId: 57073, native: 'ETH', color: '#7c5cff',
+    rpcs: ['https://rpc-gel.inkonchain.com'],
+    explorer: 'https://explorer.inkonchain.com',
+    sources: ['velodrome', 'lifi'],
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0x2D270e6886d130D724215A266106e6832161EAEd', decimals: 6 },
+    ],
+    velo: {
+      clQuoter: '0x426ef6F781bA0Fbc1A7b0D3399D6FA6548464C85',
+      clFactory: '0x718E46d0962A66942E233760a8bd6038Ce54EdCD',
+      clRouter: '0xc58C8aC11b62D9f649Ba6EBA19d6b70FcbBb2E80',
+      v2Router: '0x3a63171DD9BebF4D07BC782FECC7eb0b890C2A45',
+    },
+  },
+  base: {
+    label: 'Base', chainId: 8453, native: 'ETH', color: '#0052ff',
+    rpcs: ['https://base.drpc.org', 'https://1rpc.io/base'],
+    explorer: 'https://basescan.org',
+    sources: ['kyberswap', 'lifi', 'velora'],
+    kyberName: 'base',
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+    ],
+  },
+  unichain: {
+    label: 'Unichain', chainId: 130, native: 'ETH', color: '#ff007a',
+    rpcs: ['https://unichain.drpc.org'],
+    explorer: 'https://uniscan.xyz',
+    sources: ['kyberswap', 'lifi', 'velora'],
+    kyberName: 'unichain',
+    tokens: [
+      { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
+      { symbol: 'USDC', address: '0x078D782b760474a361dDA0AF3839290b0EF57AD6', decimals: 6 },
+      { symbol: 'USDT', address: '0x588CE4F028D8e7B53B687865d6A67b3A54C75518', decimals: 6 },
+    ],
+  },
+};
+
+const SOURCE_META = {
+  velodrome: { label: 'Velodrome', tag: 'on-chain' },
+  kyberswap: { label: 'KyberSwap', tag: 'aggregator' },
+  lifi: { label: 'LI.FI', tag: 'aggregator' },
+  velora: { label: 'Velora', tag: 'aggregator' },
+};
+
+const QUOTE_TIMEOUT_MS = 8000;
+
+/* =====================================================================
+   SMALL UTILS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+function fmtUnits(wei, dec) {
+  const n = parseFloat(ethers.formatUnits(wei, dec));
+  return n < 0.0001 && n > 0 ? n.toExponential(2) : n.toLocaleString(undefined, { maximumFractionDigits: 6 });
+}
+async function withTimeout(promise, ms) {
+  const t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+  return Promise.race([promise, t]);
+}
+async function readProvider(chainKey) {
+  const cfg = CHAINS[chainKey];
+  for (const rpc of cfg.rpcs) {
+    try { const p = new ethers.JsonRpcProvider(rpc); await withTimeout(p.getBlockNumber(), 6000); return p; }
+    catch (e) { /* next */ }
+  }
+  throw new Error('No RPC reachable for ' + cfg.label);
+}
+
+/* =====================================================================
+   ADAPTERS — each implements:
+     quote(chainKey, tokenIn, tokenOut, amountInWei, wallet) -> Quote|null
+     buildTx(quote, wallet, slippageBps) -> { to, data, value }
+   Quote = { source, amountOut (bigint), amountOutUsd?, gasUsd?, raw }
+   ===================================================================== */
+
+// ---- Velodrome: on-chain via factory + quoter ----
+const Velodrome = {
+  TICK_SPACINGS: [1, 10, 50, 200],
+  ABI_CL_FACTORY: ['function getPool(address,address,uint24) view returns (address)'],
+  ABI_CL_QUOTER: ['function quoteExactInputSingle(address,address,int24,uint256,uint160) returns (uint256)'],
+  ABI_V2_FACTORY: ['function getPool(address,address,bool) view returns (address)'],
+  ABI_V2_ROUTER_QUOTE: ['function getAmountsOut(uint256,tuple(address from,address to,bool stable)[]) view returns (uint256[])'],
+  ABI_V2_ROUTER_SWAP: ['function swapExactTokensForTokens(uint256,uint256,tuple(address from,address to,bool stable)[],address,uint256) returns (uint256[])'],
+  ABI_V2_ROUTER_SWAP_ETH: ['function swapExactETHForTokens(uint256,tuple(address from,address to,bool stable)[],address,uint256) payable returns (uint256[])'],
+  ABI_CL_ROUTER: ['function exactInputSingle(tuple(address tokenIn,address tokenOut,int24 tickSpacing,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)'],
+
+  async quote(chainKey, tokenIn, tokenOut, amountInWei) {
+    const velo = CHAINS[chainKey].velo;
+    if (!velo) return null;
+    const rp = await readProvider(chainKey);
+    const cands = [];
+    // CL pools
+    if (velo.clFactory && velo.clQuoter) {
+      const fac = new ethers.Contract(velo.clFactory, this.ABI_CL_FACTORY, rp);
+      const quo = new ethers.Contract(velo.clQuoter, this.ABI_CL_QUOTER, rp);
+      for (const ts of this.TICK_SPACINGS) {
+        try {
+          const pool = await fac.getPool(tokenIn.address, tokenOut.address, ts);
+          if (pool === ethers.ZeroAddress) continue;
+          const out = await quo.quoteExactInputSingle.staticCall(tokenIn.address, tokenOut.address, ts, amountInWei, 0);
+          if (out > 0n) cands.push({ kind: 'CL', tickSpacing: ts, pool, amountOut: out, router: velo.clRouter });
+        } catch (e) { /* no pool or quote reverted */ }
+      }
+    }
+    // v2 pools
+    if (velo.v2Factory && velo.v2Router) {
+      const fac = new ethers.Contract(velo.v2Factory, this.ABI_V2_FACTORY, rp);
+      const rou = new ethers.Contract(velo.v2Router, this.ABI_V2_ROUTER_QUOTE, rp);
+      for (const stable of [true, false]) {
+        try {
+          const pool = await fac.getPool(tokenIn.address, tokenOut.address, stable);
+          if (pool === ethers.ZeroAddress) continue;
+          const routes = [{ from: tokenIn.address, to: tokenOut.address, stable }];
+          const amts = await rou.getAmountsOut.staticCall(amountInWei, routes);
+          const out = amts[amts.length - 1];
+          if (out > 0n) cands.push({ kind: stable ? 'v2-stable' : 'v2-volatile', pool, amountOut: out, routes, router: velo.v2Router });
+        } catch (e) { /* no pool or quote reverted */ }
+      }
+    }
+    if (!cands.length) return null;
+    cands.sort((a, b) => (a.amountOut < b.amountOut ? 1 : -1));
+    const best = cands[0];
+    return { source: 'velodrome', amountOut: best.amountOut, raw: best };
+  },
+
+  async buildTx(q, wallet, slippageBps) {
+    const b = q.raw, deadline = Math.floor(Date.now() / 1000) + 900;
+    const minOut = b.amountOut * BigInt(10000 - slippageBps) / 10000n;
+    if (b.kind === 'CL') {
+      const router = new ethers.Contract(b.router, this.ABI_CL_ROUTER, signer);
+      const params = { tokenIn: q.tokenIn.address, tokenOut: q.tokenOut.address, tickSpacing: b.tickSpacing, recipient: wallet, deadline, amountIn: q.amountInWei, amountOutMinimum: minOut, sqrtPriceLimitX96: 0 };
+      const pop = await router.exactInputSingle.populateTransaction(params, { value: q.tokenIn.isNative ? q.amountInWei : 0 });
+      return { to: b.router, data: pop.data, value: q.tokenIn.isNative ? q.amountInWei : 0n, spender: b.router };
+    }
+    const router = new ethers.Contract(b.router, q.tokenIn.isNative ? this.ABI_V2_ROUTER_SWAP_ETH : this.ABI_V2_ROUTER_SWAP, signer);
+    let pop;
+    if (q.tokenIn.isNative) pop = await router.swapExactETHForTokens.populateTransaction(minOut, b.routes, wallet, deadline, { value: q.amountInWei });
+    else pop = await router.swapExactTokensForTokens.populateTransaction(q.amountInWei, minOut, b.routes, wallet, deadline);
+    return { to: b.router, data: pop.data, value: q.tokenIn.isNative ? q.amountInWei : 0n, spender: b.router };
+  },
+};
+
+// ---- KyberSwap: REST aggregator ----
+const KyberSwap = {
+  async quote(chainKey, tokenIn, tokenOut, amountInWei) {
+    const name = CHAINS[chainKey].kyberName;
+    if (!name) return null;
+    const inAddr = tokenIn.isNative ? NATIVE : tokenIn.address;
+    const url = `https://aggregator-api.kyberswap.com/${name}/api/v1/routes?tokenIn=${inAddr}&tokenOut=${tokenOut.address}&amountIn=${amountInWei.toString()}&gasInclude=true`;
+    const r = await (await fetch(url)).json();
+    const rs = r?.data?.routeSummary;
+    if (!rs || !rs.amountOut) return null;
+    return { source: 'kyberswap', amountOut: BigInt(rs.amountOut), amountOutUsd: parseFloat(rs.amountOutUsd || 0), gasUsd: parseFloat(rs.gasUsd || 0), raw: rs };
+  },
+  async buildTx(q, wallet, slippageBps) {
+    const name = CHAINS[q.chainKey].kyberName;
+    const r = await (await fetch(`https://aggregator-api.kyberswap.com/${name}/api/v1/route/build`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ routeSummary: q.raw, sender: wallet, recipient: wallet, slippageTolerance: slippageBps, deadline: Math.floor(Date.now() / 1000) + 1200 }),
+    })).json();
+    const tx = r?.data;
+    if (!tx?.data) throw new Error('KyberSwap build failed');
+    return { to: tx.to, data: tx.data, value: BigInt(tx.value || 0), spender: tx.to };
+  },
+};
+
+// ---- LI.FI: REST aggregator + bridge ----
+const Lifi = {
+  async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
+    const id = CHAINS[chainKey].chainId;
+    const fromToken = tokenIn.isNative ? '0x0000000000000000000000000000000000000000' : tokenIn.address;
+    const slip = (slippageBps / 10000).toFixed(4);
+    const url = `https://li.quest/v1/quote?fromChain=${id}&toChain=${id}&fromToken=${fromToken}&toToken=${tokenOut.address}&fromAmount=${amountInWei.toString()}&fromAddress=${wallet || '0x0000000000000000000000000000000000000001'}&slippage=${slip}`;
+    const r = await (await fetch(url)).json();
+    if (!r?.estimate?.toAmount || !r?.transactionRequest) return null;
+    return { source: 'lifi', amountOut: BigInt(r.estimate.toAmount), amountOutUsd: parseFloat(r.estimate.toAmountUSD || 0), gasUsd: parseFloat(r.estimate.gasCosts?.[0]?.amountUSD || 0), raw: r };
+  },
+  async buildTx(q) {
+    const t = q.raw.transactionRequest;
+    if (!t?.data) throw new Error('LI.FI build failed');
+    return { to: t.to, data: t.data, value: BigInt(t.value || 0), spender: t.to };
+  },
+};
+
+// ---- Velora (ParaSwap): REST aggregator ----
+const Velora = {
+  async quote(chainKey, tokenIn, tokenOut, amountInWei) {
+    const id = CHAINS[chainKey].chainId;
+    const src = tokenIn.isNative ? NATIVE : tokenIn.address;
+    let url = `https://api.paraswap.io/prices?network=${id}&srcToken=${src}&destToken=${tokenOut.address}&amount=${amountInWei.toString()}&side=SELL&version=6.2`;
+    if (chainKey === 'unichain') url += `&srcDecimals=${tokenIn.decimals}&destDecimals=${tokenOut.decimals}`;
+    const r = await (await fetch(url)).json();
+    const pr = r?.priceRoute;
+    if (!pr?.destAmount) return null;
+    return { source: 'velora', amountOut: BigInt(pr.destAmount), amountOutUsd: parseFloat(pr.destUSD || 0), gasUsd: parseFloat(pr.gasCostUSD || 0), raw: pr };
+  },
+  async buildTx(q, wallet, slippageBps) {
+    const id = CHAINS[q.chainKey].chainId;
+    const r = await (await fetch(`https://api.paraswap.io/transactions/${id}?ignoreChecks=true`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        srcToken: q.tokenIn.isNative ? NATIVE : q.tokenIn.address,
+        destToken: q.tokenOut.address, srcDecimals: q.tokenIn.decimals, destDecimals: q.tokenOut.decimals,
+        priceRoute: q.raw, userAddress: wallet, receiver: wallet,
+        slippage: slippageBps, // Velora takes basis points (50 = 0.5%)
+      }),
+    })).json();
+    // Velora slippage param is in basis points of a percent... use slippageBps*100 safely
+    if (!r?.data) throw new Error('Velora build failed: ' + JSON.stringify(r).slice(0, 120));
+    return { to: r.to, data: r.data, value: BigInt(r.value || 0), spender: r.to };
+  },
+};
+
+const ADAPTERS = { velodrome: Velodrome, kyberswap: KyberSwap, lifi: Lifi, velora: Velora };
+
+/* =====================================================================
+   QUOTE ENGINE — parallel, timed, normalized, best-wins
+   ===================================================================== */
+async function quoteAll(chainKey, tokenIn, tokenOut, amountInWei, wallet, enabledSources, slippageBps) {
+  const jobs = enabledSources.map(src => (async () => {
+    try {
+      const q = await withTimeout(ADAPTERS[src].quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps), QUOTE_TIMEOUT_MS);
+      if (!q || q.amountOut <= 0n) return { source: src, ok: false, reason: 'no liquidity' };
+      return { source: src, ok: true, quote: { ...q, chainKey, tokenIn, tokenOut, amountInWei } };
+    } catch (e) {
+      return { source: src, ok: false, reason: (e.message || 'error').slice(0, 60) };
+    }
+  })());
+  const results = await Promise.all(jobs);
+  const good = results.filter(r => r.ok).sort((a, b) => (a.quote.amountOut < b.quote.amountOut ? 1 : -1));
+  return { all: results, best: good[0] || null };
+}
+
+/* =====================================================================
+   APP STATE + UI
+   ===================================================================== */
+let provider = null, signer = null, wallet = null;
+let chainKey = 'celo';
+let enabledSources = new Set(['velodrome', 'kyberswap', 'lifi', 'velora']);
+let quotes = null, selectedQuote = null, quoteTimer = null;
+let slippageBps = 50;
+
+function chainTokens() { return CHAINS[chainKey].tokens; }
+
+function renderChains() {
+  const g = $('chainGrid'); g.innerHTML = '';
+  for (const [key, c] of Object.entries(CHAINS)) {
+    const b = document.createElement('button');
+    b.className = 'chain-btn' + (key === chainKey ? ' active' : '');
+    b.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.label}`;
+    b.onclick = () => switchChainUI(key);
+    g.appendChild(b);
+  }
+}
+function renderSources() {
+  const row = $('srcRow'); row.innerHTML = '';
+  for (const src of CHAINS[chainKey].sources) {
+    const m = SOURCE_META[src];
+    const chip = document.createElement('button');
+    chip.className = 'src-chip' + (enabledSources.has(src) ? ' active' : ' off');
+    chip.textContent = m.label;
+    chip.title = m.tag;
+    chip.onclick = () => {
+      enabledSources.has(src) ? enabledSources.delete(src) : enabledSources.add(src);
+      renderSources(); scheduleQuote();
+    };
+    row.appendChild(chip);
+  }
+}
+function renderTokens() {
+  const toks = chainTokens();
+  for (const id of ['fromToken', 'toToken']) { $(id).innerHTML = ''; toks.forEach((t, i) => $(id).add(new Option(t.symbol, i))); }
+  $('fromToken').selectedIndex = 0;
+  $('toToken').selectedIndex = Math.min(1, toks.length - 1);
+}
+function selTokens() {
+  const toks = chainTokens();
+  return { in: toks[$('fromToken').value], out: toks[$('toToken').value] };
+}
+
+async function switchChainUI(key) {
+  chainKey = key;
+  renderChains(); renderSources(); renderTokens();
+  $('fromAmount').value = ''; $('toAmount').value = '';
+  quotes = null; selectedQuote = null;
+  $('quoteBox').innerHTML = '<div class="status">Enter an amount to compare quotes</div>';
+  $('quoteDetail').innerHTML = '';
+  $('swapBtn').disabled = true; $('swapBtn').textContent = 'Enter an amount';
+  if (wallet) { await ensureNetwork(); }
+  updateBalances(); scheduleQuote();
+}
+
+async function ensureNetwork() {
+  const cfg = CHAINS[chainKey];
+  const net = await signer.provider.getNetwork();
+  if (Number(net.chainId) !== cfg.chainId) {
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + cfg.chainId.toString(16) }] });
+    } catch (e) {
+      if (e.code === 4902) await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0x' + cfg.chainId.toString(16), chainName: cfg.label, nativeCurrency: { name: cfg.native, symbol: cfg.native, decimals: 18 }, rpcUrls: cfg.rpcs, blockExplorerUrls: [cfg.explorer] }] });
+      else throw e;
+    }
+    signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+  }
+  $('networkStatus').textContent = cfg.label + ' ✓';
+}
+
+async function updateBalances() {
+  if (!wallet) return;
+  const { in: tIn, out: tOut } = selTokens();
+  let rp;
+  try { rp = signer.provider; } catch (e) { rp = await readProvider(chainKey); }
+  const erc20 = new ethers.Interface(['function balanceOf(address) view returns (uint256)']);
+  for (const [tok, el] of [[tIn, 'fromBalance'], [tOut, 'toBalance']]) {
+    try {
+      const c = new ethers.Contract(tok.address, erc20, rp);
+      const wrapped = await c.balanceOf(wallet);
+      let label = `${fmtUnits(wrapped, tok.decimals)} ${tok.symbol}`;
+      if (tok.isNative) {
+        const native = await rp.getBalance(wallet);
+        label = `${fmtUnits(native, 18)} ${CHAINS[chainKey].native} (+${fmtUnits(wrapped, tok.decimals)} wrapped)`;
+      }
+      $(el).textContent = 'Balance: ' + label;
+    } catch (e) { $(el).textContent = 'Balance: —'; }
+  }
+}
+
+function scheduleQuote() { clearTimeout(quoteTimer); quoteTimer = setTimeout(refreshQuotes, 700); }
+
+async function refreshQuotes() {
+  const box = $('quoteBox'), detail = $('quoteDetail'), swapBtn = $('swapBtn'), approveBtn = $('approveBtn');
+  approveBtn.style.display = 'none';
+  selectedQuote = null;
+  const amtStr = $('fromAmount').value;
+  const { in: tIn, out: tOut } = selTokens();
+  const activeSources = CHAINS[chainKey].sources.filter(s => enabledSources.has(s));
+
+  if (!amtStr || parseFloat(amtStr) <= 0) {
+    box.innerHTML = '<div class="status">Enter an amount to compare quotes</div>'; detail.innerHTML = '';
+    swapBtn.disabled = true; swapBtn.textContent = 'Enter an amount'; $('toAmount').value = ''; return;
+  }
+  if (tIn.address.toLowerCase() === tOut.address.toLowerCase()) {
+    box.innerHTML = '<div class="status error">Pick two different tokens</div>';
+    swapBtn.disabled = true; swapBtn.textContent = 'Select tokens'; return;
+  }
+  if (!activeSources.length) {
+    box.innerHTML = '<div class="status error">Enable at least one quote source</div>';
+    swapBtn.disabled = true; return;
+  }
+
+  box.innerHTML = `<div class="status"><span class="spinner"></span>Quoting via ${activeSources.map(s => SOURCE_META[s].label).join(', ')}…</div>`;
+  detail.innerHTML = ''; swapBtn.disabled = true;
+
+  try {
+    const amountInWei = ethers.parseUnits(amtStr, tIn.decimals);
+    quotes = await quoteAll(chainKey, tIn, tOut, amountInWei, wallet, activeSources, slippageBps);
+    renderQuotes(tIn, tOut, amtStr);
+  } catch (e) {
+    box.innerHTML = '<div class="status error">Quote failed: ' + e.message.slice(0, 100) + '</div>';
+  }
+}
+
+function renderQuotes(tIn, tOut, amtStr) {
+  const box = $('quoteBox'), detail = $('quoteDetail'), swapBtn = $('swapBtn');
+  const good = quotes.all.filter(r => r.ok);
+  if (!good.length) {
+    const reasons = quotes.all.map(r => `${SOURCE_META[r.source].label}: ${r.reason}`).join(' · ');
+    box.innerHTML = `<div class="status warn">No liquidity from any enabled source.</div><div class="status" style="font-size:11px">${reasons}</div>`;
+    swapBtn.disabled = true; swapBtn.textContent = 'No liquidity'; $('toAmount').value = '';
+    return;
+  }
+  selectedQuote = quotes.best.quote;
+  $('toAmount').value = fmtUnits(selectedQuote.amountOut, tOut.decimals);
+
+  let html = '<div class="quote-table">';
+  for (const r of quotes.all) {
+    const m = SOURCE_META[r.source];
+    if (!r.ok) { html += `<div class="qr"><span class="qsrc">${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`; continue; }
+    const q = r.quote;
+    const isBest = r === quotes.best, isSel = q === selectedQuote;
+    html += `<div class="qr${isBest ? ' winner' : ''}${isSel ? ' selected' : ''}" data-src="${r.source}">
+      <span class="qsrc">${m.label}<span class="tag">${m.tag}${q.raw?.kind ? ' · ' + q.raw.kind : ''}</span></span>
+      <span class="qout">${fmtUnits(q.amountOut, tOut.decimals)} ${tOut.symbol}${q.amountOutUsd ? `<span class="usd">$${q.amountOutUsd.toFixed(2)}</span>` : ''}</span>
+      <span>${isBest ? '<span class="qbadge">BEST</span>' : ''}</span></div>`;
+  }
+  box.innerHTML = html + '</div>';
+  box.querySelectorAll('.qr[data-src]').forEach(el => {
+    el.onclick = () => {
+      const r = quotes.all.find(x => x.source === el.dataset.src && x.ok);
+      if (r) { selectedQuote = r.quote; renderQuotes(tIn, tOut, amtStr); }
+    };
+  });
+
+  const q = selectedQuote;
+  const rate = parseFloat(ethers.formatUnits(q.amountOut, tOut.decimals)) / parseFloat(amtStr);
+  detail.innerHTML = `<div class="detail-grid">
+    <span class="k">Source</span><span class="v">${SOURCE_META[q.source].label}</span>
+    <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
+    <span class="k">Min received</span><span class="v">${fmtUnits(q.amountOut * BigInt(10000 - slippageBps) / 10000n, tOut.decimals)} ${tOut.symbol}</span>
+    ${q.gasUsd ? `<span class="k">Est. gas</span><span class="v">$${q.gasUsd.toFixed(4)}</span>` : ''}
+  </div>`;
+
+  if (!wallet) { swapBtn.disabled = true; swapBtn.textContent = 'Connect wallet to swap'; }
+  else checkApproval();
+}
+
+const ERC20_ABI = ['function allowance(address,address) view returns (uint256)', 'function approve(address,uint256) returns (bool)'];
+
+async function checkApproval() {
+  const approveBtn = $('approveBtn'), swapBtn = $('swapBtn');
+  approveBtn.style.display = 'none';
+  if (!selectedQuote || !wallet) return;
+  const q = selectedQuote;
+  if (q.tokenIn.isNative) { swapBtn.disabled = false; swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`; return; }
+  try {
+    // Build (or estimate) spender: do a lightweight build to learn the spender
+    const tx = await ADAPTERS[q.source].buildTx(q, wallet, slippageBps);
+    q._tx = tx; // cache
+    const c = new ethers.Contract(q.tokenIn.address, ERC20_ABI, signer.provider);
+    const al = await c.allowance(wallet, tx.spender);
+    if (al < q.amountInWei) {
+      approveBtn.style.display = 'block';
+      approveBtn.textContent = `Approve ${q.tokenIn.symbol} for ${SOURCE_META[q.source].label}`;
+      swapBtn.disabled = true; swapBtn.textContent = 'Approve first';
+    } else { swapBtn.disabled = false; swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`; }
+  } catch (e) {
+    // buildTx failed pre-approval (e.g. Velora needs fresh quote) — allow swap attempt anyway
+    swapBtn.disabled = false; swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+  }
+}
+
+/* ---------- wallet ---------- */
+$('connectBtn').onclick = async () => {
+  if (!window.ethereum) { alert('No wallet found'); return; }
+  try {
+    const wp = new ethers.BrowserProvider(window.ethereum);
+    const accts = await wp.send('eth_requestAccounts', []);
+    wallet = accts[0]; signer = await wp.getSigner();
+    $('connectBtn').textContent = wallet.slice(0, 6) + '…' + wallet.slice(-4);
+    await ensureNetwork();
+    updateBalances(); scheduleQuote();
+  } catch (e) { $('txStatus').textContent = 'Connect failed: ' + e.message.slice(0, 80); }
+};
+
+/* ---------- events ---------- */
+$('flipBtn').onclick = () => { const f = $('fromToken'), t = $('toToken'); const x = f.value; f.value = t.value; t.value = x; scheduleQuote(); };
+$('maxBtn').onclick = async () => {
+  if (!wallet) return;
+  const { in: tIn } = selTokens();
+  try {
+    if (tIn.isNative) {
+      const bal = await signer.provider.getBalance(wallet);
+      $('fromAmount').value = ethers.formatUnits(bal * 90n / 100n, 18);
+    } else {
+      const c = new ethers.Contract(tIn.address, ERC20_ABI, signer.provider);
+      $('fromAmount').value = ethers.formatUnits(await c.balanceOf(wallet), tIn.decimals);
+    }
+    scheduleQuote();
+  } catch (e) {}
+};
+$('fromAmount').addEventListener('input', scheduleQuote);
+$('fromToken').addEventListener('change', scheduleQuote);
+$('toToken').addEventListener('change', scheduleQuote);
+document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-slip]').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); $('slipCustom').value = '';
+  slippageBps = Math.round(parseFloat(b.dataset.slip) * 100); scheduleQuote();
+});
+$('slipCustom').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (v > 0 && v <= 10) { document.querySelectorAll('[data-slip]').forEach(x => x.classList.remove('active')); slippageBps = Math.round(v * 100); scheduleQuote(); }
+});
+
+$('approveBtn').onclick = async () => {
+  if (!selectedQuote || !signer) return;
+  const q = selectedQuote, st = $('txStatus');
+  try {
+    st.innerHTML = '<span class="spinner"></span>Approving…'; st.className = 'status';
+    const tx = q._tx || await ADAPTERS[q.source].buildTx(q, wallet, slippageBps);
+    const c = new ethers.Contract(q.tokenIn.address, ERC20_ABI, signer);
+    const atx = await c.approve(tx.spender, q.amountInWei);
+    st.innerHTML = '<span class="spinner"></span>Confirming approval…';
+    await atx.wait();
+    st.textContent = 'Approved ✓'; st.className = 'status success';
+    q._tx = null; checkApproval();
+  } catch (e) { st.textContent = 'Approval failed: ' + (e.reason || e.message || '').slice(0, 100); st.className = 'status error'; }
+};
+
+$('swapBtn').onclick = async () => {
+  if (!selectedQuote || !signer) return;
+  const q = selectedQuote, st = $('txStatus');
+  try {
+    await ensureNetwork();
+    st.innerHTML = '<span class="spinner"></span>Building transaction…'; st.className = 'status';
+    const tx = q._tx || await ADAPTERS[q.source].buildTx(q, wallet, slippageBps);
+    // Simulate first — never send a tx we haven't dry-run
+    st.innerHTML = '<span class="spinner"></span>Simulating…';
+    try {
+      await signer.provider.call({ to: tx.to, data: tx.data, value: tx.value, from: wallet });
+    } catch (simErr) {
+      throw new Error('Simulation reverted — quote is stale or liquidity moved. Re-quote and try again.');
+    }
+    st.innerHTML = '<span class="spinner"></span>Awaiting signature…';
+    const sent = await signer.sendTransaction({ to: tx.to, data: tx.data, value: tx.value });
+    st.innerHTML = `<span class="spinner"></span>Confirming… <a href="${CHAINS[chainKey].explorer}/tx/${sent.hash}" target="_blank">view</a>`;
+    const rc = await sent.wait();
+    st.innerHTML = `Swapped ✓ <a href="${CHAINS[chainKey].explorer}/tx/${rc.hash}" target="_blank">view tx</a>`;
+    st.className = 'status success';
+    q._tx = null; updateBalances(); scheduleQuote();
+  } catch (e) {
+    st.textContent = 'Swap failed: ' + (e.reason || e.message || '').slice(0, 140);
+    st.className = 'status error';
+  }
+};
+
+/* ---------- init ---------- */
+renderChains(); renderSources(); renderTokens();
+scheduleQuote();
+</script>
+</body>
+</html>

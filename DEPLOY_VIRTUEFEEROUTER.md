@@ -31,7 +31,7 @@ backend address doing the recording.
 
 ```bash
 git clone https://github.com/Tgood91/Monad-OPSTACK-DEX.git
-cd Monad-OPSTACK-DEX/dex-app/server
+cd Monad-OPSTACK-DEX
 ```
 
 ## Step 2 — Install dependencies
@@ -50,8 +50,9 @@ the contract is ~3,100 bytes).
 ## Step 4 — Run the deploy script
 
 ```bash
-node ../../deploy-virtuefeerouter.js
+node deploy-virtuefeerouter.js
 ```
+(EOA variant: `node deploy-virtuefeerouter-eoa.js` — same folder, no changes needed.)
 
 Answer the prompts as they appear:
 
