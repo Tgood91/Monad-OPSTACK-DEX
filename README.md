@@ -11,7 +11,7 @@ Need to move funds between chains?
 The Bridge tab' handles that too.
 Out of gas on a chain? **⛽ Get gas** (top of the Bridge tab) turns USDC
 on one chain into native gas (MON, ETH) in your wallet on another —
-routed by NEAR Intents over HOT Protocol's bridge on Monad and Optimism.
+routed by NEAR Intents over HOT Protocol's bridge. Minimum $0.28.
 No accounts, no custody. Your wallet signs every transaction; the app never
 holds your funds or keys.
 
@@ -201,8 +201,12 @@ submission), `src/dex/solvers.js` (solver registry, selection + quoting).
 - Quotes are point-in-time. The pre-sign simulation is the safety net, not a
   guarantee — always double-check amounts in your wallet before signing.
 -CCTPV2 will also be integrated for faster bridging of stables. 
-- **HOT Protocol:** Monad and Optimism bridge routes already travel over
-  HOT's bridge (NEAR Intents asset ids `v2_1.omni.hot.tg:*`), and ⛽ Get gas
-  uses them. The `@hot-labs/omni-sdk` package itself is not used yet: its
+- **HOT Protocol:** ⛽ Get gas covers every EVM chain NEAR Intents delivers
+  over HOT's bridge (asset ids `v2_1.omni.hot.tg:*`): Monad, Optimism, BNB
+  Chain, Avalanche, Polygon, Scroll, X Layer and ADI, plus Base and Ethereum
+  via NEAR's own bridge. Pay with USDC on Base, Optimism, Ethereum or Monad;
+  minimum $0.28. Bridges can set higher minimums (e.g. ADI about $0.31; BNB
+  had a temporary $1,000 minimum on 2026-11-05), and the quote shows it.
+  Not included: Plasma (deprecated), TON and Stellar (need non-EVM addresses). The `@hot-labs/omni-sdk` package itself is not used yet: its
   deposits need a funded NEAR relayer account (private key on the server).
   drip-tools / gas.zip are not integrated.

@@ -19,9 +19,17 @@ const BRIDGE_CHAINS = {
   arbitrum: { chainId: 42161, label: 'Arbitrum', native: 'ETH', explorer: 'https://arbiscan.io',             rpcs: ['https://arb1.arbitrum.io/rpc'] },
   avalanche:{ chainId: 43114, label: 'Avalanche',native: 'AVAX',explorer: 'https://snowtrace.io',            rpcs: ['https://api.avax.network/ext/bc/C/rpc'] },
   bsc:      { chainId: 56,    label: 'BNB Chain',native: 'BNB', explorer: 'https://bscscan.com',              rpcs: ['https://bsc-dataseed.binance.org'] },
+  // HOT Protocol bridge chains, used as ⛽ Get gas destinations (RPCs checked 2026-11-05)
+  polygon:  { chainId: 137,   label: 'Polygon',  native: 'POL', explorer: 'https://polygonscan.com',          rpcs: ['https://polygon.drpc.org'] },
+  scroll:   { chainId: 534352,label: 'Scroll',   native: 'ETH', explorer: 'https://scrollscan.com',           rpcs: ['https://rpc.scroll.io', 'https://scroll.drpc.org'] },
+  xlayer:   { chainId: 196,   label: 'X Layer',  native: 'OKB', explorer: 'https://www.oklink.com/xlayer',    rpcs: ['https://rpc.xlayer.tech', 'https://xlayerrpc.okx.com'] },
+  adi:      { chainId: 36900, label: 'ADI',      native: 'ADI', explorer: null,                               rpcs: ['https://rpc.adifoundation.ai'] },
 };
 
-// Chains each bridge source supports
+// Chains each bridge source supports. SOURCE_CHAINS lists where you can pay FROM
+// (your wallet must be able to switch to it). NEAR Intents can also deliver TO
+// the HOT Protocol bridge chains in NEAR_TO_ONLY.
+const NEAR_TO_ONLY = ['bsc', 'avalanche', 'polygon', 'scroll', 'xlayer', 'adi'];
 const SOURCE_CHAINS = {
   near: ['base', 'optimism', 'ethereum', 'monad'],
   stargate: ['ethereum', 'base', 'optimism', 'arbitrum', 'avalanche', 'bsc'],
@@ -120,15 +128,19 @@ function setStatus(msg, kind = '') {
 }
 
 /* ---------------- rendering ---------------- */
+function toKeys() {
+  return state.source === 'near' ? [...SOURCE_CHAINS.near, ...NEAR_TO_ONLY] : SOURCE_CHAINS[state.source];
+}
+
 function renderChains() {
   const keys = SOURCE_CHAINS[state.source];
-  for (const id of ['fromChain', 'toChain']) {
+  for (const [id, list] of [['fromChain', keys], ['toChain', toKeys()]]) {
     const s = $(id);
     s.innerHTML = '';
-    for (const key of keys) s.add(new Option(BRIDGE_CHAINS[key].label, key));
+    for (const key of list) s.add(new Option(BRIDGE_CHAINS[key].label, key));
   }
   if (!keys.includes(state.fromChain)) state.fromChain = keys[0];
-  if (!keys.includes(state.toChain)) state.toChain = keys[1] || keys[0];
+  if (!toKeys().includes(state.toChain)) state.toChain = keys[1] || keys[0];
   $('fromChain').value = state.fromChain;
   $('toChain').value = state.toChain;
 }
@@ -576,6 +588,10 @@ function bindEvents() {
   $('toToken').addEventListener('change', scheduleQuote);
   $('fromAmount').addEventListener('input', scheduleQuote);
   $('flipBtn').onclick = () => {
+    if (!SOURCE_CHAINS[state.source].includes(state.toChain)) {
+      setStatus(`${BRIDGE_CHAINS[state.toChain].label} is receive-only here: you can bridge to it, not from it.`, 'warn');
+      return;
+    }
     [state.fromChain, state.toChain] = [state.toChain, state.fromChain];
     $('fromChain').value = state.fromChain; $('toChain').value = state.toChain;
     [state.fromTokens, state.toTokens] = [state.toTokens, state.fromTokens];
@@ -616,10 +632,14 @@ subscribeToAccountChanges(() => { updateBalance(); scheduleQuote(); });
 // Fills the form for "pay USDC on one chain, receive the destination's native
 // gas token". It runs through the same NEAR Intents flow as any bridge; on Monad
 // and Optimism, NEAR Intents moves the funds over HOT Protocol's bridge.
-export const GAS_CHAINS = SOURCE_CHAINS.near.map(k => ({ key: k, ...BRIDGE_CHAINS[k] }));
+export const GAS_MIN_USD = 0.28;
+const HOT_ROUTED = new Set(['monad', 'optimism', ...NEAR_TO_ONLY]); // NEAR Intents assets v2_1.omni.hot.tg:*
+export const GAS_CHAINS = [...SOURCE_CHAINS.near, ...NEAR_TO_ONLY]
+  .map(k => ({ key: k, hot: HOT_ROUTED.has(k), payable: SOURCE_CHAINS.near.includes(k), ...BRIDGE_CHAINS[k] }));
 
 export async function setupGasRefill({ toChain, fromChain, usd }) {
-  if (!SOURCE_CHAINS.near.includes(toChain) || !SOURCE_CHAINS.near.includes(fromChain)) throw new Error('chain not supported for gas refill');
+  if (!GAS_CHAINS.some(c => c.key === toChain) || !SOURCE_CHAINS.near.includes(fromChain)) throw new Error('chain not supported for gas refill');
+  if (!(Number(usd) >= GAS_MIN_USD)) throw new Error(`Minimum gas refill is $${GAS_MIN_USD.toFixed(2)}`);
   if (toChain === fromChain) throw new Error('pay from a different chain than the one you need gas on');
   state.source = 'near';
   $('bridgeSource').value = 'near';

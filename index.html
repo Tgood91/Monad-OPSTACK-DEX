@@ -134,6 +134,7 @@
   .gas-head b { font-size: 15px; } .gas-head span { font-size: 12px; color: var(--muted); }
   .gas-bal { font-size: 12px; color: var(--muted); margin: -2px 0 12px; }
   .gas-bal.low { color: var(--amber); }
+  .gas-custom { width: 100%; font-size: 15px !important; text-align: left !important; margin-bottom: 12px; }
   .gas-msg { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; min-height: 16px; }
   .gas-foot { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
 
@@ -234,11 +235,12 @@
       <div class="gas-bal" id="gasBal"></div>
       <span class="lbl">Amount</span>
       <div class="src-row" id="gasAmt"></div>
+      <input class="amount-input gas-custom" id="gasCustom" type="number" inputmode="decimal" step="0.01" min="0.28" placeholder="Custom (min $0.28)" aria-label="Custom amount in US dollars, minimum $0.28">
       <span class="lbl">Pay with</span>
       <div class="chain-row"><select class="chain-select" id="gasFrom"></select></div>
       <button class="btn btn-bridge" id="gasGo" type="button">Get gas</button>
       <div class="gas-msg" id="gasMsg" role="status"></div>
-      <div class="gas-foot">Powered by NEAR Intents · HOT Protocol bridge on Monad &amp; Optimism</div>
+      <div class="gas-foot">🔥 = delivered over HOT Protocol's bridge · routed by NEAR Intents · minimum $0.28 (some chains' bridges set a higher minimum; the quote will say)</div>
     </div>
 
     <div class="card">

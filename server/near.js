@@ -16,6 +16,15 @@ export const NEAR_CHAINS = {
   1: "eth",
   10: "op",
   143: "monad",
+  // HOT Protocol bridge chains (NEAR Intents assets v2_1.omni.hot.tg:*), EVM only,
+  // used as ⛽ Get gas destinations. Checked against /v0/tokens 2026-11-05.
+  // Not added: plasma (native marked deprecated), ton / stellar (non-EVM receivers).
+  56: "bsc",
+  43114: "avax",
+  137: "pol",
+  534352: "scroll",
+  196: "xlayer",
+  36900: "adi",
 };
 
 let tokenCache = null;
