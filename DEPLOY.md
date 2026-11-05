@@ -68,6 +68,31 @@ For a PaaS, use:
 - **Build command:** `npm ci && npm run build && cd server && npm ci`
 - **Start command:** `npm start`
 
+## Vercel
+
+`vercel.json` deploys the repo as two [Vercel Services](https://vercel.com/docs/services)
+in one project:
+- `app`: the Vite frontend, including the Bushido-dApp PWA files.
+- `server`: the Express API in `server/`, which exports its `app` for Vercel.
+
+`/api/*` is routed to `server` and everything else to `app`.
+
+1. Import the GitHub repo in Vercel (or link it via the Vercel MCP / CLI). No
+   build settings to change: `vercel.json` defines both services.
+2. Project → Settings → Environment Variables:
+   - `VITE_PROJECT_ID` (required for wallets), `VITE_APP_NAME=Bushido-dApp`,
+     optional `VITE_0X_API_KEY`
+   - `TRUST_PROXY=1` (Vercel's edge is a proxy)
+   - optional server keys: `UNISWAP_API_KEY`, `ONEINCH_API_KEY`,
+     `ZERION_API_KEY`, `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`
+3. Redeploy after changing any `VITE_*` value (they're baked in at build).
+
+Differences from an always-on Node host (Render, VPS):
+- **No live WebSocket price feed.** On Vercel the server runs as a Function
+  (`process.env.VERCEL` is set), so `/api/coinbase/prices` uses Coinbase REST.
+  It already falls back to REST.
+- **The rate limiter is per Function instance**, not global, because it is in memory.
+
 ## 3. Keep it running (VPS)
 
 ```bash

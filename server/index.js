@@ -539,9 +539,18 @@ if (fs.existsSync(distDir)) {
   app.get("/{*splat}", (_req, res) => res.sendFile(path.join(distDir, "index.html")));
 }
 
-// ---- live price stream (Coinbase Advanced Trade WS; REST fallback) ----
-startStream((process.env.WS_PRODUCTS || "BTC-USD,ETH-USD").split(","));
+// ---- run mode ----
+// On Vercel the app is a Function: Vercel calls the exported app per request,
+// so there is no listen() and no long-lived WebSocket (prices fall back to
+// Coinbase REST, which /api/coinbase/prices already handles). Everywhere else
+// (Node, Render, Replit) it is one always-on process.
+if (!process.env.VERCEL) {
+  // live price stream (Coinbase Advanced Trade WS; REST fallback)
+  startStream((process.env.WS_PRODUCTS || "BTC-USD,ETH-USD").split(","));
 
-app.listen(PORT, () => {
-  console.log(`DEX server on :${PORT} | coinbase=${cdpConfigured() ? "keyed" : "NO KEY"}`);
-});
+  app.listen(PORT, () => {
+    console.log(`DEX server on :${PORT} | coinbase=${cdpConfigured() ? "keyed" : "NO KEY"}`);
+  });
+}
+
+export default app;
