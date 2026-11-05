@@ -41,7 +41,7 @@ export const appKit = createAppKit({
   defaultNetwork: base,
   projectId,
   metadata: {
-    name: import.meta.env.VITE_APP_NAME || 'Multi-Chain DEX',
+    name: import.meta.env.VITE_APP_NAME || 'Bushido-dApp',
     description: import.meta.env.VITE_APP_DESCRIPTION || 'Best-price DEX across Base, Monad, Optimism, Ink, Unichain',
     url: import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
     icons: [import.meta.env.VITE_APP_ICON || 'https://velodrome.finance/favicon.ico'],

@@ -7,7 +7,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
-  "description": "Multi-chain DEX — Velodrome, KyberSwap, LI.FI, Velora. Best price wins.",
+  "description": "Bushido-dApp — best-price swaps and bridging across Monad, Base, Optimism, Ink and Unichain.",
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",

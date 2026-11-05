@@ -1,4 +1,4 @@
-# Multi-Chain DEX
+# Bushido-dApp
 
 A swap aggregator and cross-chain bridge in one app.
 Connect your wallet,

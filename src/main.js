@@ -1,4 +1,4 @@
-// Multi-Chain DEX — main entry.
+// Bushido-dApp — main entry.
 // Chains/sources are config-driven (see src/dex/chains.js). Wallet via AppKit.
 
 import { ethers } from 'ethers';
