@@ -31,6 +31,11 @@ trend signal (EMA12/26 on hourly ETH-USD). Scores read from the
 `BUSHIDO_REGISTRY` contract when set; otherwise they show neutral 50% and the
 signal stays virtue-gated.
 
+**📱 Bushido-dApp (mobile app)** — The same app, installable on a phone's
+home screen (Android: *Install*; iPhone: *Share → Add to Home Screen*).
+Full-screen, works offline without ever caching prices. See
+[Bushido-dApp/README.md](Bushido-dApp/README.md).
+
 ## Quote sources
 
 | Source | Type | Chains | Key |

@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- Bushido-dApp: installable mobile app (see Bushido-dApp/README.md) -->
+<link rel="manifest" href="/Bushido-dApp/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="icon" type="image/png" sizes="192x192" href="/Bushido-dApp/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/Bushido-dApp/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bushido-dApp">
 <title>Multi-Chain DEX — Uniswap · Velodrome · KyberSwap · LI.FI · Velora · 1inch · 0x · Zerion</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -133,6 +142,13 @@
   <div class="wallet-bar">
     <span id="networkStatus">Not connected</span>
     <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect</button>
+  </div>
+
+  <div class="pwa-install" id="pwaInstall" role="region" aria-label="Install Bushido-dApp">
+    <img src="/Bushido-dApp/icons/icon-192.png" alt="">
+    <div class="txt"><b>Bushido-dApp</b><span></span></div>
+    <button class="go" type="button">Install</button>
+    <button class="x" type="button" aria-label="Dismiss">✕</button>
   </div>
 
   <div class="tab-bar">
@@ -290,6 +306,7 @@
   </div>
 </div>
 <script type="module" src="/src/main.js"></script>
+<script type="module" src="/Bushido-dApp/pwa.js"></script>
 <script type="module" src="/src/bridge.js"></script>
 <script type="module" src="/src/intel.js"></script>
 </body>

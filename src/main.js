@@ -192,6 +192,12 @@ async function refreshQuotes() {
 function renderQuotes(tIn, tOut, amtStr) {
   const box = $('quoteBox'), detail = $('quoteDetail'), swapBtn = $('swapBtn');
   const good = quotes.good;
+  if (!good.length && !navigator.onLine) {
+    box.innerHTML = '<div class="status warn">You\'re offline. Quotes need a connection; they\'ll refresh when you\'re back online.</div>';
+    swapBtn.disabled = true; swapBtn.textContent = 'Offline';
+    $('toAmount').value = '';
+    return;
+  }
   if (!good.length) {
     const reasons = quotes.all.map(r => `${SOURCE_META[r.source].label}: ${r.reason}`).join(' · ');
     box.innerHTML = `<div class="status warn">No liquidity from any enabled source.</div><div class="status" style="font-size:11px">${reasons}</div>`;
@@ -378,6 +384,9 @@ subscribeToAccountChanges(() => {
 subscribeToNetworkChanges(() => {
   updateWalletUI();
 });
+
+// Re-quote as soon as the connection comes back (installed app opened offline).
+window.addEventListener('online', () => scheduleQuote());
 
 /* ---------------- init ---------------- */
 renderChains();
