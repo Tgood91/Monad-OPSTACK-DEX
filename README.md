@@ -1,4 +1,8 @@
-# Multi-Chain DEX
+# Bushido-dApp
+
+> Formerly **Multi-Chain DEX**. The app, its installable mobile version and
+> the wallet-connect popup are all named **Bushido-dApp**. Existing deployments
+> must update `VITE_APP_NAME` (see [Upgrading from Multi-Chain DEX](#upgrading-from-multi-chain-dex)).
 
 A swap aggregator and cross-chain bridge in one app.
 Connect your wallet,
@@ -30,6 +34,11 @@ fixed **sample data**, labeled as such in the UI — not live on-chain results.
 trend signal (EMA12/26 on hourly ETH-USD). Scores read from the
 `BUSHIDO_REGISTRY` contract when set; otherwise they show neutral 50% and the
 signal stays virtue-gated.
+
+**📱 Bushido-dApp (mobile app)** — The same app, installable on a phone's
+home screen (Android: *Install*; iPhone: *Share → Add to Home Screen*).
+Full-screen, works offline without ever caching prices. See
+[Bushido-dApp/README.md](Bushido-dApp/README.md).
 
 ## Quote sources
 
@@ -95,6 +104,19 @@ cd server && npm start
 (from [cloud.reown.com](https://cloud.reown.com)) — required for the wallet
 modal. Optional: `VITE_0X_API_KEY` (enables the 0x source).
 
+App identity, shown in the wallet-connect popup:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `VITE_APP_NAME` | `Bushido-dApp` | Overrides the default name. Leave unset, or set it to `Bushido-dApp`. |
+| `VITE_APP_DESCRIPTION` | — | One line shown under the name |
+| `VITE_APP_URL` | the page's own origin | Set to your public URL in production |
+| `VITE_APP_ICON` | — | Square icon URL, e.g. `https://your-domain.com/Bushido-dApp/icons/icon-512.png` |
+
+The page title, heading and installed-app name are fixed in the code
+(`index.html`, `Bushido-dApp/manifest.webmanifest`). Only the wallet popup
+reads these variables.
+
 **Server env** — copy `server/.env.example` to `server/.env`. The backend
 reads the CDP secret from `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`, falling
 back to the `coinbase` CLI config on the machine. Zerion needs
@@ -113,11 +135,25 @@ Node host works: build the frontend, run `node server/index.js`, set `PORT`.
 Remember: `VITE_*` values are baked into the frontend at build time, so set
 them before building.
 
+### Upgrading from Multi-Chain DEX
+
+An existing `.env` copied from the old `.env.example` still contains
+`VITE_APP_NAME=Multi-Chain DEX`. Because a set variable overrides the
+default, the wallet popup keeps showing the old name until you change it:
+
+```bash
+# .env on your server (or your host's environment settings)
+VITE_APP_NAME=Bushido-dApp
+```
+
+Then rebuild (`npm run build`) and restart. The page heading, browser tab
+and installed app are already renamed by the code itself.
+
 ## Project layout
 
 ```
 .
-├── index.html            # UI shell + styles (Swap | Bridge tabs)
+├── index.html            # UI shell + styles (Swap | Bridge | Intel | Bushido | Rewards tabs)
 ├── vite.config.js        # build config, dev /api proxy
 ├── server/
 │   ├── index.js          # Express: /api/* + serves the frontend
@@ -130,6 +166,7 @@ them before building.
 │   ├── aori.js           # Aori intent bridging (EIP-712 orders)
 │   ├── bushido.js        # virtue scores + Seykota trend signals
 │   ├── Dex-intellegence.js # Intel tab answers (canned SAMPLE data)
+│   ├── merkl.js          # Merkl rewards: opportunities, claim calldata
 │   └── stream.js         # Live price ticker (WebSocket, REST fallback)
 ├── src/
 │   ├── main.js           # swap tab: rendering, quoting, swap flow
@@ -137,19 +174,21 @@ them before building.
 │   ├── intel.js          # Intel tab: ask -> reasoning, table, chart, answer
 │   ├── bushido-mount.jsx # mounts the React Bushido tab (lazy-loaded)
 │   ├── BushidoTradingDashboard.jsx # virtue scores + strategy signals (React + Tailwind)
+│   ├── merkl.js          # Rewards tab: opportunities + wallet-signed claiming
 │   ├── config.js         # wallet (AppKit) setup, Aave-style modal theme
 │   ├── dex/
 │   │   ├── chains.js     # chain + token + source registry
 │   │   ├── adapters.js   # one quote()/buildTx() adapter per source
 │   │   └── engine.js     # parallel fan-out, best-wins
 │   └── utils/            # wallet helpers, formatting, ABIs
+├── Bushido-dApp/         # installable mobile app (PWA): manifest, service
+│                         # worker, icons, install banner — see its README
 └── contracts/
     └── VirtueFeeRouter.sol  # virtue-score fee discounting (deploy-virtuefeerouter*.js)
 ```
 
 **Planned (not yet in the repo):** `server/relayer.js` (intent relay + tx
-submission), `server/merkl.js` (Merkl v4 incentives), `src/dex/solvers.js`
-(solver registry, selection + quoting).
+submission), `src/dex/solvers.js` (solver registry, selection + quoting).
 
 ## Notes & limits
 

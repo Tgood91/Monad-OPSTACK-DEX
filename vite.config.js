@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import bushidoDapp from './Bushido-dApp/vite-plugin.js';
 
 export default defineConfig({
   // React is only used for the Bushido tab (src/BushidoTradingDashboard.jsx).
-  plugins: [react()],
+  // bushidoDapp(): installable mobile app files (manifest, service worker, icons).
+  plugins: [react(), bushidoDapp()],
   server: {
     port: 5173,
     host: true,

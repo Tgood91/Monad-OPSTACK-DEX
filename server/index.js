@@ -24,7 +24,7 @@ import {
   submitDeposit,
   getStatus,
 } from "./near.js";
-import { UNISWAP_CHAINS, uniswapQuote, uniswapBuildSwap } from "./uniswap.js";
+import { UNISWAP_CHAINS, uniswapQuote, uniswapBuildSwap, uniswapConfigured } from "./uniswap.js";
 import {
   STARGATE_CHAINS,
   stargateTokens,
@@ -102,8 +102,20 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Which server-held source keys are configured. Booleans only, never values,
+// so the UI can mark sources that need a key with the 🔑 chip accurately.
+function serverKeys() {
+  const vault = fs.existsSync(process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock");
+  return {
+    uniswap: uniswapConfigured(),
+    oneinch: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault,
+    zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
+    coinbase: cdpConfigured(),
+  };
+}
+
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, coinbase: cdpConfigured(), stream: streamStatus(), time: new Date().toISOString() });
+  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), stream: streamStatus(), time: new Date().toISOString() });
 });
 
 // GET /api/coinbase/prices?products=ETH-USD,BTC-USD

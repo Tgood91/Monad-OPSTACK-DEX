@@ -1,0 +1,28 @@
+/* Bushido-dApp: styles that apply only to the installed app or to phones. */
+
+/* Installed (opened from the home screen): no browser bar, so respect the
+   notch / home indicator and stop the page bouncing past its edges. */
+@media (display-mode: standalone) {
+  body { overscroll-behavior-y: none; }
+  .container {
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
+
+/* "Install app" prompt: shown only when the browser says the app can be installed. */
+.pwa-install {
+  display: none; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 10px 12px; margin-bottom: 12px; font-size: 13px;
+}
+.pwa-install.show { display: flex; }
+.pwa-install img { width: 36px; height: 36px; border-radius: 9px; flex: none; }
+.pwa-install .txt { flex: 1; min-width: 0; line-height: 1.35; }
+.pwa-install .txt b { display: block; font-size: 14px; }
+.pwa-install .txt span { color: var(--muted); }
+.pwa-install button { min-height: 44px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.pwa-install .go { padding: 0 14px; color: #fff; background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); }
+.pwa-install .x { width: 44px; background: transparent; color: var(--muted); font-size: 18px; }

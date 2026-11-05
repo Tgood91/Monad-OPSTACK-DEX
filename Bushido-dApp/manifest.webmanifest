@@ -1,0 +1,22 @@
+{
+  "name": "Bushido-dApp",
+  "short_name": "Bushido",
+  "description": "Best-price swaps and bridging across Monad, Base, Optimism, Ink and Unichain. Your wallet signs every transaction.",
+  "id": "/?app=bushido-dapp",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "categories": ["finance"],
+  "icons": [
+    { "src": "/Bushido-dApp/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/Bushido-dApp/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/Bushido-dApp/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Swap", "url": "/?source=pwa#swap", "icons": [{ "src": "/Bushido-dApp/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Bridge", "url": "/?source=pwa#bridge", "icons": [{ "src": "/Bushido-dApp/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
