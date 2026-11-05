@@ -39,9 +39,11 @@ const Velodrome = {
     const cfg = CHAINS[chainKey];
     for (const rpc of cfg.rpcs) {
       try {
-        const p = new ethers.JsonRpcProvider(rpc);
-        await Promise.race([p.getBlockNumber(), new Promise((_, r) => setTimeout(() => r(new Error('t/o')), 6000))]);
-        return p;
+        const p = new ethers.JsonRpcProvider(rpc, cfg.chainId, { staticNetwork: true });
+        try {
+          await Promise.race([p.getBlockNumber(), new Promise((_, r) => setTimeout(() => r(new Error('t/o')), 6000))]);
+          return p;
+        } catch (e) { p.destroy(); throw e; }
       } catch { /* next */ }
     }
     throw new Error('No RPC for ' + cfg.label);
@@ -164,8 +166,11 @@ const KyberSwap = {
       body: JSON.stringify({ routeSummary: q.raw, sender: wallet, recipient: wallet, slippageTolerance: slippageBps, deadline: Math.floor(Date.now() / 1000) + 1200 }),
     })).json();
     const tx = r?.data;
-    if (!tx?.data) throw new Error('KyberSwap build failed');
-    return { to: tx.to, data: tx.data, value: BigInt(tx.value || 0), spender: tx.to };
+    if (!tx?.data || !tx?.routerAddress) throw new Error('KyberSwap build failed');
+    // The build response names the target `routerAddress` and the native amount
+    // `transactionValue` (there is no `to` / `value`). The router is also the
+    // ERC-20 approval spender.
+    return { to: tx.routerAddress, data: tx.data, value: BigInt(tx.transactionValue || 0), spender: tx.routerAddress };
   },
 };
 
@@ -206,10 +211,11 @@ const Velora = {
       body: JSON.stringify({
         srcToken: q.tokenIn.isNative ? NATIVE_SENTINEL : q.tokenIn.address,
         destToken: q.tokenOut.address, srcDecimals: q.tokenIn.decimals, destDecimals: q.tokenOut.decimals,
+        srcAmount: q.raw.srcAmount, // required by /transactions ("Missing srcAmount" otherwise)
         priceRoute: q.raw, userAddress: wallet, receiver: wallet, slippage: slippageBps,
       }),
     })).json();
-    if (!r?.data) throw new Error('Velora build failed');
+    if (!r?.data) throw new Error('Velora build failed' + (r?.error ? ': ' + String(r.error).slice(0, 60) : ''));
     return { to: r.to, data: r.data, value: BigInt(r.value || 0), spender: r.to };
   },
 };

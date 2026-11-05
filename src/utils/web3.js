@@ -46,9 +46,11 @@ export async function getReadProvider(chainKey) {
   const cfg = getChain(chainKey);
   for (const rpc of cfg.rpcs) {
     try {
-      const p = new ethers.JsonRpcProvider(rpc);
-      await Promise.race([p.getBlockNumber(), new Promise((_, r) => setTimeout(() => r(new Error('rpc timeout')), 6000))]);
-      return p;
+      const p = new ethers.JsonRpcProvider(rpc, cfg.chainId, { staticNetwork: true });
+      try {
+        await Promise.race([p.getBlockNumber(), new Promise((_, r) => setTimeout(() => r(new Error('rpc timeout')), 6000))]);
+        return p;
+      } catch (e) { p.destroy(); throw e; }
     } catch { /* next RPC */ }
   }
   throw new Error(`No RPC reachable for ${cfg.label}`);
