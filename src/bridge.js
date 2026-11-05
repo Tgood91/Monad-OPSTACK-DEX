@@ -12,16 +12,24 @@ import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- config ---------------- */
 const BRIDGE_CHAINS = {
-  base:     { chainId: 8453, label: 'Base',     native: 'ETH', explorer: 'https://basescan.org',            rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'] },
-  optimism: { chainId: 10,   label: 'Optimism', native: 'ETH', explorer: 'https://optimistic.etherscan.io', rpcs: ['https://mainnet.optimism.io', 'https://1rpc.io/op'] },
-  ethereum: { chainId: 1,    label: 'Ethereum', native: 'ETH', explorer: 'https://etherscan.io',            rpcs: ['https://1rpc.io/eth', 'https://eth.drpc.org'] },
+  base:     { chainId: 8453, label: 'Base',     native: 'ETH', explorer: 'https://basescan.org',            rpcs: ['https://mainnet.base.org', 'https://base.api.pocket.network', 'https://base.drpc.org'] },
+  optimism: { chainId: 10,   label: 'Optimism', native: 'ETH', explorer: 'https://optimistic.etherscan.io', rpcs: ['https://mainnet.optimism.io', 'https://optimism.drpc.org'] },
+  ethereum: { chainId: 1,    label: 'Ethereum', native: 'ETH', explorer: 'https://etherscan.io',            rpcs: ['https://eth.drpc.org', 'https://ethereum-rpc.publicnode.com'] },
   monad:    { chainId: 143,  label: 'Monad',    native: 'MON', explorer: 'https://monadvision.com',         rpcs: ['https://rpc.monad.xyz', 'https://monad-mainnet.drpc.org'] },
   arbitrum: { chainId: 42161, label: 'Arbitrum', native: 'ETH', explorer: 'https://arbiscan.io',             rpcs: ['https://arb1.arbitrum.io/rpc'] },
   avalanche:{ chainId: 43114, label: 'Avalanche',native: 'AVAX',explorer: 'https://snowtrace.io',            rpcs: ['https://api.avax.network/ext/bc/C/rpc'] },
   bsc:      { chainId: 56,    label: 'BNB Chain',native: 'BNB', explorer: 'https://bscscan.com',              rpcs: ['https://bsc-dataseed.binance.org'] },
+  // HOT Protocol bridge chains, used as ⛽ Get gas destinations (RPCs checked 2026-11-05)
+  polygon:  { chainId: 137,   label: 'Polygon',  native: 'POL', explorer: 'https://polygonscan.com',          rpcs: ['https://polygon.drpc.org'] },
+  scroll:   { chainId: 534352,label: 'Scroll',   native: 'ETH', explorer: 'https://scrollscan.com',           rpcs: ['https://rpc.scroll.io', 'https://scroll.drpc.org'] },
+  xlayer:   { chainId: 196,   label: 'X Layer',  native: 'OKB', explorer: 'https://www.oklink.com/xlayer',    rpcs: ['https://rpc.xlayer.tech', 'https://xlayerrpc.okx.com'] },
+  adi:      { chainId: 36900, label: 'ADI',      native: 'ADI', explorer: null,                               rpcs: ['https://rpc.adifoundation.ai'] },
 };
 
-// Chains each bridge source supports
+// Chains each bridge source supports. SOURCE_CHAINS lists where you can pay FROM
+// (your wallet must be able to switch to it). NEAR Intents can also deliver TO
+// the HOT Protocol bridge chains in NEAR_TO_ONLY.
+const NEAR_TO_ONLY = ['bsc', 'avalanche', 'polygon', 'scroll', 'xlayer', 'adi'];
 const SOURCE_CHAINS = {
   near: ['base', 'optimism', 'ethereum', 'monad'],
   stargate: ['ethereum', 'base', 'optimism', 'arbitrum', 'avalanche', 'bsc'],
@@ -74,6 +82,20 @@ function fillTokenSelect(selEl, tokens) {
   tokens.forEach((t, i) => selEl.add(new Option(t.symbol, i)));
 }
 
+/* ---------------- read provider ---------------- */
+// Try each RPC in order; a dead first RPC used to make every balance read fail.
+export async function readProvider(chainKey) {
+  const cfg = BRIDGE_CHAINS[chainKey];
+  for (const rpc of cfg.rpcs) {
+    const p = new ethers.JsonRpcProvider(rpc, cfg.chainId, { staticNetwork: true });
+    try {
+      await Promise.race([p.getBlockNumber(), new Promise((_, r) => setTimeout(() => r(new Error('rpc timeout')), 6000))]);
+      return p;
+    } catch { p.destroy(); }
+  }
+  throw new Error(`No RPC reachable for ${cfg.label}`);
+}
+
 /* ---------------- wallet helpers ---------------- */
 function walletProvider() {
   const wp = appKit.getWalletProvider();
@@ -106,15 +128,19 @@ function setStatus(msg, kind = '') {
 }
 
 /* ---------------- rendering ---------------- */
+function toKeys() {
+  return state.source === 'near' ? [...SOURCE_CHAINS.near, ...NEAR_TO_ONLY] : SOURCE_CHAINS[state.source];
+}
+
 function renderChains() {
   const keys = SOURCE_CHAINS[state.source];
-  for (const id of ['fromChain', 'toChain']) {
+  for (const [id, list] of [['fromChain', keys], ['toChain', toKeys()]]) {
     const s = $(id);
     s.innerHTML = '';
-    for (const key of keys) s.add(new Option(BRIDGE_CHAINS[key].label, key));
+    for (const key of list) s.add(new Option(BRIDGE_CHAINS[key].label, key));
   }
   if (!keys.includes(state.fromChain)) state.fromChain = keys[0];
-  if (!keys.includes(state.toChain)) state.toChain = keys[1] || keys[0];
+  if (!toKeys().includes(state.toChain)) state.toChain = keys[1] || keys[0];
   $('fromChain').value = state.fromChain;
   $('toChain').value = state.toChain;
 }
@@ -154,9 +180,8 @@ async function updateBalance() {
   if (!addr) { $('fromBalance').textContent = 'Balance: —'; return; }
   const { fi } = selTokens();
   if (!fi) return;
-  const cfg = BRIDGE_CHAINS[state.fromChain];
   try {
-    const p = new ethers.JsonRpcProvider(cfg.rpcs[0]);
+    const p = await readProvider(state.fromChain);
     let label;
     if (!fi.address) {
       label = `${Number(ethers.formatUnits(await p.getBalance(addr), 18)).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${fi.symbol}`;
@@ -563,6 +588,10 @@ function bindEvents() {
   $('toToken').addEventListener('change', scheduleQuote);
   $('fromAmount').addEventListener('input', scheduleQuote);
   $('flipBtn').onclick = () => {
+    if (!SOURCE_CHAINS[state.source].includes(state.toChain)) {
+      setStatus(`${BRIDGE_CHAINS[state.toChain].label} is receive-only here: you can bridge to it, not from it.`, 'warn');
+      return;
+    }
     [state.fromChain, state.toChain] = [state.toChain, state.fromChain];
     $('fromChain').value = state.fromChain; $('toChain').value = state.toChain;
     [state.fromTokens, state.toTokens] = [state.toTokens, state.fromTokens];
@@ -584,8 +613,7 @@ function bindEvents() {
     const { fi } = selTokens();
     if (!fi) return;
     try {
-      const cfg = BRIDGE_CHAINS[state.fromChain];
-      const p = new ethers.JsonRpcProvider(cfg.rpcs[0]);
+      const p = await readProvider(state.fromChain);
       if (!fi.address) {
         const bal = await p.getBalance(addr);
         $('fromAmount').value = ethers.formatUnits(bal * 95n / 100n, 18); // keep gas
@@ -599,6 +627,39 @@ function bindEvents() {
 }
 
 subscribeToAccountChanges(() => { updateBalance(); scheduleQuote(); });
+
+/* ---------------- gas refill preset (⛽ Get gas, src/gas.js) ---------------- */
+// Fills the form for "pay USDC on one chain, receive the destination's native
+// gas token". It runs through the same NEAR Intents flow as any bridge; on Monad
+// and Optimism, NEAR Intents moves the funds over HOT Protocol's bridge.
+export const GAS_MIN_USD = 0.28;
+const HOT_ROUTED = new Set(['monad', 'optimism', ...NEAR_TO_ONLY]); // NEAR Intents assets v2_1.omni.hot.tg:*
+export const GAS_CHAINS = [...SOURCE_CHAINS.near, ...NEAR_TO_ONLY]
+  .map(k => ({ key: k, hot: HOT_ROUTED.has(k), payable: SOURCE_CHAINS.near.includes(k), ...BRIDGE_CHAINS[k] }));
+
+export async function setupGasRefill({ toChain, fromChain, usd }) {
+  if (!GAS_CHAINS.some(c => c.key === toChain) || !SOURCE_CHAINS.near.includes(fromChain)) throw new Error('chain not supported for gas refill');
+  if (!(Number(usd) >= GAS_MIN_USD)) throw new Error(`Minimum gas refill is $${GAS_MIN_USD.toFixed(2)}`);
+  if (toChain === fromChain) throw new Error('pay from a different chain than the one you need gas on');
+  state.source = 'near';
+  $('bridgeSource').value = 'near';
+  state.quote = null; state.intent = null;
+  $('depositCard').style.display = 'none';
+  $('statusCard').style.display = 'none';
+  clearInterval(state.statusTimer);
+  state.fromChain = fromChain; state.toChain = toChain;
+  renderChains();
+  await Promise.all([refreshTokens('from'), refreshTokens('to')]);
+  const usdcIdx = state.fromTokens.findIndex(t => t.symbol === 'USDC');
+  const nativeIdx = state.toTokens.findIndex(t => !t.address);
+  if (usdcIdx < 0) throw new Error(`USDC isn't bridgeable from ${BRIDGE_CHAINS[fromChain].label}`);
+  if (nativeIdx < 0) throw new Error(`${BRIDGE_CHAINS[toChain].native} isn't available on ${BRIDGE_CHAINS[toChain].label}`);
+  $('fromToken').value = String(usdcIdx);
+  $('toToken').value = String(nativeIdx);
+  $('fromAmount').value = String(usd);
+  updateBalance();
+  scheduleQuote();
+}
 
 /* ---------------- init ---------------- */
 if (document.getElementById('bBridgeBtn')) {

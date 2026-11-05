@@ -11,7 +11,8 @@ export const CHAINS = {
     chainId: 8453,
     native: 'ETH',
     color: '#0052ff',
-    rpcs: ['https://developer-access-mainnet.base.org', 'https://1rpc.io/base', 'https://base.api.pocket.network'],
+    // Checked 2026-11-05: developer-access-mainnet.base.org unreachable, 1rpc.io/base erroring.
+    rpcs: ['https://mainnet.base.org', 'https://base.api.pocket.network', 'https://base.drpc.org'],
     explorer: 'https://basescan.org',
     // 1inch routers for Base — primary + fallbacks for direct execution
     routers: {
@@ -57,7 +58,7 @@ export const CHAINS = {
     chainId: 10,
     native: 'ETH',
     color: '#ff0420',
-    rpcs: ['https://optimism.drpc.org', 'https://1rpc.io/op'],
+    rpcs: ['https://optimism.drpc.org', 'https://mainnet.optimism.io'],
     explorer: 'https://optimistic.etherscan.io',
     sources: ['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion'],
     kyberName: 'optimism',
@@ -106,7 +107,7 @@ export const CHAINS = {
     chainId: 130,
     native: 'ETH',
     color: '#ff007a',
-    rpcs: ['https://unichain.drpc.org'],
+    rpcs: ['https://unichain.drpc.org', 'https://mainnet.unichain.org'],
     explorer: 'https://uniscan.xyz',
     sources: ['uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion'],
     kyberName: 'unichain',
