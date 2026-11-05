@@ -37,13 +37,29 @@ function renderChains() {
   }
 }
 
+// Server-held keys (from /api/health). null until loaded: assume set, so chips
+// don't flash 🔑 on first paint; 0x's key is checked in the browser.
+let serverKeys = null;
+fetch('/api/health').then(r => r.json()).then(j => { serverKeys = j.keys || null; renderSources(); }).catch(() => {});
+
+function sourceKeySet(src) {
+  if (src === 'zerox') return !!ADAPTERS.zerox.key?.();
+  if (serverKeys && src in serverKeys) return !!serverKeys[src];
+  return true; // keyless source, or server status not loaded yet
+}
+
+function renderSubtitle() {
+  const c = getChain(chainKey);
+  $('subtitle').textContent = `Best price across ${c.sources.length} sources on ${c.label} · ${Object.keys(CHAINS).length} chains`;
+}
+
 function renderSources() {
   const row = $('srcRow');
   row.innerHTML = '';
+  renderSubtitle();
   for (const src of getChain(chainKey).sources) {
     const m = SOURCE_META[src];
-    const needsKey = ['oneinch', 'zerox', 'zerion'].includes(src);
-    const keySet = !needsKey || !!ADAPTERS[src].key?.();
+    const keySet = sourceKeySet(src);
     const chip = el('button',
       'src-chip' + (enabledSources.has(src) ? ' active' : ' off') + (keySet ? '' : ' no-key'),
       `${m.label}${keySet ? '' : ' 🔑'}`);
@@ -215,10 +231,10 @@ function renderQuotes(tIn, tOut, amtStr) {
     <span class="k">Source</span><span class="v">${SOURCE_META[q.source].label}</span>
     <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
     <span class="k">Min received</span><span class="v">${fmtAmount(minOut, tOut.decimals)} ${tOut.symbol}</span>
-    ${q.gasUsd ? `<span class="k">Est. gas</span><span class="v">${fmtUsd(q.gasUsd)}</span>` : ''}
+    <span class="k">Est. gas</span><span class="v">${q.gasUsd > 0 ? (q.gasUsd < 0.01 ? '< $0.01' : fmtUsd(q.gasUsd)) : '—'}</span>
   </div>`;
 
-  if (!isConnected()) { swapBtn.disabled = true; swapBtn.textContent = 'Connect wallet to swap'; }
+  if (!isConnected()) { swapBtn.disabled = false; swapBtn.textContent = 'Connect wallet'; }
   else checkApproval();
 }
 
@@ -322,6 +338,7 @@ $('approveBtn').onclick = async () => {
 };
 
 $('swapBtn').onclick = async () => {
+  if (!isConnected()) { openConnect(); return; }
   if (!selectedQuote || !isConnected()) return;
   const q = selectedQuote;
   try {

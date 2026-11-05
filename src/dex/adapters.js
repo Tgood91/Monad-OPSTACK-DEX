@@ -10,6 +10,15 @@ import { CHAINS, NATIVE_SENTINEL, QUOTE_TIMEOUT_MS } from './chains.js';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
+// A server-proxied source answered with an error. Turn it into the reason shown
+// in the quote list: a missing key reads "API key not set", not "no liquidity".
+async function serverReason(r) {
+  const j = await r.json().catch(() => ({}));
+  const msg = String(j.error || `server ${r.status}`);
+  if (/not set|no .*surrogate|not configured/i.test(msg)) return 'API key not set';
+  return msg.slice(0, 80);
+}
+
 function env(key) {
   // Vite injects VITE_* vars at build time
   return (import.meta.env?.[key] || '').trim();
@@ -221,7 +230,7 @@ const OneInch = {
         body: JSON.stringify({ chainId: id, src, dst: tokenOut.address, amountAtomic: amountInWei.toString() }),
       });
     } catch { return null; }
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error(await serverReason(r));
     const j = await r.json().catch(() => null);
     if (!j?.amountOut) return null;
     return { source: 'oneinch', amountOut: BigInt(j.amountOut), raw: { ...j, chainKey, tokenIn, tokenOut, amountInWei: amountInWei.toString() } };
@@ -300,7 +309,7 @@ const Zerion = {
         }),
       });
     } catch { return null; }
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error(await serverReason(r));
     const q = await r.json().catch(() => null);
     if (!q?.amountOut) return null;
     const outWei = q.amountOut.includes('.')
@@ -349,7 +358,7 @@ const Coinbase = {
         }),
       });
     } catch { return null; }
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error(await serverReason(r));
     const q = (await r.json())?.quote;
     if (!q?.liquidityAvailable || !q?.toAmount) return null;
     return { source: 'coinbase', amountOut: BigInt(q.toAmount), raw: q };
@@ -387,7 +396,7 @@ const Uniswap = {
         }),
       });
     } catch { return null; }
-    if (!r.ok) return null;
+    if (!r.ok) throw new Error(await serverReason(r));
     const q = (await r.json())?.quote;
     if (!q?.amountOut) return null;
     return {

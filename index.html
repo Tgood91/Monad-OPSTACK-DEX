@@ -46,12 +46,17 @@
   .detail-grid .k { color: var(--muted); } .detail-grid .v { text-align: right; font-weight: 600; overflow-wrap: anywhere; }
   .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; transition: all .15s; }
   /* Aave-style connect button: pink -> teal gradient */
-  .btn-connect { background: linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%); color: #fff; }
+  /* Primary actions (Connect, Swap, Bridge) share one gradient; violet marks selection,
+     green marks BEST/success. Teal end darkened to #177E87: white text 4.80:1 (pink end 4.54:1). */
+  .btn-connect { background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); color: #fff; }
   .btn-connect:hover { filter: brightness(1.08); }
-  .btn-swap { background: var(--green); color: #fff; margin-top: 8px; }
-  .btn-swap:disabled { background: #2a2a35; color: #666; cursor: not-allowed; }
-  .btn-bridge { background: var(--green); color: #fff; margin-top: 8px; }
-  .btn-bridge:disabled { background: #2a2a35; color: #666; cursor: not-allowed; }
+  .btn-swap { background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); color: #fff; margin-top: 8px; }
+  .btn-swap:not(:disabled):hover { filter: brightness(1.08); }
+  .btn-swap:disabled { background: #2a2a35; color: #a1a1aa; cursor: not-allowed; }  /* 5.53:1 */
+  .btn-primary-pos { margin: 4px 0 12px; }
+  .btn-bridge { background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); color: #fff; margin-top: 8px; }
+  .btn-bridge:not(:disabled):hover { filter: brightness(1.08); }
+  .btn-bridge:disabled { background: #2a2a35; color: #a1a1aa; cursor: not-allowed; }
   .btn-approve { background: var(--amber); color: #000; margin-top: 8px; }
   .btn-secondary { background: #1c1c26; color: #fff; border: 1px solid #2a2a35; margin-top: 8px; }
   .status { font-size: 13px; color: var(--muted); text-align: center; padding: 10px; }
@@ -77,7 +82,12 @@
   w3m-button { display: none; }
   /* ---- tabs: 4 across, compact on phones ---- */
   .tab-btn { white-space: nowrap; }
-  @media (max-width: 480px) { .tab-btn { padding: 10px 4px; font-size: 13px; } }
+  /* Phones: 5 tabs don't fit side by side, so stack icon over label (no sideways scroll). */
+  @media (max-width: 480px) {
+    .tab-bar { gap: 4px; }
+    .tab-btn { padding: 6px 2px; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+    .tab-ic { font-size: 16px; line-height: 1; }
+  }
 
   /* ---- Intel tab ---- */
   .intel-ask-row { display: flex; gap: 8px; }
@@ -109,12 +119,16 @@
 
   /* ---- Bushido tab: the React component brings its own Tailwind padding ---- */
   .bushido-card { padding: 0; }
+  /* ---- tap targets: at least 44px tall (WCAG 2.5.5 / Apple HIG) ---- */
+  .tab-btn, .src-chip, #connectBtn, .slip-row button { min-height: 44px; }
+  .flip-btn { width: 44px; height: 44px; }
+  .balance-row button { min-height: 44px; min-width: 44px; padding: 0 4px; margin: -12px -4px -12px 0; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>⚡ Multi-Chain DEX</h1>
-  <div class="subtitle">Uniswap · Velodrome · KyberSwap · LI.FI · Velora · 1inch · 0x · Zerion — best price wins</div>
+  <div class="subtitle" id="subtitle">Best price across every source, compared side by side</div>
 
   <div class="wallet-bar">
     <span id="networkStatus">Not connected</span>
@@ -122,11 +136,11 @@
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabSwap">⇄ Swap</button>
-    <button class="tab-btn" id="tabBridge">🌉 Bridge</button>
-    <button class="tab-btn" id="tabIntel">🧠 Intel</button>
-    <button class="tab-btn" id="tabBushido">⛩ Bushido</button>
-    <button class="tab-btn" id="tabMerkl">🎁 Rewards</button>
+    <button class="tab-btn active" id="tabSwap"><span class="tab-ic" aria-hidden="true">⇄</span> <span class="tab-lb">Swap</span></button>
+    <button class="tab-btn" id="tabBridge"><span class="tab-ic" aria-hidden="true">🌉</span> <span class="tab-lb">Bridge</span></button>
+    <button class="tab-btn" id="tabIntel"><span class="tab-ic" aria-hidden="true">🧠</span> <span class="tab-lb">Intel</span></button>
+    <button class="tab-btn" id="tabBushido"><span class="tab-ic" aria-hidden="true">⛩</span> <span class="tab-lb">Bushido</span></button>
+    <button class="tab-btn" id="tabMerkl"><span class="tab-ic" aria-hidden="true">🎁</span> <span class="tab-lb">Rewards</span></button>
   </div>
 
   <!-- ============ SWAP PANE ============ -->
@@ -156,6 +170,12 @@
       <div class="balance-row"><span id="toBalance">Balance: —</span><span></span></div>
     </div>
 
+    <!-- Primary action sits right under "To"; the full quote comparison stays below. -->
+    <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
+    <button class="btn btn-swap btn-primary-pos" id="swapBtn" disabled>Enter an amount</button>
+    <div class="status" id="txStatus"></div>
+
+
     <div class="card">
       <span class="lbl">Quote sources <span style="opacity:.6">(tap to toggle · 🔑 = key not set)</span></span>
       <div class="src-row" id="srcRow"></div>
@@ -176,9 +196,6 @@
       </div>
     </div>
 
-    <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
-    <button class="btn btn-swap" id="swapBtn" disabled>Enter an amount</button>
-    <div class="status" id="txStatus"></div>
   </div>
 
   <!-- ============ BRIDGE PANE ============ -->
