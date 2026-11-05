@@ -9,9 +9,9 @@ Connect your wallet,
 pick tokens, and it compares live quotes across 10 sources — best price wins.
 Need to move funds between chains?
 The Bridge tab' handles that too.
-the gas refill is included with the hot protocol sdk.
-we have all have a gas station or "refill"
-or just use one is the several intents/bridges!
+Out of gas on a chain? **⛽ Get gas** (top of the Bridge tab) turns USDC
+on one chain into native gas (MON, ETH) in your wallet on another —
+routed by NEAR Intents over HOT Protocol's bridge on Monad and Optimism.
 No accounts, no custody. Your wallet signs every transaction; the app never
 holds your funds or keys.
 
@@ -201,4 +201,8 @@ submission), `src/dex/solvers.js` (solver registry, selection + quoting).
 - Quotes are point-in-time. The pre-sign simulation is the safety net, not a
   guarantee — always double-check amounts in your wallet before signing.
 -CCTPV2 will also be integrated for faster bridging of stables. 
--also hot-protocol has a gas refill that I've built in. in the meantime trying to get drip-tools/gas . Zip Integrated ASAP!
+- **HOT Protocol:** Monad and Optimism bridge routes already travel over
+  HOT's bridge (NEAR Intents asset ids `v2_1.omni.hot.tg:*`), and ⛽ Get gas
+  uses them. The `@hot-labs/omni-sdk` package itself is not used yet: its
+  deposits need a funded NEAR relayer account (private key on the server).
+  drip-tools / gas.zip are not integrated.
