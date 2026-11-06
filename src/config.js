@@ -2,6 +2,7 @@
 // Project ID is free at https://cloud.reown.com → put it in .env as VITE_PROJECT_ID.
 
 import { createAppKit } from '@reown/appkit';
+import { ReownAuthentication } from '@reown/appkit-siwx';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 import { base, optimism, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
@@ -71,6 +72,11 @@ export const appKit = createAppKit({
     'ecc4036f814562b41a5268adc86270fba1365471402006302e70169465b7ac18',
   ],
   allWallets: 'SHOW',
+  // Sign-In With X (Reown Authentication): after connecting, the wallet signs a
+  // one-time message proving ownership; Reown stores the session. Must be enabled
+  // for this project in Reown Cloud. Default required=true: declining the
+  // signature disconnects the wallet.
+  siwx: new ReownAuthentication(),
 });
 
 // Map our internal chain key → AppKit network object
