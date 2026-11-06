@@ -10,8 +10,8 @@
 import net from "node:net";
 
 const AUTHD_SOCK = process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock";
-const API = "https://api.1inch.dev/fusion-plus";
-const ALLOWED_HOST = "api.1inch.dev";
+const API = "https://api.1inch.com/fusion-plus"; // 1inch Business
+const ALLOWED_HOST = "api.1inch.com";
 
 let surrogate = null;
 let surrogateAt = 0;

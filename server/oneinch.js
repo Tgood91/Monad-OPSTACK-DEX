@@ -4,13 +4,13 @@
 // Authorization: Bearer. Egress swaps the surrogate for the real key.
 // The raw key never touches this process's memory.
 // Set ONEINCH_API_KEY in the server env to skip the vault (any normal host).
-// Docs: https://docs.1inch.dev/
+// Docs: https://business.1inch.com/portal/llms.txt
 
 import net from "node:net";
 
 const AUTHD_SOCK = process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock";
-const API = "https://api.1inch.dev";
-const ALLOWED_HOST = "api.1inch.dev";
+const API = "https://api.1inch.com"; // 1inch Business (docs: business.1inch.com/portal/llms.txt)
+const ALLOWED_HOST = "api.1inch.com";
 
 let surrogate = null;
 let surrogateAt = 0;

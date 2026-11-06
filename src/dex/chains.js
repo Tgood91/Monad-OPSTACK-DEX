@@ -14,11 +14,12 @@ export const CHAINS = {
     // Checked 2026-11-05: developer-access-mainnet.base.org unreachable, 1rpc.io/base erroring.
     rpcs: ['https://mainnet.base.org', 'https://base.api.pocket.network', 'https://base.drpc.org'],
     explorer: 'https://basescan.org',
-    // 1inch routers for Base — primary + fallbacks for direct execution
+    // Aggregator router contracts on Base (reference only; not read by the code:
+    // swaps use the `to` address each source's API returns).
     routers: {
-      primary: '0x111111125421cA6dc452d289314280a0f8842A65',   // 1inch v5
-      fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae',
-      fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
+      primary: '0x111111125421cA6dc452d289314280a0f8842A65',   // 1inch AggregationRouter V6 (the 1inch /swap/v6.0 API targets V6; V5 is 0x1111111254EEB25477B68fb85Ed929f73A960582)
+      fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae', // LI.FI Diamond (LI.FI's router), not 1inch
+      fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43', // Uniswap Universal Router on Base, not 1inch
     },
     sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'zerox', 'zerion'],
     kyberName: 'base',

@@ -50,7 +50,8 @@ export const appKit = createAppKit({
   features: {
     analytics: true,
     email: false,
-    socials: [],
+    // Social logins (Reown embedded wallet). Also enabled for this project in Reown Cloud.
+    socials: ['google', 'x', 'discord', 'farcaster', 'apple', 'github', 'facebook'],
   },
   // ---- Aave-style modal: dark navy surface, Aave pink->teal accent, rounded,
   // a short list of popular wallets up front, the full list behind "All wallets".
