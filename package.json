@@ -2,6 +2,7 @@
   "dependencies": {
     "@reown/appkit": "^1.3.0",
     "@reown/appkit-adapter-ethers": "^1.3.0",
+    "@reown/appkit-siwx": "^1.8.24",
     "ethers": "^6.13.4",
     "lucide-react": "^0.454.0",
     "react": "^18.3.1",
