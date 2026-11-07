@@ -1,6 +1,7 @@
 // Bushido-dApp — main entry.
 // Chains/sources are config-driven (see src/dex/chains.js). Wallet via AppKit.
 
+import './shims/buffer-global.js';
 import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';

@@ -3,6 +3,30 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: "Buffer is not defined" when connecting a wallet
+**What:** a browser `Buffer` polyfill (`src/shims/buffer-global.js`, using the
+`buffer` package) loaded first in `src/main.js`.
+**Why:** Reown AppKit's sign-in code and an Ethereum helper library call Node's
+`Buffer` directly. Browsers don't have it, so connecting crashed with "Buffer is
+not defined". Providing it globally fixes the cause instead of patching each
+caller. Checked in a real browser that `Buffer` exists and encodes correctly;
+a full wallet sign-in was not tested here.
+
+## Unreleased: welcome line in the wallet sign-in message
+**What:** the sign-in prompt now reads "Welcome bushido warriors. Enjoy exploring
+the bushido beta dex." between the address and the URI (`BushidoAuthentication`
+in `src/config.js`).
+**Why:** the sign-in prompt is the first thing a new user sees from the app, and
+it was a bare technical block. The text goes in the standard SIWE "statement"
+slot, so it is part of what the wallet signs. AppKit offers no option for it, so
+a small subclass sets it. The message format was checked offline; a live
+sign-in was not tested.
+
+## #12: CHANGELOG and PR template
+**What:** this file, plus a pull request template with a Why section.
+**Why:** the reasoning behind each change lived only in chat; it now sits next to
+the code, and every new PR is asked for its "why" up front.
+
 ## #11: Swap screen redesign; install banner removed
 **What:** matching tab icons, one scrolling row of chain pills, big "You pay / You
 receive" cards, a route card showing the best source and "+x% vs next" with a
