@@ -51,6 +51,15 @@ export const CHAINS = {
     tokens: [
       { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
       { symbol: 'USDC', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', decimals: 6 },
+      // Added after checking each contract on Monad (name, symbol, decimals) and getting a live KyberSwap
+      // route for it from MON. Order matters: the first two stay MON and USDC (the app defaults to them).
+      { symbol: 'USDT0', address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', decimals: 6 },
+      { symbol: 'WETH', address: '0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242', decimals: 18 },
+      { symbol: 'WBTC', address: '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c', decimals: 8 },
+      { symbol: 'AUSD', address: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', decimals: 6 },
+      { symbol: 'sMON', address: '0xA3227C5969757783154C60bF0bC1944180ed81B9', decimals: 18 }, // Kintsu staked MON
+      { symbol: 'gMON', address: '0x8498312A6B3CbD158bf0c93AbdCF29E6e4F55081', decimals: 18 },
+      { symbol: 'shMON', address: '0x1B68626dCa36c7fE922fD2d55E4f631d962dE19c', decimals: 18 }, // ShMonad
     ],
   },
   optimism: {
