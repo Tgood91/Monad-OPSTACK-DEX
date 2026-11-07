@@ -3,6 +3,24 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Dojo card, phase 1 (Dojo Pass and Dojo pet on Monad)
+**What:** a "Your Dojo" card at the top of the Bushido tab, read live from three contracts on Monad
+mainnet (deployed by `0x00EA…`, no published source):
+- **Dojo Pass** `0x2647faf3aaa708d0b9a110744790e1f637fcca53`: `purchasePass()` costs 0.001 MON (to the treasury).
+- **Warrior, the Dojo pet** `0xafa3dd46746e39a89d411260d93e7514ab99b96e`: `enterDojo()` registers one warrior per wallet.
+- **Bushido Honor** `0x46d5f4924f833cd4054a36eaefa3beca6cd92a7e`: the virtue registry. Not used yet.
+
+The card shows pass status and the pet (level, mood, Vitality and Focus meters, days in the dojo), with
+two buttons: "Get your Dojo Pass" and "Enter the Dojo". Both switch the wallet to Monad, dry-run first, then
+ask for the signature. No perks yet. Code in `src/dojo/` and `src/DojoCard.jsx`; 13 new tests.
+**Why:** the contracts were deployed but invisible in the app. Phase 1 makes them part of the product with
+the smallest safe step: show the state, and let a wallet take the two actions. The pass and the warrior are
+independent (`enterDojo()` does not check for a pass), so the card shows both side by side.
+**Limits:** only the contract owner can change a pet's stats, so the app displays them and cannot grow
+them; the stat names (Vitality, Focus) and the mood are our labels, kept in `STAT_LABELS`, since the
+contract publishes none. Checked in a real browser against live Monad data (your wallet shows a pass and a
+level 1 warrior), a new wallet, and Monad not answering; a real pass purchase or entry was not signed here.
+
 ## Unreleased: KyberSwap client ID
 **What:** quote and swap-build requests to KyberSwap now send `x-client-id: bushido-dapp`.
 **Why:** a real swap on Monad showed KyberSwap tagging the trade `null:bushido-dapp.onrender.com`:
