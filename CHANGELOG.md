@@ -3,6 +3,20 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: "Buffer is not defined" when connecting a wallet
+**What:** a browser `Buffer` polyfill (`src/shims/buffer-global.js`, using the
+`buffer` package) loaded first in `src/main.js`.
+**Why:** Reown AppKit's sign-in code and an Ethereum helper library call Node's
+`Buffer` directly. Browsers don't have it, so connecting crashed with "Buffer is
+not defined". Providing it globally fixes the cause instead of patching each
+caller. Checked in a real browser that `Buffer` exists and encodes correctly;
+a full wallet sign-in was not tested here.
+
+## #12: CHANGELOG and PR template
+**What:** this file, plus a pull request template with a Why section.
+**Why:** the reasoning behind each change lived only in chat; it now sits next to
+the code, and every new PR is asked for its "why" up front.
+
 ## #11: Swap screen redesign; install banner removed
 **What:** matching tab icons, one scrolling row of chain pills, big "You pay / You
 receive" cards, a route card showing the best source and "+x% vs next" with a
