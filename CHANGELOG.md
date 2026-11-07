@@ -3,6 +3,25 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: safer deposit screen for NEAR Intents bridges
+**What:** the box that appears after you create a bridge intent is now a "Review before you pay" screen:
+what you send and receive (with the minimum), your wallet as the receiver, where a refund goes (and the refund
+fee), the time, the provider, and the real deadline. A short "Why does my wallet need the funds?" explains that
+a bridge doesn't move your coins: you pay on the source chain and the bridge's liquidity providers pay you on
+the other from their own funds, so the money plus a little gas coin must be in your wallet first. "Send deposit
+from wallet" is the main button; sending manually is tucked under "Advanced" with a warning about fake
+look-alike addresses. Code in `src/bridge-deposit.js` and `src/bridge-deposit-ui.js`.
+**Why:** the old box was a bare address, "Send exactly…" and "Copy address", with no destination, receiver or
+refund address, exactly what a scam prompt looks like, and it said the address expires in "~10 min" when the
+real deadline is 24 hours. Worse, nothing checked the address: it reached the page through our server.
+**The check:** before the send button turns on, the browser asks NEAR's own status service (not our server) about
+that exact address and confirms NEAR recorded it with YOUR wallet as both receiver and refund address, for the
+amount and token you chose, as a live unexpired quote. A mismatch (including a look-alike of your address) shows
+a red "Do not pay this address", keeps the button off and keeps the address off the page. If NEAR can't be
+reached, nothing can be sent until "Check again" succeeds. The server now passes the deadline and refund fee
+through. 16 new tests, plus the same check run against NEAR's real record for a real, unpaid intent. A real
+deposit was not made here.
+
 ## Unreleased: Monad faucet for new Dojo wallets
 **What:** a small faucet on Monad mainnet (chain 143). A wallet with no activity there sees "Get 0.05 free
 MON for gas" on the Dojo card, so it can enter the Dojo or buy a Dojo Pass. `server/faucet.js`, routes

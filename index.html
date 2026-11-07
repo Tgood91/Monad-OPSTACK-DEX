@@ -191,6 +191,22 @@
   .src-details .src-hint { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
   .src-details .src-row { padding-bottom: 14px; }
 
+  /* ---- Bridge: "review before you pay" box ---- */
+  .dep-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .dep .detail-grid { grid-template-columns: auto 1fr; }
+  .dep .muted { color: var(--muted); font-weight: 400; }
+  .dep-note { color: var(--muted); font-size: 12px; margin: 8px 0; line-height: 1.5; }
+  .dep-why { font-size: 12px; line-height: 1.55; background: #14141b; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin: 10px 0; }
+  .dep-check { font-size: 13px; line-height: 1.5; border-radius: 10px; padding: 10px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .dep-check[data-state="verified"] { border-color: #2d6a4f; background: #12201c; color: #d1fae5; }
+  .dep-check[data-state="mismatch"] { border-color: #7f1d1d; background: #2a1215; color: #fecaca; }
+  .dep-check[data-state="unreachable"] { border-color: #78350f; background: #241a0d; color: #fde68a; }
+  .dep-retry { width: auto; padding: 6px 12px; font-size: 12px; margin: 6px 0 0; }
+  .dep-adv { margin-top: 10px; font-size: 13px; }
+  .dep-adv summary { cursor: pointer; color: var(--muted); padding: 10px 0; min-height: 44px; }
+  .dep .mono { font-family: monospace; font-size: 11px; word-break: break-all; }
+  .dep .addr { line-height: 1.7; letter-spacing: .5px; }
+
   /* ---- tap targets: at least 44px tall (WCAG 2.5.5 / Apple HIG) ---- */
   .tab-btn, .src-chip, #connectBtn, .slip-row button { min-height: 44px; }
   .flip-btn { width: 44px; height: 44px; }

@@ -167,7 +167,7 @@ export async function dryQuote(params) {
   return normalizeQuote(j);
 }
 
-/** Wet quote — returns a deposit address (valid ~10 min). */
+/** Wet quote: returns a one-time deposit address, valid until the quote's `deadline` (24 h from now). */
 export async function wetQuote(params) {
   const j = await apiFetch("/v0/quote", {
     method: "POST",
@@ -179,7 +179,7 @@ export async function wetQuote(params) {
   return q;
 }
 
-function normalizeQuote(j) {
+export function normalizeQuote(j) {
   const q = j.quote;
   if (!q?.amountOut) throw new Error("no quote returned");
   return {
@@ -191,6 +191,9 @@ function normalizeQuote(j) {
     amountOutUsd: q.amountOutUsd,
     minAmountOut: q.minAmountOut,
     timeEstimateSec: q.timeEstimate ?? null,
+    // Shown on the deposit screen (they used to be dropped, so the page could not show them):
+    deadline: q.deadline ?? null, // deposit before this time
+    refundFee: q.refundFee ?? null, // fee if the swap fails and is refunded, in the deposit token's smallest unit
     depositAddress: null,
     raw: q,
   };

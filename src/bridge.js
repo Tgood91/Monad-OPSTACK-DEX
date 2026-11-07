@@ -10,6 +10,7 @@ import {
 } from './utils/web3.js';
 import { ERC20_ABI } from './utils/abis.js';
 import { resilient } from './dex/resilience.js';
+import { mountDeposit } from './bridge-deposit-ui.js';
 import {
   PROVIDER_LABELS, fromChainsAll, toChainsAll, providersFor, pickProvider,
 } from './bridge-route.js';
@@ -422,20 +423,20 @@ async function startBridge() {
     if (!quote.depositAddress) throw new Error('no deposit address returned');
     state.intent = { ...quote, fi: q.fi, ti: q.ti, amountAtomic: q.amountAtomic };
 
-    const cfg = BRIDGE_CHAINS[state.fromChain];
-    const amtFmt = Number(quote.amountInFormatted).toLocaleString(undefined, { maximumFractionDigits: 6 });
     $('depositCard').style.display = 'block';
-    $('depositBox').innerHTML = `<div class="deposit-box">
-      Send <b>exactly ${amtFmt} ${q.fi.symbol}</b> on <b>${cfg.label}</b> to:
-      <div class="addr">${quote.depositAddress}</div>
-      <div style="color:var(--muted);font-size:12px;margin-bottom:8px;">Address expires in ~10 min. Refunds go back to your wallet on failure.</div>
-      <button class="btn btn-secondary" id="bCopyAddrBtn">Copy address</button>
-      <button class="btn btn-bridge" id="bSendDepositBtn">Send deposit from wallet</button>
-    </div>`;
-    document.getElementById('bCopyAddrBtn').onclick = () => { navigator.clipboard.writeText(quote.depositAddress); setStatus('Address copied', 'success'); };
-    document.getElementById('bSendDepositBtn').onclick = sendDeposit;
+    state.intent.verified = false;
+    // The send button stays off until NEAR itself confirms this address is tied to your wallet.
+    mountDeposit({
+      box: $('depositBox'),
+      intent: state.intent,
+      wallet,
+      fromChain: BRIDGE_CHAINS[state.fromChain],
+      toChain: BRIDGE_CHAINS[state.toChain],
+      onSend: sendDeposit,
+      onVerified: (ok) => { if (state.intent) state.intent.verified = ok; },
+    });
     setStatus('');
-    btn.textContent = 'Intent created — send deposit above';
+    btn.textContent = 'Intent created — review it below';
   } catch (e) {
     setStatus('Intent failed: ' + e.message.slice(0, 140), 'error');
     btn.disabled = false;
@@ -446,6 +447,7 @@ async function startBridge() {
 async function sendDeposit() {
   const it = state.intent;
   if (!it) return;
+  if (!it.verified) { setStatus('NEAR has not confirmed this address yet. Nothing was sent.', 'warn'); return; }
   const btn = document.getElementById('bSendDepositBtn');
   try {
     btn.disabled = true;
