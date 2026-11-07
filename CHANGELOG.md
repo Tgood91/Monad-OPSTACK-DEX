@@ -3,6 +3,10 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: one wallet signature now covers every chain
+**What:** switching chains no longer asks you to sign a message again. The sign-in you make once is reused on Base, Monad, Optimism, Ink, Unichain and Ethereum for the same wallet, and the check is remembered for 60 seconds so fast switches don't hit the sign-in service each time.
+**Why:** the sign-in library only accepted a signature made on the *same* chain you were on, so every switch triggered a new prompt, and declining it sent you back to the last signed chain (the "can't leave Base" symptom). A signature proves you own the address, and an address is identical on every EVM chain, so reusing it is safe. Different wallets and non-EVM chains still need their own signature.
+
 ## Unreleased: red only when something has really stayed broken
 **What:** a one-off glitch no longer shows red. The rule is the same in three read-only places:
 - **Bridge health strip:** a failed check is retried once right away (if the retry works, the route is simply
