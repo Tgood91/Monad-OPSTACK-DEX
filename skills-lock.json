@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": {
+    "1inch-aqua": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-aqua/SKILL.md",
+      "computedHash": "e0c9e683990cf9560390a0d6c1d973f8a0098ebbf572b5d6ae08419a1003bf42"
+    },
+    "1inch-debug": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-debug/SKILL.md",
+      "computedHash": "a35ac1d6b53a6be1f5f05e548d43aae6c50dd9c34005251ad2c91e4ec4983650"
+    },
+    "1inch-infrastructure": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-infrastructure/SKILL.md",
+      "computedHash": "ed491d560ce8aaa2822819836d58e65678f0414a119c4741002b06bf43e83dc2"
+    },
+    "1inch-market-data": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-market-data/SKILL.md",
+      "computedHash": "938bd371b149c348b03a749b2c30f27fcfd57b4dedd51aa490cfe320f70953ca"
+    },
+    "1inch-mcp-server": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-mcp-server/SKILL.md",
+      "computedHash": "c58332b4dae20217243f1f61ba768b3218e97c7e52e79ddf347fe0a951a08e8b"
+    },
+    "1inch-orderbook": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-orderbook/SKILL.md",
+      "computedHash": "919d690df060a154a892103abd704f77b7fbf4f7c0c29ff7beee7db3ba219fd1"
+    },
+    "1inch-swap": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-swap/SKILL.md",
+      "computedHash": "c857d004e63069bdc5aa3f5a40c82c5c77edc17724a12db603c2398cfceffea7"
+    },
+    "1inch-wallet-data": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-wallet-data/SKILL.md",
+      "computedHash": "80d516b8fd12934fdc05bc11420a148e8822236e3cdfd816b5f5cacc1fa88c4b"
+    },
+    "1inch-walletconnect": {
+      "source": "1inch/1inch-ai",
+      "sourceType": "github",
+      "skillPath": "skills/1inch-walletconnect/SKILL.md",
+      "computedHash": "b6a0f26e5d55bedbcf5ccaddc3482e25b9d504af74fbc4bd770ae0e747243dd8"
+    }
+  }
+}

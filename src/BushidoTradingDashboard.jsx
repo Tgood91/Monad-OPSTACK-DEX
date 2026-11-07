@@ -5,6 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Zap, Target, AlertCircle, CheckCircle, ChevronRight } from 'lucide-react';
 
+import { VirtueCompass, SwapPanel, OperationsPanel } from './BushidoPanels.jsx';
+
 const API = ''; // same-origin
 
 async function api(path, opts = {}) {
@@ -63,6 +65,9 @@ const BushidoTradingDashboard = ({ trader }) => {
         </h2>
         {source && <span className="text-xs opacity-50">scores: {source}</span>}
       </div>
+
+      <VirtueCompass virtues={virtues} />
+      <SwapPanel />
 
       {/* Virtue scores */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -124,6 +129,7 @@ const BushidoTradingDashboard = ({ trader }) => {
           )}
         </div>
       )}
+      <OperationsPanel />
     </div>
   );
 };

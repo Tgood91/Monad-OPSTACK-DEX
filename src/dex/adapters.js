@@ -220,6 +220,28 @@ const Velora = {
   },
 };
 
+/* ================= 1inch Fusion (gasless; user signs an order, resolvers fill it) ================= */
+// Not a transaction: buildTx is never used. src/main.js signs and submits the order
+// via src/dex/fusion-wallet.js. The SDK loads on demand and talks to our /api/fusion
+// relay, which holds the 1inch key. Sells ERC-20 tokens only (no native coin).
+const Fusion = {
+  gasless: true,
+  async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
+    const chainId = CHAINS[chainKey].chainId;
+    const core = await import('./fusion-core.js');
+    try {
+      const r = await core.fusionQuote({
+        chainId, origin: globalThis.location?.origin ?? '', tokenIn, tokenOut, amountInWei,
+        wallet: wallet && wallet !== ZERO ? wallet : undefined, slippageBps: slippageBps ?? 50,
+      });
+      return { source: 'fusion', amountOut: r.amountOut, minAmountOut: r.minAmountOut, gasless: true, raw: r };
+    } catch (e) {
+      throw new Error(core.explainFusionError(e));
+    }
+  },
+  async buildTx() { throw new Error('Fusion orders are signed, not sent as a transaction'); },
+};
+
 /* ================= 1inch (swap API via server proxy) ================= */
 // Key lives in the Secure Vault, used SERVER-SIDE (server/oneinch.js).
 // 1inch uses Bearer auth, which the vault surrogate pattern handles cleanly.
@@ -439,6 +461,7 @@ export const ADAPTERS = {
   velora: Velora,
   coinbase: Coinbase,
   oneinch: OneInch,
+  fusion: Fusion,
   zerox: ZeroX,
   zerion: Zerion,
 };

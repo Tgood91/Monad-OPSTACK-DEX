@@ -21,7 +21,7 @@ export const CHAINS = {
       fallback1: '0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae', // LI.FI Diamond (LI.FI's router), not 1inch
       fallback2: '0x6fF5693b99212Da76ad316178A184AB56D299b43', // Uniswap Universal Router on Base, not 1inch
     },
-    sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'zerox', 'zerion'],
+    sources: ['aerodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'coinbase', 'oneinch', 'fusion', 'zerox', 'zerion'],
     kyberName: 'base',
     tokens: [
       { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
@@ -46,7 +46,7 @@ export const CHAINS = {
     // Zerion does not support Monad, so quotes come from the aggregators below.
     // A source that doesn't route on Monad reports "no liquidity" in the quote list.
     // Velora (ParaSwap) rejects chain 143 — 'Invalid network' (checked 2026-11-02).
-    sources: ['lifi', 'kyberswap', 'oneinch', 'zerox'],
+    sources: ['lifi', 'kyberswap', 'oneinch', 'fusion', 'zerox'],
     kyberName: 'monad',
     tokens: [
       { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
@@ -61,7 +61,7 @@ export const CHAINS = {
     color: '#ff0420',
     rpcs: ['https://optimism.drpc.org', 'https://mainnet.optimism.io'],
     explorer: 'https://optimistic.etherscan.io',
-    sources: ['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion'],
+    sources: ['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'fusion', 'zerox', 'zerion'],
     kyberName: 'optimism',
     tokens: [
       { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
@@ -110,7 +110,7 @@ export const CHAINS = {
     color: '#ff007a',
     rpcs: ['https://unichain.drpc.org', 'https://mainnet.unichain.org'],
     explorer: 'https://uniscan.xyz',
-    sources: ['uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion'],
+    sources: ['uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'fusion', 'zerox', 'zerion'],
     kyberName: 'unichain',
     tokens: [
       { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
@@ -129,6 +129,7 @@ export const SOURCE_META = {
   lifi: { label: 'LI.FI', tag: 'aggregator' },
   velora: { label: 'Velora', tag: 'aggregator' },
   oneinch: { label: '1inch', tag: 'aggregator · key' },
+  fusion: { label: '1inch Fusion', tag: 'gasless · key' },
   zerox: { label: '0x', tag: 'aggregator · key' },
   zerion: { label: 'Zerion', tag: 'aggregator · key' },
 };

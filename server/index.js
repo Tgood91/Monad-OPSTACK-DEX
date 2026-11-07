@@ -45,8 +45,10 @@ import {
   seykotaSignal,
   dashboardData,
 } from "./bushido.js";
+import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
-import { oneinchQuote, oneinchSwap } from "./oneinch.js";
+import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
+import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
 
@@ -109,6 +111,7 @@ function serverKeys() {
   return {
     uniswap: uniswapConfigured(),
     oneinch: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault,
+    fusion: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault, // same 1inch key
     zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
     coinbase: cdpConfigured(),
   };
@@ -402,6 +405,18 @@ app.get("/api/aori/status", async (req, res) => {
   }
 });
 
+// ---- Operations log (errors; high severity is emailed via Resend) ----
+const opsHits = new Map();
+app.post("/api/ops/log", async (req, res) => {
+  const ip = req.ip, t = Date.now();
+  const hits = (opsHits.get(ip) || []).filter((x) => t - x < 60_000);
+  if (hits.length >= 20) return res.status(429).json({ error: "slow down" });
+  hits.push(t); opsHits.set(ip, hits);
+  const e = await logOps(req.body || {});
+  res.json({ ok: true, escalated: e.escalated });
+});
+app.get("/api/ops/log", (_req, res) => res.json({ entries: recentOps(50), email: opsConfigured() }));
+
 // ---- Bushido trading dashboard (virtue scores + Seykota signals) ----
 // GET /api/bushido/virtues?trader=0x… — 7-virtue scores (0-1 scale)
 app.get("/api/bushido/virtues", async (req, res) => {
@@ -455,6 +470,10 @@ app.post("/api/intel/ask", (req, res) => {
   if (!query) return res.status(400).json({ error: "missing query" });
   res.json({ messages: getDexIntelligenceResponse(query), sample: true });
 });
+
+// ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
+// The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
+app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----
 // POST /api/zerion/quote — { chainId, tokenIn, tokenOut, amountHuman, taker?, slippageBps? }

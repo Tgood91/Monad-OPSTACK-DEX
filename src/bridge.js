@@ -9,6 +9,7 @@ import {
   isConnected, getAddress, getSigner, subscribeToAccountChanges,
 } from './utils/web3.js';
 import { ERC20_ABI } from './utils/abis.js';
+import { resilient } from './dex/resilience.js';
 
 /* ---------------- config ---------------- */
 const BRIDGE_CHAINS = {
@@ -249,7 +250,7 @@ async function refreshQuote() {
       return;
     }
     const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
-    const { quote } = await api('/api/near/quote', {
+    const { quote } = await resilient('bridge:near', () => api('/api/near/quote', {
       method: 'POST',
       body: JSON.stringify({
         fromChainId: BRIDGE_CHAINS[state.fromChain].chainId,
@@ -258,7 +259,7 @@ async function refreshQuote() {
         amountAtomic, wallet,
         slippageBps: 100,
       }),
-    });
+    }));
     state.quote = { ...quote, fi, ti, amountAtomic };
     $('toAmount').value = Number(quote.amountOutFormatted).toLocaleString(undefined, { maximumFractionDigits: 6 });
     const rate = Number(quote.amountOutFormatted) / Number(quote.amountInFormatted);
@@ -286,14 +287,14 @@ async function refreshStargateQuote({ btn, box, detail, wallet, amtStr, fi, ti }
     return;
   }
   const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
-  const { quote } = await api('/api/stargate/quote', {
+  const { quote } = await resilient('bridge:stargate', () => api('/api/stargate/quote', {
     method: 'POST',
     body: JSON.stringify({
       fromChainId: BRIDGE_CHAINS[state.fromChain].chainId,
       toChainId: BRIDGE_CHAINS[state.toChain].chainId,
       tokenRef: fi.ref, amountAtomic, recipient: wallet,
     }),
-  });
+  }));
   state.quote = { ...quote, fi, ti, amountAtomic, stargate: true };
   const out = Number(ethers.formatUnits(BigInt(quote.amountReceived), fi.decimals));
   const inp = Number(amtStr);
@@ -312,7 +313,7 @@ async function refreshStargateQuote({ btn, box, detail, wallet, amtStr, fi, ti }
 /* ---------------- Aori quoting ---------------- */
 async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
   const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
-  const { order, fi: ofi, ti: oti } = await api('/api/aori/quote', {
+  const { order, fi: ofi, ti: oti } = await resilient('bridge:aori', () => api('/api/aori/quote', {
     method: 'POST',
     body: JSON.stringify({
       fromChainKey: state.fromChain,
@@ -321,7 +322,7 @@ async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
       toToken: ti.address || 'native',
       amountAtomic, wallet,
     }),
-  });
+  }));
   state.quote = { order, fi: ofi, ti: oti, amountAtomic, aori: true };
   const out = Number(ethers.formatUnits(BigInt(order.outputAmount), oti.decimals));
   const inp = Number(amtStr);
