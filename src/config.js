@@ -4,7 +4,7 @@
 import { createAppKit } from '@reown/appkit';
 import { ReownAuthentication } from '@reown/appkit-siwx';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { base, optimism, defineChain } from '@reown/appkit/networks';
+import { mainnet, base, optimism, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
 
 // Line shown in the wallet's sign-in prompt, between the address and the "URI:" line.
@@ -48,7 +48,8 @@ const monad = defineChain({
   blockExplorers: { default: { name: 'Monadscan', url: 'https://monadscan.com' } },
 });
 
-const networks = [base, monad, optimism, ink, unichain];
+// Ethereum is listed so the wallet can switch to it for Merkl claims; swaps don't use it.
+const networks = [base, monad, optimism, ink, unichain, mainnet];
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
@@ -93,6 +94,9 @@ export const appKit = createAppKit({
   // signature disconnects the wallet.
   siwx: new BushidoAuthentication(),
 });
+
+// Merkl claims: chain id -> AppKit network (Ethereum, Base, Monad, Optimism)
+export const appKitNetworkForChainId = (id) => ({ 1: mainnet, 8453: base, 143: monad, 10: optimism }[Number(id)] || null);
 
 // Map our internal chain key → AppKit network object
 const NETWORK_BY_KEY = { base, monad, optimism, ink, unichain };
