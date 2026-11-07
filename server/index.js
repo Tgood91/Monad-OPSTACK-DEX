@@ -50,6 +50,7 @@ import { createZeroxProxy, zeroxKey } from "./zerox.js";
 import { assetLinksHandler } from "./assetlinks.js";
 import { createLimiter } from "./limits.js";
 import { disabledSources, switchesMiddleware } from "./switches.js";
+import { createFaucet, faucetRoutes } from "./faucet.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
@@ -103,6 +104,10 @@ app.use("/api", switchesMiddleware());
 
 // Which server-held source keys are configured. Booleans only, never values,
 // so the UI can mark sources that need a key with the 🔑 chip accurately.
+// Monad starter-MON faucet (server/faucet.js). OFF unless FAUCET_PRIVATE_KEY is set.
+const faucet = createFaucet();
+const faucetHandlers = faucetRoutes(faucet);
+
 function serverKeys() {
   const vault = fs.existsSync(process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock");
   return {
@@ -112,6 +117,7 @@ function serverKeys() {
     zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
     coinbase: cdpConfigured(),
     zerox: Boolean(zeroxKey()),
+    faucet: faucet.enabled,
   };
 }
 
@@ -482,6 +488,8 @@ app.post("/api/intel/ask", (req, res) => {
 // ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
 // The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
 app.get("/api/zerox/quote", createZeroxProxy());
+app.get("/api/faucet/status", faucetHandlers.status);
+app.post("/api/faucet/claim", faucetHandlers.claim);
 // Android app (Trusted Web Activity) ownership proof; see server/assetlinks.js
 app.get("/.well-known/assetlinks.json", assetLinksHandler());
 app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));

@@ -156,6 +156,21 @@ sources answer 503 "turned off" and the app skips every listed source
 fusion, zerox, zerion`. Use it when a provider has an outage or you want to stop
 spending on it, with no code change.
 
+**Monad faucet (optional)** — gives a brand-new wallet a small amount of MON so it can pay the gas to
+enter the Dojo or buy a Dojo Pass (`server/faucet.js`). It is **off** until you set `FAUCET_PRIVATE_KEY`.
+This is the one place the server holds a private key, so:
+1. Make a **new, dedicated wallet** (never one you use for anything else) and send it a few MON.
+2. Put its private key in Render's Environment tab as `FAUCET_PRIVATE_KEY`. Never in the repo or in chat.
+3. Optional: `FAUCET_DRIP_MON` (default 0.05), `FAUCET_MIN_BALANCE_MON` (0.02), `FAUCET_DAILY_CAP` (100 claims
+   a day), `FAUCET_RESERVE_MON` (0.1: it stops when its balance falls below drip + reserve).
+4. To switch it off, remove the key or set `FAUCET_DISABLED=1`.
+
+Only a wallet with **no activity on Monad** can claim (it has never sent a transaction and holds under
+`FAUCET_MIN_BALANCE_MON`), so each wallet gets one drip. There is also one claim per visitor per day, and a daily
+cap. The most the key can ever lose is the faucet wallet's own balance. When the wallet runs low or empty, the
+Operations panel logs it (and emails it if Resend is set). Set `TRUST_PROXY=1` on Render so the per-visitor
+limit can tell visitors apart.
+
 **Request limits** — each visitor gets 90 requests a minute for general `/api`
 calls and a separate 400 a minute for quote lookups, because one quote asks
 several sources at once (`server/limits.js`).

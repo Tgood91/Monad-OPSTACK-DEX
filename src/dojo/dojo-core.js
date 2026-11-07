@@ -71,13 +71,27 @@ export function fmtMon(wei) {
  * What the card shows. `data` is { hasPass, fee, warrior|null } once loaded.
  * The pass and the warrior are independent: a wallet can have either, both or neither.
  */
-export function dojoView({ connected, loading, error, data, nowSec = Math.floor(Date.now() / 1000) }) {
+export function dojoView({ connected, loading, error, data, faucet, nowSec = Math.floor(Date.now() / 1000) }) {
   if (!connected) return { kind: 'connect', message: 'Connect a wallet to see your Dojo.' };
   if (loading) return { kind: 'loading', message: 'Reading your Dojo from Monad…' };
   if (error) return { kind: 'error', message: error };
   const w = data.warrior;
+  // Free starter MON, only for a wallet with no activity on Monad (the server decides: see server/faucet.js).
+  const offer =
+    faucet && faucet.enabled && faucet.eligible
+      ? {
+          label: `Get ${faucet.dripMon} free MON for gas`,
+          dripMon: faucet.dripMon,
+          available: faucet.available !== false,
+          note:
+            faucet.available === false
+              ? 'The faucet is empty right now. Please try again later.'
+              : 'New to Monad? This covers the gas for the buttons below.',
+        }
+      : null;
   return {
     kind: 'ready',
+    faucet: offer,
     pass: data.hasPass
       ? { has: true, badge: 'Dojo Pass ✓' }
       : {
@@ -137,4 +151,28 @@ export function dojoTx(actionId, fee) {
   if (actionId === 'pass') return { to: DOJO.pass, data: SEL.purchasePass, value: fee };
   if (actionId === 'enter') return { to: DOJO.warrior, data: SEL.enterDojo, value: 0n };
   throw new Error('unknown action');
+}
+
+/** Faucet status for a wallet; null if the faucet is off or unreachable (the card then shows no offer). */
+export async function loadFaucet(address, { fetchImpl = fetch } = {}) {
+  try {
+    const r = await fetchImpl(`/api/faucet/status?address=${address}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.enabled ? j : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ask the faucet for starter MON. Throws the server's plain-language reason if it says no. */
+export async function claimFaucet(address, { fetchImpl = fetch } = {}) {
+  const r = await fetchImpl('/api/faucet/claim', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `The faucet said no (${r.status})`);
+  return j; // { hash, amountMon }
 }

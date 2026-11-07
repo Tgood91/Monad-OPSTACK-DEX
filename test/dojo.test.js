@@ -206,3 +206,64 @@ test("a failed dry-run or a wallet that will not switch sends nothing", async ()
   await assert.rejects(runDojoTx(stuck.d), /did not switch to Monad/);
   assert.equal(stuck.calls.includes("send"), false);
 });
+
+import { loadFaucet, claimFaucet } from "../src/dojo/dojo-core.js";
+
+const emptyData = () => data({ hasPass: false, warrior: decodeWarrior(NO_WARRIOR_HEX) });
+
+test("the faucet offer shows only for an eligible wallet when the faucet is on", () => {
+  const on = { enabled: true, eligible: true, available: true, dripMon: "0.05" };
+  const offer = dojoView({ connected: true, data: emptyData(), faucet: on, nowSec: NOW }).faucet;
+  assert.equal(offer.label, "Get 0.05 free MON for gas");
+  assert.equal(offer.available, true);
+  assert.equal(
+    dojoView({ connected: true, data: emptyData(), faucet: { ...on, eligible: false }, nowSec: NOW }).faucet,
+    null,
+  );
+  assert.equal(dojoView({ connected: true, data: emptyData(), faucet: null, nowSec: NOW }).faucet, null);
+  assert.equal(dojoView({ connected: true, data: emptyData(), faucet: { enabled: false }, nowSec: NOW }).faucet, null);
+});
+
+test("an empty faucet shows the offer as unavailable, with a reason", () => {
+  const offer = dojoView({
+    connected: true,
+    data: emptyData(),
+    faucet: { enabled: true, eligible: true, available: false, dripMon: "0.05" },
+    nowSec: NOW,
+  }).faucet;
+  assert.equal(offer.available, false);
+  assert.match(offer.note, /empty/);
+});
+
+test("faucet status is null when it is off or unreachable", async () => {
+  const ok = async () => ({ ok: true, json: async () => ({ enabled: true, eligible: true }) });
+  assert.equal((await loadFaucet("0xA", { fetchImpl: ok })).eligible, true);
+  assert.equal(
+    await loadFaucet("0xA", { fetchImpl: async () => ({ ok: true, json: async () => ({ enabled: false }) }) }),
+    null,
+  );
+  assert.equal(await loadFaucet("0xA", { fetchImpl: async () => ({ ok: false }) }), null);
+  assert.equal(
+    await loadFaucet("0xA", {
+      fetchImpl: async () => {
+        throw new Error("down");
+      },
+    }),
+    null,
+  );
+});
+
+test("claiming returns the transaction, or throws the server's plain reason", async () => {
+  const good = async (url, init) => {
+    assert.equal(url, "/api/faucet/claim");
+    assert.equal(JSON.parse(init.body).address, "0xA");
+    return { ok: true, json: async () => ({ hash: "0xabc", amountMon: "0.05" }) };
+  };
+  assert.deepEqual(await claimFaucet("0xA", { fetchImpl: good }), { hash: "0xabc", amountMon: "0.05" });
+  const no = async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ error: "This wallet already has MON for gas." }),
+  });
+  await assert.rejects(claimFaucet("0xA", { fetchImpl: no }), /already has MON for gas/);
+});
