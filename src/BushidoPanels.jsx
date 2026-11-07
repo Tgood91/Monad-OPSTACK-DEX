@@ -60,13 +60,20 @@ export function SwapPanel() {
     import('./utils/web3.js')
       .then((web3) => {
         if (!alive) return;
-        const follow = () => {
+        // Ask the wallet itself which chain it is on: AppKit's own answer can be stale in wallet in-app browsers.
+        const follow = async () => {
           if (!web3.isConnected()) return;
-          const k = web3.getChainKey();
-          if (k && CHAINS[k]) pickAndSet(k);
+          const k = await web3.getWalletChainKey();
+          if (alive && k && CHAINS[k]) pickAndSet(k);
         };
         follow();
-        off = web3.subscribeToNetworkChanges(follow) || off;
+        const unsub = web3.subscribeToNetworkChanges(follow);
+        const onShow = () => document.visibilityState !== 'hidden' && follow();
+        document.addEventListener('visibilitychange', onShow);
+        off = () => {
+          if (typeof unsub === 'function') unsub();
+          document.removeEventListener('visibilitychange', onShow);
+        };
       })
       .catch(() => {});
     return () => {
@@ -92,7 +99,7 @@ export function SwapPanel() {
       await switchAndConfirm({
         chainKey: k,
         label: CHAINS[k].label,
-        getChainKey: web3.getChainKey,
+        getChainKey: web3.getWalletChainKey,
         switchNetwork: web3.switchNetwork,
       });
       setMsg('');
@@ -114,7 +121,7 @@ export function SwapPanel() {
       await switchAndConfirm({
         chainKey,
         label: setup.chain.label,
-        getChainKey: web3.getChainKey,
+        getChainKey: web3.getWalletChainKey,
         switchNetwork: web3.switchNetwork,
       });
       const wallet = web3.getAddress();

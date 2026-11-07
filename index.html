@@ -30,6 +30,17 @@
   .chain-btn.active { border-color: var(--accent); background: #1e1836; color: #fff; }
   .chain-btn .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
   .token-row { display: flex; gap: 10px; align-items: center; }
+  /* Own coin/chain picker (src/token-picker.js): native dropdowns never open in some wallet in-app browsers */
+  .pick { appearance: none; -webkit-appearance: none; text-align: left; }
+  .pick::after { content: " \2304"; opacity: .7; }
+  .pickWrap { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: flex-end; justify-content: center; }
+  .pickBack { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+  .pickSheet { position: relative; width: 100%; max-width: 480px; max-height: 70vh; display: flex; flex-direction: column; background: #14141c; border: 1px solid #2a2a35; border-radius: 18px 18px 0 0; padding: 8px 8px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+  .pickHead { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-weight: 700; color: #fff; }
+  .pickX { background: none; border: 0; color: #fff; font-size: 26px; line-height: 1; padding: 0 8px; cursor: pointer; }
+  .pickList { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .pickItem { display: block; width: 100%; text-align: left; padding: 14px 14px; margin: 2px 0; border: 1px solid transparent; border-radius: 12px; background: #1c1c26; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; min-height: 48px; }
+  .pickItem.on { border-color: var(--accent); }
   .token-select { flex: 0 0 128px; padding: 12px 8px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
   .amount-input { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 1px solid #2a2a35; background: #1c1c26; color: #fff; font-size: 18px; text-align: right; }
   .amount-input:focus, .token-select:focus { outline: none; border-color: var(--accent); }

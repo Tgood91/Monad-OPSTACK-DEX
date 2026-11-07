@@ -92,3 +92,33 @@ test("a refusal from the wallet is passed through, not swallowed", async () => {
     /User rejected/,
   );
 });
+
+test("wallet already on the chain (asked of the wallet, async): no switch call, no timeout", async () => {
+  let switched = 0;
+  await switchAndConfirm({
+    chainKey: "monad",
+    label: "Monad",
+    getChainKey: async () => "monad", // the wallet's own answer, even if AppKit's cached value says base
+    switchNetwork: async () => {
+      switched++;
+    },
+    sleep: noSleep,
+  });
+  assert.equal(switched, 0);
+});
+
+test("async chain lookup still waits for the wallet to report the new chain", async () => {
+  let current = "base",
+    polls = 0;
+  await switchAndConfirm({
+    chainKey: "monad",
+    label: "Monad",
+    getChainKey: async () => {
+      if (++polls > 2) current = "monad";
+      return current;
+    },
+    switchNetwork: async () => {},
+    sleep: noSleep,
+  });
+  assert.equal(current, "monad");
+});

@@ -41,10 +41,10 @@ export async function switchAndConfirm({
   ms = 400,
   sleep = (t) => new Promise((r) => setTimeout(r, t)),
 }) {
-  if (getChainKey() === chainKey) return;
+  if ((await getChainKey()) === chainKey) return; // getChainKey may be sync or async
   await switchNetwork(chainKey);
   for (let i = 0; i < tries; i++) {
-    if (getChainKey() === chainKey) return;
+    if ((await getChainKey()) === chainKey) return;
     await sleep(ms);
   }
   throw new Error(`Your wallet did not switch to ${label}. Switch it in your wallet app and try again.`);
