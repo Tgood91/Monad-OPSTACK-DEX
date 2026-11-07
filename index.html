@@ -138,6 +138,53 @@
   .gas-msg { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; min-height: 16px; }
   .gas-foot { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
 
+
+  /* ---- Swap pane redesign (scoped to #swapPane; the Bridge pane keeps the old look) ---- */
+  .tab-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; padding: 8px 2px; min-width: 0; }
+  .tab-btn .tab-ic { width: 22px; height: 22px; }
+  #swapPane .chain-grid { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; scrollbar-width: none; }
+  #swapPane .chain-grid::-webkit-scrollbar { display: none; }
+  #swapPane .chain-btn { flex: 0 0 auto; padding: 10px 16px; border-radius: 999px; font-size: 14px; min-height: 44px; white-space: nowrap; }
+  #swapPane .chain-btn .dot { width: 8px; height: 8px; margin-right: 6px; }
+  #swapPane .pay { padding: 14px 16px; margin-bottom: 0; }
+  #swapPane .pay-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  #swapPane .pay-head .lbl { margin: 0; font-size: 13px; }
+  #swapPane .pay-head .balance-row { margin: 0; font-size: 13px; gap: 8px; align-items: center; }
+  #swapPane .token-row { gap: 8px; }
+  #swapPane .amount-input { border: none; background: transparent; padding: 6px 0; font-size: 30px; font-weight: 600; text-align: left; min-height: 48px; }
+  #swapPane .token-select { flex: 0 0 auto; width: auto; min-width: 104px; border-radius: 999px; padding: 10px 14px; font-size: 15px; font-weight: 700; min-height: 44px; }
+  #swapPane .flip-row { margin: -12px 0 -12px; position: relative; z-index: 1; }
+  #swapPane .flip-btn { border-radius: 14px; border: 3px solid var(--bg, #0b0b10); background: var(--card); }
+  #swapPane .route { margin-top: 8px; }
+  .route-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .route-name { font-weight: 700; font-size: 16px; }
+  .route-gain { color: var(--green); font-size: 13px; font-weight: 600; }
+  .route-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .route-sub button { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; padding: 10px 0 10px 6px; min-height: 44px; }
+  .route-list { display: none; margin-top: 6px; }
+  .route.open .route-list { display: block; }
+  .route .qr.winner { margin: 0; padding: 10px 12px; }
+  .route .qr { padding: 10px 0; }
+  .route .qsrc .tag, .route .qout .usd { font-size: 12px; }
+  .route .qbadge { font-size: 11px; }
+  .route .detail-grid { font-size: 13px; }
+  .route.best-card { border-color: #2d6a4f; background: #12201c; }
+  #swapPane .slip-card { padding: 10px 16px; }
+  .slip-row { justify-content: space-between; font-size: 14px; }
+  .slip-lbl { color: var(--text, #fff); font-weight: 600; } .slip-range { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .slip-btns { display: flex; gap: 6px; }
+  .slip-row button { font-size: 13px; padding: 8px 14px; }
+  .checks { padding: 12px 16px; }
+  .chk { display: flex; gap: 8px; font-size: 13px; padding: 3px 0; color: var(--muted); }
+  .chk .mk { width: 16px; text-align: center; font-weight: 700; }
+  .chk.ok { color: #d1d5db; } .chk.ok .mk { color: var(--green); }
+  .chk.bad { color: var(--red); } .chk.bad .mk { color: var(--red); }
+  .chk.run .mk { color: var(--accent); }
+  .src-details { padding: 0 16px; }
+  .src-details summary { cursor: pointer; padding: 14px 0; font-size: 14px; font-weight: 600; min-height: 44px; }
+  .src-details .src-hint { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  .src-details .src-row { padding-bottom: 14px; }
+
   /* ---- tap targets: at least 44px tall (WCAG 2.5.5 / Apple HIG) ---- */
   .tab-btn, .src-chip, #connectBtn, .slip-row button { min-height: 44px; }
   .flip-btn { width: 44px; height: 44px; }
@@ -154,73 +201,65 @@
     <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect</button>
   </div>
 
-  <div class="pwa-install" id="pwaInstall" role="region" aria-label="Install Bushido-dApp">
-    <img src="/Bushido-dApp/icons/icon-192.png" alt="">
-    <div class="txt"><b>Bushido-dApp</b><span></span></div>
-    <button class="go" type="button">Install</button>
-    <button class="x" type="button" aria-label="Dismiss">✕</button>
-  </div>
-
   <div class="tab-bar">
-    <button class="tab-btn active" id="tabSwap"><span class="tab-ic" aria-hidden="true">⇄</span> <span class="tab-lb">Swap</span></button>
-    <button class="tab-btn" id="tabBridge"><span class="tab-ic" aria-hidden="true">🌉</span> <span class="tab-lb">Bridge</span></button>
-    <button class="tab-btn" id="tabIntel"><span class="tab-ic" aria-hidden="true">🧠</span> <span class="tab-lb">Intel</span></button>
-    <button class="tab-btn" id="tabBushido"><span class="tab-ic" aria-hidden="true">⛩</span> <span class="tab-lb">Bushido</span></button>
-    <button class="tab-btn" id="tabMerkl"><span class="tab-ic" aria-hidden="true">🎁</span> <span class="tab-lb">Rewards</span></button>
+    <button class="tab-btn active" id="tabSwap"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg> <span class="tab-lb">Swap</span></button>
+    <button class="tab-btn" id="tabBridge"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18M5 17V9m14 8V9M3 9c4 5 14 5 18 0"/></svg> <span class="tab-lb">Bridge</span></button>
+    <button class="tab-btn" id="tabIntel"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5m0 14h16M8 15l4-4 3 3 5-6"/></svg> <span class="tab-lb">Intel</span></button>
+    <button class="tab-btn" id="tabBushido"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M6 6v14m12-14v14M4 10h16"/></svg> <span class="tab-lb">Bushido</span></button>
+    <button class="tab-btn" id="tabMerkl"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7"/></svg> <span class="tab-lb">Rewards</span></button>
   </div>
 
   <!-- ============ SWAP PANE ============ -->
   <div id="swapPane">
-    <div class="card">
-      <span class="lbl">Chain</span>
-      <div class="chain-grid" id="chainGrid"></div>
-    </div>
+    <div class="chain-grid" id="chainGrid" role="group" aria-label="Chain"></div>
 
-    <div class="card">
-      <span class="lbl">From</span>
+    <div class="card pay">
+      <div class="pay-head"><span class="lbl">You pay</span>
+        <span class="balance-row"><span id="fromBalance">Balance: —</span><button id="maxBtn">MAX</button></span></div>
       <div class="token-row">
-        <select class="token-select" id="fromToken"></select>
-        <input class="amount-input" id="fromAmount" type="number" placeholder="0.0" min="0" step="any">
+        <input class="amount-input" id="fromAmount" type="number" inputmode="decimal" placeholder="0.0" min="0" step="any" aria-label="Amount to pay">
+        <select class="token-select" id="fromToken" aria-label="Token to pay"></select>
       </div>
-      <div class="balance-row"><span id="fromBalance">Balance: —</span><button id="maxBtn">MAX</button></div>
     </div>
 
-    <div class="flip-row"><button class="flip-btn" id="flipBtn">⇅</button></div>
+    <div class="flip-row"><button class="flip-btn" id="flipBtn" aria-label="Swap direction">⇅</button></div>
 
-    <div class="card">
-      <span class="lbl">To</span>
+    <div class="card pay">
+      <div class="pay-head"><span class="lbl">You receive</span>
+        <span class="balance-row"><span id="toBalance">Balance: —</span></span></div>
       <div class="token-row">
-        <select class="token-select" id="toToken"></select>
-        <input class="amount-input" id="toAmount" type="text" placeholder="0.0" readonly>
+        <input class="amount-input" id="toAmount" type="text" placeholder="0.0" readonly aria-label="Amount you receive">
+        <select class="token-select" id="toToken" aria-label="Token to receive"></select>
       </div>
-      <div class="balance-row"><span id="toBalance">Balance: —</span><span></span></div>
     </div>
 
-    <!-- Primary action sits right under "To"; the full quote comparison stays below. -->
-    <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
-    <button class="btn btn-swap btn-primary-pos" id="swapBtn" disabled>Enter an amount</button>
-    <div class="status" id="txStatus"></div>
-
-
-    <div class="card">
-      <span class="lbl">Quote sources <span style="opacity:.6">(tap to toggle · 🔑 = key not set)</span></span>
-      <div class="src-row" id="srcRow"></div>
-    </div>
-
-    <div class="card">
+    <!-- Best route: one summary card; "compare" opens the full list of sources. -->
+    <div class="card route" id="routeCard">
       <div id="quoteBox"><div class="status">Enter an amount to compare quotes</div></div>
       <div id="quoteDetail"></div>
     </div>
 
-    <div class="card">
+    <div class="card slip-card">
       <div class="slip-row">
-        <span>Slippage</span>
-        <button data-slip="0.3">0.3%</button>
-        <button data-slip="0.5" class="active">0.5%</button>
-        <button data-slip="1">1%</button>
-        <input id="slipCustom" type="number" placeholder="custom" min="0.05" max="10" step="0.1"> <span>%</span>
+        <span class="slip-lbl">Slippage <span class="slip-range">(0.1–1%)</span></span>
+        <span class="slip-btns" role="group" aria-label="Slippage">
+          <button data-slip="0.1">0.1%</button>
+          <button data-slip="0.5" class="active">0.5%</button>
+          <button data-slip="1">1%</button>
+        </span>
       </div>
     </div>
+
+    <div class="card checks" id="safetyBox" aria-live="polite"></div>
+
+    <button class="btn btn-approve" id="approveBtn" style="display:none;">Approve</button>
+    <button class="btn btn-swap btn-primary-pos" id="swapBtn" disabled>Enter an amount</button>
+    <div class="status" id="txStatus"></div>
+
+    <details class="card src-details">
+      <summary>Quote sources <span class="src-hint">tap to turn on or off · 🔑 = key not set</span></summary>
+      <div class="src-row" id="srcRow"></div>
+    </details>
 
   </div>
 
