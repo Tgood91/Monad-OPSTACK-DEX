@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
 import { reportOps } from './bushido-gate.js';
-import { DOJO, dojoTx, dojoView, loadDojo } from './dojo/dojo-core.js';
+import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet } from './dojo/dojo-core.js';
 import { runDojoTx } from './dojo/dojo-tx.js';
 
 const MOOD_RING = {
@@ -16,6 +16,7 @@ const MOOD_RING = {
 
 export default function DojoCard({ trader }) {
   const [data, setData] = useState(null);
+  const [faucet, setFaucet] = useState(null);
   const [loading, setLoading] = useState(!!trader);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -27,7 +28,9 @@ export default function DojoCard({ trader }) {
     setLoading(true);
     setError('');
     try {
-      setData(await loadDojo(trader));
+      const [d, f] = await Promise.all([loadDojo(trader), loadFaucet(trader)]);
+      setData(d);
+      setFaucet(f);
     } catch (e) {
       setError(String(e.message || e).slice(0, 140));
     } finally {
@@ -72,7 +75,21 @@ export default function DojoCard({ trader }) {
     }
   }
 
-  const v = dojoView({ connected: !!trader, loading, error, data });
+  async function claimStarter() {
+    setBusy(true);
+    setMsg('Sending your starter MON…');
+    try {
+      const r = await claimFaucet(trader);
+      setMsg(`Starter MON sent ✓ ${r.amountMon} MON · ${r.hash.slice(0, 12)}…`);
+      await refresh();
+    } catch (e) {
+      setMsg('No starter MON: ' + String(e.message || e).slice(0, 160));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const v = dojoView({ connected: !!trader, loading, error, data, faucet });
   const Btn = ({ action, secondary }) => (
     <button
       disabled={busy}
@@ -113,6 +130,18 @@ export default function DojoCard({ trader }) {
 
       {v.kind === 'ready' && (
         <>
+          {v.faucet && (
+            <div className="rounded border border-sky-400/30 bg-sky-400/5 p-3 mb-3">
+              <div className="text-xs opacity-80 mb-2">{v.faucet.note}</div>
+              <button
+                disabled={busy || !v.faucet.available}
+                onClick={claimStarter}
+                className="w-full rounded border-0 bg-sky-400/90 text-black font-semibold p-2 disabled:opacity-40"
+              >
+                {busy ? 'Working…' : v.faucet.label}
+              </button>
+            </div>
+          )}
           {v.pet.registered ? (
             <div className="flex gap-4 items-center">
               <img

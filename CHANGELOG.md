@@ -3,6 +3,20 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Monad faucet for new Dojo wallets
+**What:** a small faucet on Monad mainnet (chain 143). A wallet with no activity there sees "Get 0.05 free
+MON for gas" on the Dojo card, so it can enter the Dojo or buy a Dojo Pass. `server/faucet.js`, routes
+`/api/faucet/status` and `/api/faucet/claim`. Off until `FAUCET_PRIVATE_KEY` is set.
+**Why:** a new user with no MON can't pay the gas to claim their card. A drip of 0.05 MON (about $0.001)
+covers both actions with room to spare.
+**Safety:** this is the first time the server holds a key, so it is built to lose little: a dedicated wallet
+with a few MON, a fixed drip, claims only for wallets that never sent a transaction and hold under 0.02 MON
+(one drip per wallet, since spending it needs a transaction), one claim per visitor per day, a daily cap,
+sends one at a time, an alert when the wallet runs low or empty, and the key is never returned, logged or
+shown. Remove the key or set `FAUCET_DISABLED=1` to switch it off. Tested with fake chain responses (13
+tests), read-only against real Monad (your wallet refused, a fresh one eligible, an empty faucet answers
+cleanly), and in the real card. No real MON was sent: that needs your funded faucet wallet.
+
 ## Unreleased: Dojo card, phase 1 (Dojo Pass and Dojo pet on Monad)
 **What:** a "Your Dojo" card at the top of the Bushido tab, read live from three contracts on Monad
 mainnet (deployed by `0x00EA…`, no published source):
