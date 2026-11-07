@@ -40,6 +40,11 @@ home screen (Android: *Install*; iPhone: *Share → Add to Home Screen*).
 Full-screen, works offline without ever caching prices. See
 [Bushido-dApp/README.md](Bushido-dApp/README.md).
 
+> **No install banner.** The in-page "Add to Home Screen" banner was removed
+> to save space on the Swap screen. Installing still works from the browser
+> menu. **Chrome on Android may still show its own install prompt
+> automatically**; that comes from the browser, not from this app.
+
 ## Quote sources
 
 | Source | Type | Chains | Key |
@@ -199,7 +204,7 @@ and installed app are already renamed by the code itself.
 │   │   └── engine.js     # parallel fan-out, best-wins
 │   └── utils/            # wallet helpers, formatting, ABIs
 ├── Bushido-dApp/         # installable mobile app (PWA): manifest, service
-│                         # worker, icons, install banner — see its README
+│                         # worker, icons — see its README
 └── contracts/
     └── VirtueFeeRouter.sol  # virtue-score fee discounting (deploy-virtuefeerouter*.js)
 ```

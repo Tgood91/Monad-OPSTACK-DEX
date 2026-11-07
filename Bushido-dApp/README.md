@@ -28,7 +28,7 @@ modal). The app never holds keys or funds.
 |---|---|
 | `manifest.webmanifest` | App name (**Bushido-dApp**), icons, full-screen mode, colours, and the Swap/Bridge home-screen shortcuts |
 | `sw.js` | Service worker: loads the app when offline, keeps the build files cached. **Never caches `/api`, prices, RPC or wallet traffic**, so quotes are always live. |
-| `pwa.js` | Registers the service worker and opens the right tab for home-screen shortcuts (there is no in-page install banner; install from the browser menu) |
+| `pwa.js` | Registers the service worker and opens the right tab for home-screen shortcuts (there is no in-page install banner; install from the browser menu, and Chrome on Android may show its own prompt automatically) |
 | `pwa.css` | Phone-only styles: notch / home-indicator safe areas when installed, safe-area padding |
 | `icons/` | Home-screen icons: 192 and 512 px, a maskable 512 for Android shapes, and the 180 px Apple touch icon |
 | `vite-plugin.js` | Publishes these files with every build: `sw.js` at the site root (so it controls the whole app), and the manifest and icons under `/Bushido-dApp/` |
