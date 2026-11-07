@@ -47,6 +47,7 @@ import {
 } from "./bushido.js";
 import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { createZeroxProxy, zeroxKey } from "./zerox.js";
+import { assetLinksHandler } from "./assetlinks.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
@@ -476,6 +477,8 @@ app.post("/api/intel/ask", (req, res) => {
 // ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
 // The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
 app.get("/api/zerox/quote", createZeroxProxy());
+// Android app (Trusted Web Activity) ownership proof; see server/assetlinks.js
+app.get("/.well-known/assetlinks.json", assetLinksHandler());
 app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----

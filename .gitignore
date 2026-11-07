@@ -4,3 +4,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+# Android signing keys: never commit
+*.keystore
+*.jks
+Bushido-dApp-android/*.zip

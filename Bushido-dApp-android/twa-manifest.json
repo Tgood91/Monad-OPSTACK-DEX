@@ -1,0 +1,32 @@
+{
+  "packageId": "io.github.tgood91.bushidodapp",
+  "host": "bushido-dapp.onrender.com",
+  "name": "Bushido-dApp",
+  "launcherName": "Bushido",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0a0a0f",
+  "themeColorDark": "#0a0a0f",
+  "navigationColor": "#0a0a0f",
+  "navigationColorDark": "#0a0a0f",
+  "navigationDividerColor": "#0a0a0f",
+  "navigationDividerColorDark": "#0a0a0f",
+  "backgroundColor": "#0a0a0f",
+  "startUrl": "/?source=pwa",
+  "iconUrl": "https://bushido-dapp.onrender.com/Bushido-dApp/icons/icon-512.png",
+  "maskableIconUrl": "https://bushido-dapp.onrender.com/Bushido-dApp/icons/maskable-512.png",
+  "webManifestUrl": "https://bushido-dapp.onrender.com/Bushido-dApp/manifest.webmanifest",
+  "fullScopeUrl": "https://bushido-dapp.onrender.com/",
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "enableSiteSettingsShortcut": true,
+  "splashScreenFadeOutDuration": 300,
+  "appVersionName": "1.0.0",
+  "appVersion": "1",
+  "shortcuts": [
+    { "name": "Swap", "short_name": "Swap", "url": "/?source=pwa#swap", "icon": "https://bushido-dapp.onrender.com/Bushido-dApp/icons/icon-192.png" },
+    { "name": "Bridge", "short_name": "Bridge", "url": "/?source=pwa#bridge", "icon": "https://bushido-dapp.onrender.com/Bushido-dApp/icons/icon-192.png" }
+  ],
+  "signingKey": { "path": "./android.keystore", "alias": "bushido" },
+  "generatorApp": "bubblewrap-cli"
+}
