@@ -4,7 +4,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
 import { reportOps } from './bushido-gate.js';
-import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet } from './dojo/dojo-core.js';
+import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet, loadMonBalance } from './dojo/dojo-core.js';
+import { bow, bowedToday, growthStage, isLowGas, liveStreak, loadBow, saveBow } from './dojo/growth.js';
+import DojoPond from './DojoPond.jsx';
 import { runDojoTx } from './dojo/dojo-tx.js';
 import { retryOnce } from './utils/retry.js';
 
@@ -22,6 +24,8 @@ export default function DojoCard({ trader }) {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bowRec, setBowRec] = useState(() => (trader ? loadBow(trader) : null));
+  const [monWei, setMonWei] = useState(null);
   const explorer = CHAINS.monad.explorer;
 
   const refresh = useCallback(async () => {
@@ -33,6 +37,8 @@ export default function DojoCard({ trader }) {
       const [d, f] = await retryOnce(() => Promise.all([loadDojo(trader), loadFaucet(trader)]));
       setData(d);
       setFaucet(f);
+      setBowRec(loadBow(trader));
+      loadMonBalance(trader).then(setMonWei); // fail-soft: null means no gas warning
     } catch (e) {
       setError(String(e.message || e).slice(0, 140));
     } finally {
@@ -77,6 +83,17 @@ export default function DojoCard({ trader }) {
     }
   }
 
+  function doBow() {
+    const next = bow(bowRec || undefined);
+    saveBow(trader, next);
+    setBowRec(next);
+    setMsg(
+      next.streak > 1
+        ? `You bowed. ${next.streak} days in a row.`
+        : 'You bowed. Come back tomorrow to keep the streak.',
+    );
+  }
+
   async function claimStarter() {
     setBusy(true);
     setMsg('Sending your starter MON…');
@@ -92,6 +109,12 @@ export default function DojoCard({ trader }) {
   }
 
   const v = dojoView({ connected: !!trader, loading, error, data, faucet });
+  const stage = growthStage({
+    days: v.pet?.days || 0,
+    level: v.pet?.level || 1,
+    streak: liveStreak(bowRec),
+  });
+  const fmtBal = (w) => String(parseFloat((Number(w) / 1e18).toFixed(4)));
   const Btn = ({ action, secondary }) => (
     <button
       disabled={busy}
@@ -142,6 +165,48 @@ export default function DojoCard({ trader }) {
               >
                 {busy ? 'Working…' : v.faucet.label}
               </button>
+            </div>
+          )}
+          {monWei !== null && isLowGas(monWei) && !v.faucet && (
+            <div className="text-xs text-amber-300 mb-3">
+              Low on MON for gas ({fmtBal(monWei)} MON). Swaps and Dojo buttons on Monad need a little MON.
+            </div>
+          )}
+          <DojoPond
+            stageIndex={stage.index}
+            bowed={bowedToday(bowRec)}
+            streak={liveStreak(bowRec)}
+            name={`${stage.name}, ${stage.blurb}`}
+          />
+          {v.pet.registered && (
+            <div className="mb-3">
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium">
+                  {stage.kanji} {stage.name}
+                </span>
+                <span className="text-xs opacity-70">
+                  {stage.next ? `${stage.next.left} to ${stage.next.name}` : 'Highest rank'}
+                </span>
+              </div>
+              <div className="h-1.5 rounded bg-white/10 overflow-hidden mt-1">
+                <div
+                  className="h-full rounded bg-gradient-to-r from-rose-500 to-amber-400"
+                  style={{ width: `${stage.pct}%` }}
+                />
+              </div>
+              <div className="text-[11px] opacity-60 mt-1">{stage.blurb}</div>
+              <button
+                disabled={bowedToday(bowRec)}
+                onClick={doBow}
+                className="mt-2 w-full rounded border border-rose-400/50 bg-transparent text-rose-200 font-semibold p-2 disabled:opacity-50"
+              >
+                {bowedToday(bowRec)
+                  ? `Bowed today · ${liveStreak(bowRec)} day streak`
+                  : 'Bow to your dojo (free, daily)'}
+              </button>
+              <div className="text-[11px] opacity-50 mt-1">
+                The streak is kept on this device. Growth is calculated in the app; nothing is written on-chain.
+              </div>
             </div>
           )}
           {v.pet.registered ? (

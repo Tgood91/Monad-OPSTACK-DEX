@@ -3,6 +3,10 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Dojo garden, pet growth stages and daily bow
+**What:** the Dojo card now opens on a late-1800s Japanese garden (torii gate, arched bridge, koi pond, stone lantern, maple, dojo hall). Your warrior has five ranks (Deshi, Samurai, Rōnin, Sensei, Meijin) with a progress bar to the next. A free daily "bow" keeps a streak: the lantern glows once you have bowed today, the maple turns orange then red as the streak grows, and more koi appear at higher ranks. The card also warns when your wallet is low on MON for gas.
+**Why:** the live Warrior contract only lets its owner change stats, so the pet could never grow. Growth is now *calculated* from what the contract does hold (level, days in the dojo) plus the bow streak, so it feels alive without a new contract. Honest limits: the streak is stored on this device only, and nothing is written on-chain. A shared leaderboard or on-chain growth needs a server store or a new contract, which are separate decisions.
+
 ## Unreleased: one wallet signature now covers every chain
 **What:** switching chains no longer asks you to sign a message again. The sign-in you make once is reused on Base, Monad, Optimism, Ink, Unichain and Ethereum for the same wallet, and the check is remembered for 60 seconds so fast switches don't hit the sign-in service each time.
 **Why:** the sign-in library only accepted a signature made on the *same* chain you were on, so every switch triggered a new prompt, and declining it sent you back to the last signed chain (the "can't leave Base" symptom). A signature proves you own the address, and an address is identical on every EVM chain, so reusing it is safe. Different wallets and non-EVM chains still need their own signature.

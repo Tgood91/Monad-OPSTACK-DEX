@@ -146,6 +146,24 @@ export async function loadDojo(address, opts = {}) {
   return { hasPass: decodeBool(holder), fee: decodeUint(fee), warrior: decodeWarrior(warrior) };
 }
 
+/** MON balance (wei) for the gas nudge. Null if Monad doesn't answer: the card then simply shows no warning. */
+export async function loadMonBalance(address, { fetchImpl = fetch, rpcs = DOJO.rpcs } = {}) {
+  for (const url of rpcs) {
+    try {
+      const r = await fetchImpl(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] }),
+      });
+      const j = await r.json();
+      if (j.result) return BigInt(j.result);
+    } catch {
+      /* try the next RPC */
+    }
+  }
+  return null;
+}
+
 /** Transaction for a card button. The pass sends its fee as the value. */
 export function dojoTx(actionId, fee) {
   if (actionId === 'pass') return { to: DOJO.pass, data: SEL.purchasePass, value: fee };
