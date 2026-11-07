@@ -33,3 +33,21 @@ test("permanent errors are not retried or paused", async () => {
   await assert.rejects(resilient("c", async () => { n++; throw new Error("API key not set"); }, fast));
   assert.equal(n, 1); assert.equal(pausedFor("c"), 0);
 });
+
+test("pause grows on repeated failures and resets after a success", async () => {
+  _resetPauses(); let t = 0;
+  const o = { sleep: async () => {}, now: () => t };
+  const bad = async () => { throw new Error("Aori 500"); };
+  await assert.rejects(resilient("d", bad, o));
+  assert.equal(pausedFor("d", t), 60_000);
+  t += 61_000;
+  await assert.rejects(resilient("d", bad, o));
+  assert.equal(pausedFor("d", t), 120_000);
+  t += 121_000;
+  await assert.rejects(resilient("d", bad, o));
+  assert.equal(pausedFor("d", t), 300_000);
+  t += 301_000;
+  assert.equal(await resilient("d", async () => "up", o), "up");
+  await assert.rejects(resilient("d", bad, o));
+  assert.equal(pausedFor("d", t), 60_000); // back to the start
+});
