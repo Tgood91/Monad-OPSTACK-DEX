@@ -282,19 +282,20 @@ const OneInch = {
   },
 };
 
-/* ================= 0x (keyed) ================= */
+/* ================= 0x (keyed, via the server) ================= */
+// 0x v2 needs a header that 0x's CORS rules block in browsers, so the call (and the
+// key) live on the server: /api/zerox/quote (server/zerox.js).
 const ZeroX = {
-  key() { return env('VITE_0X_API_KEY'); },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet) {
-    const key = this.key();
-    if (!key) throw new Error('0x API key not set');
     const id = CHAINS[chainKey].chainId;
     const sell = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
-    const url = `https://api.0x.org/swap/allowance-holder/quote?chainId=${id}&sellToken=${sell}&buyToken=${tokenOut.address}&sellAmount=${amountInWei.toString()}&taker=${wallet || '0x0000000000000000000000000000000000000001'}`;
-    const r = await fetch(url, { headers: { '0x-api-key': key, '0x-version': 'v2' } });
-    if (!r.ok) throw new Error(`0x HTTP ${r.status}`);
-    const j = await r.json();
-    if (!j.buyAmount) return null;
+    const qs = new URLSearchParams({ chainId: String(id), sellToken: sell, buyToken: tokenOut.address, sellAmount: amountInWei.toString() });
+    if (wallet) qs.set('taker', wallet);
+    let r;
+    try { r = await fetch(`/api/zerox/quote?${qs}`); } catch { return null; }
+    if (!r.ok) throw new Error(await serverReason(r));
+    const j = await r.json().catch(() => null);
+    if (!j?.buyAmount) return null;
     return {
       source: 'zerox', amountOut: BigInt(j.buyAmount),
       amountOutUsd: j.buyAmount && j.price ? parseFloat(j.buyAmount) * parseFloat(j.price) / 10 ** tokenIn.decimals : undefined,
@@ -468,8 +469,10 @@ export const ADAPTERS = {
 
 // Which adapters need keys — used to show "key missing" state instead of failing silently.
 // uniswap + zerion + oneinch are server-proxied (keys server-side), so they never show key-missing.
+// A source needs a browser-side key only if its adapter defines key(). Today none do:
+// keyed sources hold their key on the server and are checked via /api/health.
 export function adapterNeedsKey(src) {
-  return ['zerox'].includes(src);
+  return typeof ADAPTERS[src]?.key === 'function';
 }
 
 export function adapterKeySet(src) {

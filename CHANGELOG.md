@@ -3,6 +3,14 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: 0x quotes moved to the server
+**What:** 0x quotes now go through `/api/zerox/quote` (`server/zerox.js`). The key is read
+from `ZEROX_API_KEY`, or the old `VITE_0X_API_KEY` name so an existing setting keeps working.
+**Why:** the 0x row always showed "temporarily unavailable" even with a valid key. 0x v2
+needs a `0x-version` request header, and 0x's browser (CORS) rules don't allow that header,
+so the browser blocked every call before it left the page. A server call works, and the key
+no longer has to sit in the public web page. Checked against real 0x on Base and Monad.
+
 ## Unreleased: "Buffer is not defined" when connecting a wallet
 **What:** a browser `Buffer` polyfill (`src/shims/buffer-global.js`, using the
 `buffer` package) loaded first in `src/main.js`.

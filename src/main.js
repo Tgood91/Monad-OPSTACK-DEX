@@ -44,12 +44,11 @@ function renderChains() {
 }
 
 // Server-held keys (from /api/health). null until loaded: assume set, so chips
-// don't flash 🔑 on first paint; 0x's key is checked in the browser.
+// don't flash 🔑 on first paint.
 let serverKeys = null;
 fetch('/api/health').then(r => r.json()).then(j => { serverKeys = j.keys || null; renderSources(); }).catch(() => {});
 
 function sourceKeySet(src) {
-  if (src === 'zerox') return !!ADAPTERS.zerox.key?.();
   if (serverKeys && src in serverKeys) return !!serverKeys[src];
   return true; // keyless source, or server status not loaded yet
 }
