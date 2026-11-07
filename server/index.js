@@ -54,6 +54,7 @@ import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
+import { bridgeHealth } from "./bridge-health.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
 
 // Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
@@ -116,6 +117,16 @@ function serverKeys() {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), time: new Date().toISOString() });
+});
+
+// Bridge source health: cached probe round (1-USDC quotes, read-only).
+// ?refresh=1 forces a fresh round.
+app.get("/api/bridge/health", async (req, res) => {
+  try {
+    res.json(await bridgeHealth({ force: req.query.refresh === "1" }));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
 });
 
 // GET /api/coinbase/prices?products=ETH-USD,BTC-USD
