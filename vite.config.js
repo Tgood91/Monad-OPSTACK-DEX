@@ -1,11 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import bushidoDapp from './Bushido-dApp/vite-plugin.js';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   // React is only used for the Bushido tab (src/BushidoTradingDashboard.jsx).
   // bushidoDapp(): installable mobile app files (manifest, service worker, icons).
   plugins: [react(), bushidoDapp()],
+  resolve: {
+    // @1inch/* SDKs import Node's `assert`; give the browser a real implementation.
+    alias: [{ find: /^assert$/, replacement: fileURLToPath(new URL('./src/shims/assert.js', import.meta.url)) }],
+  },
   server: {
     port: 5173,
     host: true,

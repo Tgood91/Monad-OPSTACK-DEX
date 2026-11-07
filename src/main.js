@@ -17,9 +17,13 @@ import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- state ---------------- */
 let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
-let enabledSources = new Set(['velodrome', 'uniswap', 'kyberswap', 'lifi', 'velora', 'oneinch', 'zerox', 'zerion']);
+// Every source starts on (users can toggle chips off). This used to be a hand-written list
+// that left out aerodrome, coinbase and fusion, so those were never queried by default.
+let enabledSources = new Set(Object.values(CHAINS).flatMap((c) => c.sources));
 let quotes = null;
 let selectedQuote = null;
+let userPick = null;      // source the user tapped; kept until the pair or chain changes
+let lastPairKey = '';
 let quoteTimer = null;
 let slippageBps = 50;
 
@@ -157,6 +161,8 @@ async function refreshQuotes() {
   const amtStr = $('fromAmount').value;
   const { in: tIn, out: tOut } = selTokens();
   const activeSources = getChain(chainKey).sources.filter(s => enabledSources.has(s));
+  const pairKey = `${chainKey}:${tIn.address}:${tOut.address}`;
+  if (pairKey !== lastPairKey) { userPick = null; lastPairKey = pairKey; }
 
   if (!amtStr || parseFloat(amtStr) <= 0) {
     box.innerHTML = '<div class="status">Enter an amount to compare quotes</div>';
@@ -205,7 +211,8 @@ function renderQuotes(tIn, tOut, amtStr) {
     $('toAmount').value = '';
     return;
   }
-  selectedQuote = quotes.best.quote;
+  // The user's tapped source wins if it still has a quote; otherwise the best one.
+  selectedQuote = good.find(r => r.source === userPick)?.quote ?? quotes.best.quote;
   $('toAmount').value = fmtAmount(selectedQuote.amountOut, tOut.decimals);
 
   let html = '<div class="quote-table">';
@@ -226,32 +233,54 @@ function renderQuotes(tIn, tOut, amtStr) {
   box.querySelectorAll('.qr[data-src]').forEach(elm => {
     elm.onclick = () => {
       const r = quotes.all.find(x => x.source === elm.dataset.src && x.ok);
-      if (r) { selectedQuote = r.quote; renderQuotes(tIn, tOut, amtStr); }
+      if (r) { userPick = r.source; renderQuotes(tIn, tOut, amtStr); }
     };
   });
 
   const q = selectedQuote;
   const rate = parseFloat(ethers.formatUnits(q.amountOut, tOut.decimals)) / parseFloat(amtStr);
-  const minOut = q.amountOut * BigInt(10000 - slippageBps) / 10000n;
+  // Fusion quotes carry their own guaranteed minimum (the auction's end amount).
+  const minOut = q.minAmountOut ?? (q.amountOut * BigInt(10000 - slippageBps) / 10000n);
   detail.innerHTML = `<div class="detail-grid">
     <span class="k">Source</span><span class="v">${SOURCE_META[q.source].label}</span>
     <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
     <span class="k">Min received</span><span class="v">${fmtAmount(minOut, tOut.decimals)} ${tOut.symbol}</span>
-    <span class="k">Est. gas</span><span class="v">${q.gasUsd > 0 ? (q.gasUsd < 0.01 ? '< $0.01' : fmtUsd(q.gasUsd)) : '—'}</span>
+    <span class="k">Est. gas</span><span class="v">${q.gasless ? 'None (resolvers pay)' : q.gasUsd > 0 ? (q.gasUsd < 0.01 ? '< $0.01' : fmtUsd(q.gasUsd)) : '—'}</span>
   </div>`;
 
   if (!isConnected()) { swapBtn.disabled = false; swapBtn.textContent = 'Connect wallet'; }
   else checkApproval();
 }
 
+// Button text for the selected quote. Fusion is signed, not sent.
+const swapLabel = (q) => q.gasless
+  ? `Sign gasless swap via ${SOURCE_META[q.source].label}`
+  : `Swap via ${SOURCE_META[q.source].label}`;
+
 async function checkApproval() {
   const approveBtn = $('approveBtn'), swapBtn = $('swapBtn');
   approveBtn.style.display = 'none';
   if (!selectedQuote || !isConnected()) return;
   const q = selectedQuote;
+  if (q.gasless) {
+    // Fusion: the user approves 1inch's order contract once, then signs an order (no transaction).
+    try {
+      const al = await getAllowance(q.tokenIn.address, getAddress(), q.raw.spender, chainKey);
+      if (al < q.amountInWei) {
+        approveBtn.style.display = 'block';
+        approveBtn.textContent = `Approve ${q.tokenIn.symbol} for ${SOURCE_META[q.source].label}`;
+        swapBtn.disabled = true;
+        swapBtn.textContent = 'Approve first';
+        return;
+      }
+    } catch { /* allowance unreadable: let the order check fail loudly instead */ }
+    swapBtn.disabled = false;
+    swapBtn.textContent = swapLabel(q);
+    return;
+  }
   if (q.tokenIn.isNative) {
     swapBtn.disabled = false;
-    swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+    swapBtn.textContent = swapLabel(q);
     return;
   }
   try {
@@ -266,12 +295,12 @@ async function checkApproval() {
       swapBtn.textContent = 'Approve first';
     } else {
       swapBtn.disabled = false;
-      swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+      swapBtn.textContent = swapLabel(q);
     }
   } catch {
     // buildTx needs a fresh quote at swap time — allow the attempt anyway
     swapBtn.disabled = false;
-    swapBtn.textContent = `Swap via ${SOURCE_META[q.source].label}`;
+    swapBtn.textContent = swapLabel(q);
   }
 }
 
@@ -331,7 +360,7 @@ $('approveBtn').onclick = async () => {
   try {
     showLoading('Approving…');
     const signer = await getSigner();
-    const tx = q._tx || await buildTxFor(q, getAddress(), slippageBps, signer);
+    const tx = q.gasless ? { spender: q.raw.spender } : (q._tx || await buildTxFor(q, getAddress(), slippageBps, signer));
     const atx = await approveToken(q.tokenIn.address, tx.spender, q.amountInWei);
     showLoading('Confirming approval…');
     await atx.wait();
@@ -351,6 +380,23 @@ $('swapBtn').onclick = async () => {
     // Make sure the wallet is on the right chain first
     const ck = getChainKey();
     if (ck !== chainKey) await switchNetwork(chainKey);
+
+    if (q.gasless) {
+      // 1inch Fusion: sign an order (no gas, no transaction), then wait for a resolver to fill it.
+      const { runFusionSwap } = await import('./dex/fusion-wallet.js');
+      const r = await runFusionSwap({
+        chainKey, chainId: getChain(chainKey).chainId, q, wallet: getAddress(), slippageBps,
+        onStage: (stage, status, sec) => {
+          if (stage === 'sign') showLoading('Sign the order in your wallet (no gas needed)…');
+          else showLoading(`Order submitted. Waiting for a resolver to fill it… ${status === 'partially-filled' ? '(partly filled) ' : ''}${sec}s`);
+        },
+      });
+      const ex = getChain(chainKey).explorer;
+      showStatus(`Swapped ✓ gasless via 1inch Fusion${r.txHash ? ` <a href="${ex}/tx/${r.txHash}" target="_blank">view tx</a>` : ''}`, 'success');
+      updateBalances();
+      scheduleQuote();
+      return;
+    }
 
     showLoading('Building transaction…');
     const signer = await getSigner();

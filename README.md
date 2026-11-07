@@ -52,6 +52,7 @@ Full-screen, works offline without ever caching prices. See
 | LI.FI | Aggregator | All 5 | None |
 | Velora | Aggregator (ex-ParaSwap) | Base, Optimism, Unichain | None |
 | 1inch | Aggregator | Base, Monad, Optimism, Unichain | Server-side (`ONEINCH_API_KEY`) |
+| 1inch Fusion | Gasless intent swaps (sign an order, resolvers fill it and pay gas) | Base, Optimism, Monad, Unichain | Server-side (`ONEINCH_API_KEY`, same key as 1inch) |
 | 0x | Aggregator | All 5 | `VITE_0X_API_KEY` (browser) |
 | Zerion | Aggregator | Base, Optimism, Ink, Unichain | Server-side (`ZERION_API_KEY`) |
 
@@ -70,6 +71,19 @@ restrictions, the standard pattern for that provider.
    signature request happens.
 4. You sign in your wallet. Done. The approval spender always comes from the
    real built transaction, never hardcoded.
+
+### 1inch Fusion (gasless swaps)
+
+Pick **1inch Fusion** in the quote list. You sign an order in your wallet (no gas, no
+transaction); 1inch's resolvers compete to fill it and pay the gas. **Funds only move
+when the order is filled**, so an unfilled or expired order costs nothing. Notes:
+- You sell an **ERC-20 token** (e.g. USDC → MON). The native coin has no allowance to
+  sign against, so a native sell shows "Fusion sells tokens, not the native coin".
+- First use of a token needs a one-time **approval** of 1inch's order contract.
+- "Min received" is the guaranteed minimum (the auction's end amount). If the price moved
+  against you by more than your slippage setting when you sign, the app refuses first.
+- The browser uses `@1inch/fusion-sdk` through our relay (`/api/fusion`, `server/fusion-relay.js`),
+  which adds the API key on the server and only forwards quote, order and status calls.
 
 ## How a bridge works
 
@@ -160,6 +174,7 @@ and installed app are already renamed by the code itself.
 │   ├── uniswap.js        # Uniswap Trading API (UNISWAP_API_KEY, server-side)
 │   ├── coinbase.js       # CDP Swap quotes + spot prices
 │   ├── oneinch.js        # 1inch swap API (ONEINCH_API_KEY, server-side)
+│   ├── fusion-relay.js   # /api/fusion: Fusion quote/order/status relay (adds the key)
 │   ├── zerion.js         # Zerion swap quotes (ZERION_API_KEY, server-side)
 │   ├── near.js           # NEAR Intents 1Click client (bridging)
 │   ├── stargate.js       # Stargate V2 bridging (on-chain, keyless)
@@ -179,6 +194,8 @@ and installed app are already renamed by the code itself.
 │   ├── dex/
 │   │   ├── chains.js     # chain + token + source registry
 │   │   ├── adapters.js   # one quote()/buildTx() adapter per source
+│   │   ├── fusion-core.js   # 1inch Fusion: quote, sign, submit, wait for fill (lazy-loaded)
+│   │   ├── fusion-wallet.js # connects the wallet to fusion-core
 │   │   └── engine.js     # parallel fan-out, best-wins
 │   └── utils/            # wallet helpers, formatting, ABIs
 ├── Bushido-dApp/         # installable mobile app (PWA): manifest, service

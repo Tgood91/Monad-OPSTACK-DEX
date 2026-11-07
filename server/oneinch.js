@@ -66,6 +66,9 @@ async function getSurrogate() {
   return s;
 }
 
+// The 1inch bearer token (env key, or vault surrogate); shared with the Fusion relay.
+export { getSurrogate as oneinchAuthToken };
+
 async function inchFetch(path) {
   const surr = await getSurrogate();
   const url = `${API}${path}`;

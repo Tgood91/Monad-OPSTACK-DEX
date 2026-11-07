@@ -46,7 +46,8 @@ import {
   dashboardData,
 } from "./bushido.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
-import { oneinchQuote, oneinchSwap } from "./oneinch.js";
+import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
+import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
 
@@ -109,6 +110,7 @@ function serverKeys() {
   return {
     uniswap: uniswapConfigured(),
     oneinch: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault,
+    fusion: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault, // same 1inch key
     zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
     coinbase: cdpConfigured(),
   };
@@ -455,6 +457,10 @@ app.post("/api/intel/ask", (req, res) => {
   if (!query) return res.status(400).json({ error: "missing query" });
   res.json({ messages: getDexIntelligenceResponse(query), sample: true });
 });
+
+// ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
+// The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
+app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----
 // POST /api/zerion/quote — { chainId, tokenIn, tokenOut, amountHuman, taker?, slippageBps? }
