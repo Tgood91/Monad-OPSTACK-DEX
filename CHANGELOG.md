@@ -3,6 +3,20 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: guardrails for keeping every source on
+**What:** (1) sources that can't serve the pair (Zerion on Monad, Fusion on a native-coin sale,
+Uniswap/Zerion/Coinbase with no wallet connected) are skipped without a call and left out of the
+list; (2) quote lookups get their own request limit (400 a minute) apart from the general 90;
+(3) quotes appear as each source answers ("3 quoted, 2 still checking") instead of after the
+slowest one, and an older slow request can no longer overwrite a newer one; (4) a server
+`DISABLED_SOURCES` setting turns any source off with no code change.
+**Why:** all sources stay on by default because every one can win on some pair. But one quote
+makes up to 10 requests (about 6 through the server), and the old shared limit of 90 a minute
+meant about 15 quotes locked a visitor out, after which every source failed. Calls that could
+never succeed were still paid for and waited on, the whole list waited for the slowest source
+(up to 8 seconds), and a provider outage (like Aori's) had no off-switch. A test that needed
+fixing along the way: a failing source is now paused for a minute, so tests reset that state.
+
 ## Unreleased: Bridge asks for the route first, then the provider
 **What:** on the Bridge tab, From and To come first and list every chain any provider supports;
 "Bridge via" moved below them and lists only the providers that can carry that route (NEAR Intents,

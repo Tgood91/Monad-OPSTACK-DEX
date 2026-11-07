@@ -226,6 +226,10 @@ const Velora = {
 // relay, which holds the 1inch key. Sells ERC-20 tokens only (no native coin).
 const Fusion = {
   gasless: true,
+  // Skip before loading the SDK: Fusion only sells ERC-20 tokens, not the native coin.
+  canQuote(chainKey, tokenIn) {
+    return tokenIn.isNative ? 'sells tokens only' : null;
+  },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const chainId = CHAINS[chainKey].chainId;
     const core = await import('./fusion-core.js');
@@ -317,6 +321,11 @@ const ZeroX = {
 // EVM chains only — Zerion's swap API does not support Monad (verified 2026-10-07).
 const Zerion = {
   supported: { 1: true, 10: true, 56: true, 130: true, 8453: true, 42161: true, 43114: true, 57073: true },
+  canQuote(chainKey, tokenIn, tokenOut, wallet) {
+    if (!this.supported[CHAINS[chainKey].chainId]) return 'chain not supported';
+    if (!wallet || wallet === ZERO) return 'needs a connected wallet';
+    return null;
+  },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const id = CHAINS[chainKey].chainId;
     if (!this.supported[id]) return null;
@@ -368,6 +377,11 @@ const Zerion = {
 // wrapped address, so quotes are for WETH; the normal ERC20 approval flow applies.
 const Coinbase = {
   supported: { 8453: true, 1: true },
+  canQuote(chainKey, tokenIn, tokenOut, wallet) {
+    if (!this.supported[CHAINS[chainKey].chainId]) return 'chain not supported';
+    if (!wallet || wallet === ZERO) return 'needs a connected wallet';
+    return null;
+  },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const id = CHAINS[chainKey].chainId;
     if (!this.supported[id]) return null;
@@ -406,6 +420,11 @@ const Coinbase = {
 // e.g. WETH; the normal ERC20 approval flow applies (spender = Universal Router).
 const Uniswap = {
   supported: { 10: true, 57073: true, 8453: true, 130: true },
+  canQuote(chainKey, tokenIn, tokenOut, wallet) {
+    if (!this.supported[CHAINS[chainKey].chainId]) return 'chain not supported';
+    if (!wallet || wallet === ZERO) return 'needs a connected wallet';
+    return null;
+  },
   async quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps) {
     const id = CHAINS[chainKey].chainId;
     if (!this.supported[id]) return null;
