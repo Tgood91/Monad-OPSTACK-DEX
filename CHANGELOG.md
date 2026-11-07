@@ -3,6 +3,16 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Android app (Trusted Web Activity)
+**What:** `Bushido-dApp-android/` (build settings and a step-by-step guide) and a server route,
+`/.well-known/assetlinks.json` (`server/assetlinks.js`), that proves to Android the app belongs
+to this site. It reads `ANDROID_CERT_SHA256` and optionally `ANDROID_PACKAGE_NAME`.
+**Why:** the user wanted an Android app, with social login. Reown's Swift and Android SDKs
+have no email or social login, so a native app would lose it. A Trusted Web Activity runs the
+web app in Chrome, so social login keeps working and site updates reach the app instantly.
+Android only hides the browser bar if the site vouches for the app, hence the route. The
+server side is tested; the APK build and a real phone were not.
+
 ## Unreleased: "getNetwork is not a function" when swapping with a connected wallet
 **What:** the app's `getNetwork()` helper now reads the wallet's chain from AppKit's
 `getCaipNetwork()` (`src/utils/network.js`).

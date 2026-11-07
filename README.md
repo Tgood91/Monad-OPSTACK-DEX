@@ -40,6 +40,9 @@ home screen (Android: *Install*; iPhone: *Share → Add to Home Screen*).
 Full-screen, works offline without ever caching prices. See
 [Bushido-dApp/README.md](Bushido-dApp/README.md).
 
+**🤖 Android app** — the same app as a real Android app, with social login intact. See
+[Bushido-dApp-android/README.md](Bushido-dApp-android/README.md).
+
 > **No install banner.** The in-page "Add to Home Screen" banner was removed
 > to save space on the Swap screen. Installing still works from the browser
 > menu. **Chrome on Android may still show its own install prompt
