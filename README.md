@@ -241,3 +241,5 @@ submission), `src/dex/solvers.js` (solver registry, selection + quoting).
 ## License
 
 [MIT](LICENSE) © 2026 Tgood91
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each pull request and why.
