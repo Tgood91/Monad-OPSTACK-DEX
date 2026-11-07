@@ -22,6 +22,7 @@ let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
 let enabledSources = new Set(Object.values(CHAINS).flatMap((c) => c.sources));
 let quotes = null;
 let selectedQuote = null;
+let compareOpen = false;  // route card: is the full source list showing?
 let userPick = null;      // source the user tapped; kept until the pair or chain changes
 let lastPairKey = '';
 let quoteTimer = null;
@@ -116,6 +117,7 @@ async function switchChainUI(key) {
   selectedQuote = null;
   $('quoteBox').innerHTML = '<div class="status">Enter an amount to compare quotes</div>';
   $('quoteDetail').innerHTML = '';
+  renderSafety(null);
   $('swapBtn').disabled = true;
   $('swapBtn').textContent = 'Enter an amount';
   clearStatus();
@@ -200,14 +202,14 @@ function renderQuotes(tIn, tOut, amtStr) {
   const good = quotes.good;
   if (!good.length && !navigator.onLine) {
     box.innerHTML = '<div class="status warn">You\'re offline. Quotes need a connection; they\'ll refresh when you\'re back online.</div>';
-    swapBtn.disabled = true; swapBtn.textContent = 'Offline';
+    swapBtn.disabled = true; swapBtn.textContent = 'Offline'; renderSafety(null);
     $('toAmount').value = '';
     return;
   }
   if (!good.length) {
     const reasons = quotes.all.map(r => `${SOURCE_META[r.source].label}: ${r.reason}`).join(' · ');
     box.innerHTML = `<div class="status warn">No liquidity from any enabled source.</div><div class="status" style="font-size:11px">${reasons}</div>`;
-    swapBtn.disabled = true; swapBtn.textContent = 'No liquidity';
+    swapBtn.disabled = true; swapBtn.textContent = 'No liquidity'; renderSafety(null);
     $('toAmount').value = '';
     return;
   }
@@ -215,21 +217,40 @@ function renderQuotes(tIn, tOut, amtStr) {
   selectedQuote = good.find(r => r.source === userPick)?.quote ?? quotes.best.quote;
   $('toAmount').value = fmtAmount(selectedQuote.amountOut, tOut.decimals);
 
-  let html = '<div class="quote-table">';
+  // Route card: the chosen source on top, "compare" opens every source's quote.
+  const sel = good.find(r => r.quote === selectedQuote);
+  const rest = good.filter(r => r !== sel).sort((x, y) => (x.quote.amountOut < y.quote.amountOut ? 1 : -1));
+  const next = rest[0]?.quote.amountOut;
+  const gain = next && next > 0n ? Number((selectedQuote.amountOut - next) * 10000n / next) / 100 : null;
+  const isBestSel = sel === quotes.best;
+  const mSel = SOURCE_META[selectedQuote.source];
+  let list = '<div class="quote-table">';
   for (const r of quotes.all) {
     const m = SOURCE_META[r.source];
     if (!r.ok) {
-      html += `<div class="qr"><span class="qsrc">${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`;
+      list += `<div class="qr"><span class="qsrc">${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`;
       continue;
     }
     const q = r.quote;
     const isBest = r === quotes.best, isSel = q === selectedQuote;
-    html += `<div class="qr${isBest ? ' winner' : ''}${isSel ? ' selected' : ''}" data-src="${r.source}">
+    list += `<div class="qr${isBest ? ' winner' : ''}${isSel ? ' selected' : ''}" data-src="${r.source}">
       <span class="qsrc">${m.label}<span class="tag">${m.tag}${q.raw?.kind ? ' · ' + q.raw.kind : ''}</span></span>
       <span class="qout">${fmtAmount(q.amountOut, tOut.decimals)} ${tOut.symbol}${q.amountOutUsd ? `<span class="usd">${fmtUsd(q.amountOutUsd)}</span>` : ''}</span>
       <span>${isBest ? '<span class="qbadge">BEST</span>' : ''}</span></div>`;
   }
-  box.innerHTML = html + '</div>';
+  list += '</div>';
+  box.innerHTML = `<div class="route-top"><span class="route-name">${mSel.label}${isBestSel ? ' <span class="qbadge">BEST</span>' : ''}</span>
+      ${gain !== null && gain > 0 ? `<span class="route-gain">+${gain.toFixed(2)}% vs next</span>` : ''}</div>
+    <div class="route-sub">${good.length} of ${quotes.all.length} sources quoted<button type="button" id="cmpBtn" aria-expanded="${compareOpen}">${compareOpen ? 'hide ⌃' : 'compare ⌄'}</button></div>
+    <div class="route-list">${list}</div>`;
+  $('routeCard').classList.toggle('open', compareOpen);
+  $('routeCard').classList.toggle('best-card', isBestSel);
+  $('cmpBtn').onclick = () => {
+    compareOpen = !compareOpen;
+    $('routeCard').classList.toggle('open', compareOpen);
+    $('cmpBtn').textContent = compareOpen ? 'hide ⌃' : 'compare ⌄';
+    $('cmpBtn').setAttribute('aria-expanded', compareOpen);
+  };
   box.querySelectorAll('.qr[data-src]').forEach(elm => {
     elm.onclick = () => {
       const r = quotes.all.find(x => x.source === elm.dataset.src && x.ok);
@@ -242,12 +263,12 @@ function renderQuotes(tIn, tOut, amtStr) {
   // Fusion quotes carry their own guaranteed minimum (the auction's end amount).
   const minOut = q.minAmountOut ?? (q.amountOut * BigInt(10000 - slippageBps) / 10000n);
   detail.innerHTML = `<div class="detail-grid">
-    <span class="k">Source</span><span class="v">${SOURCE_META[q.source].label}</span>
     <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
     <span class="k">Min received</span><span class="v">${fmtAmount(minOut, tOut.decimals)} ${tOut.symbol}</span>
     <span class="k">Est. gas</span><span class="v">${q.gasless ? 'None (resolvers pay)' : q.gasUsd > 0 ? (q.gasUsd < 0.01 ? '< $0.01' : fmtUsd(q.gasUsd)) : '—'}</span>
   </div>`;
 
+  renderSafety(q);
   if (!isConnected()) { swapBtn.disabled = false; swapBtn.textContent = 'Connect wallet'; }
   else checkApproval();
 }
@@ -255,7 +276,26 @@ function renderQuotes(tIn, tOut, amtStr) {
 // Button text for the selected quote. Fusion is signed, not sent.
 const swapLabel = (q) => q.gasless
   ? `Sign gasless swap via ${SOURCE_META[q.source].label}`
-  : `Swap via ${SOURCE_META[q.source].label}`;
+  : `Swap ${fmtAmount(q.amountInWei, q.tokenIn.decimals)} ${q.tokenIn.symbol} → ${q.tokenOut.symbol}`;
+
+// Safety checks above the button. The simulation is a real dry-run that happens
+// when you tap Swap (before any signature); until then it is shown as pending, not passed.
+function renderSafety(q, sim = 'pending', simNote = '') {
+  const box = $('safetyBox');
+  if (!q) { box.innerHTML = ''; return; }
+  const pct = (slippageBps / 100).toFixed(slippageBps % 10 ? 2 : 1).replace(/\.0$/, '');
+  const rows = [
+    ['ok', '✓', `Slippage ${pct}% (limit 0.1–1%)`],
+    q.gasless
+      ? ['ok', '✓', 'Gasless order: you sign it, nothing is sent from your wallet']
+      : sim === 'ok' ? ['ok', '✓', 'Simulation passed: this trade will not revert']
+      : sim === 'run' ? ['run', '…', 'Simulating the trade…']
+      : sim === 'bad' ? ['bad', '✕', `Simulation failed: ${simNote}`]
+      : ['', '○', 'Simulation runs automatically before you sign'],
+    ['ok', '✓', `Minimum you receive is guaranteed: ${fmtAmount(q.minAmountOut ?? (q.amountOut * BigInt(10000 - slippageBps) / 10000n), q.tokenOut.decimals)} ${q.tokenOut.symbol}`],
+  ];
+  box.innerHTML = rows.map(([c, m, t]) => `<div class="chk ${c}"><span class="mk">${m}</span><span>${t}</span></div>`).join('');
+}
 
 async function checkApproval() {
   const approveBtn = $('approveBtn'), swapBtn = $('swapBtn');
@@ -341,19 +381,10 @@ $('toToken').addEventListener('change', () => { scheduleQuote(); updateBalances(
 document.querySelectorAll('[data-slip]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-slip]').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
-  $('slipCustom').value = '';
   slippageBps = Math.round(parseFloat(b.dataset.slip) * 100);
   scheduleQuote();
+  if (selectedQuote) renderSafety(selectedQuote);
 });
-$('slipCustom').addEventListener('input', e => {
-  const v = parseFloat(e.target.value);
-  if (v > 0 && v <= 10) {
-    document.querySelectorAll('[data-slip]').forEach(x => x.classList.remove('active'));
-    slippageBps = Math.round(v * 100);
-    scheduleQuote();
-  }
-});
-
 $('approveBtn').onclick = async () => {
   if (!selectedQuote || !isConnected()) return;
   const q = selectedQuote;
@@ -404,8 +435,10 @@ $('swapBtn').onclick = async () => {
 
     // Simulate before asking for a signature — never send a tx we haven't dry-run
     showLoading('Simulating…');
+    renderSafety(q, 'run');
     const sim = await simulateTx({ to: tx.to, data: tx.data, value: tx.value, from: getAddress() });
-    if (!sim.ok) throw new Error('Simulation reverted — quote is stale or liquidity moved. ' + sim.reason);
+    if (!sim.ok) { renderSafety(q, 'bad', sim.reason); throw new Error('Simulation reverted — quote is stale or liquidity moved. ' + sim.reason); }
+    renderSafety(q, 'ok');
 
     showLoading('Awaiting signature…');
     const sent = await signer.sendTransaction({ to: tx.to, data: tx.data, value: tx.value });
