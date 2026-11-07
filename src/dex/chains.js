@@ -51,6 +51,8 @@ export const CHAINS = {
     tokens: [
       { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
       { symbol: 'USDC', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', decimals: 6 },
+      // Wrapped MON: the same contract MON stands in for above, here as an ordinary token you can hold and trade.
+      { symbol: 'WMON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18 },
       // Added after checking each contract on Monad (name, symbol, decimals) and getting a live KyberSwap
       // route for it from MON. Order matters: the first two stay MON and USDC (the app defaults to them).
       { symbol: 'USDT0', address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', decimals: 6 },

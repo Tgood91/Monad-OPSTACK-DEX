@@ -195,7 +195,10 @@ async function refreshQuotes() {
     return;
   }
   if (tIn.address.toLowerCase() === tOut.address.toLowerCase()) {
-    box.innerHTML = '<div class="status error">Pick two different tokens</div>';
+    const wrapPair = tIn.isNative !== tOut.isNative;
+    box.innerHTML = wrapPair
+      ? `<div class="status error">${tIn.symbol} and ${tOut.symbol} are the same value (wrapped and unwrapped). Wrapping isn't built into the swap yet, so pick a different token.</div>`
+      : '<div class="status error">Pick two different tokens</div>';
     swapBtn.disabled = true; swapBtn.textContent = 'Select tokens';
     return;
   }
