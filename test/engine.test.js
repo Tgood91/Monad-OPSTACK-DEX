@@ -43,9 +43,10 @@ test('a failing or empty source is reported inline without breaking the batch', 
 test('a keyed source without its key is skipped, not called', async () => {
   let called = false;
   const restore = stub('zerox', async () => { called = true; return null; });
+  ADAPTERS.zerox.key = () => ''; // pretend this source holds a browser-side key that is missing
   try {
     const r = await quoteAll({ chainKey: 'monad', tokenIn, tokenOut, amountInWei: 1n, sources: ['zerox'], slippageBps: 50 });
     assert.equal(r.all[0].reason, 'API key not set');
     assert.equal(called, false);
-  } finally { restore(); }
+  } finally { restore(); delete ADAPTERS.zerox.key; }
 });

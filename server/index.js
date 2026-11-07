@@ -46,6 +46,7 @@ import {
   dashboardData,
 } from "./bushido.js";
 import { logOps, recentOps, opsConfigured } from "./ops.js";
+import { createZeroxProxy, zeroxKey } from "./zerox.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
@@ -114,6 +115,7 @@ function serverKeys() {
     fusion: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault, // same 1inch key
     zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
     coinbase: cdpConfigured(),
+    zerox: Boolean(zeroxKey()),
   };
 }
 
@@ -473,6 +475,7 @@ app.post("/api/intel/ask", (req, res) => {
 
 // ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
 // The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
+app.get("/api/zerox/quote", createZeroxProxy());
 app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));
 
 // ---- Zerion swap quotes (server-side proxy, EVM chains only) ----

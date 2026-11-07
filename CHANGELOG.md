@@ -3,6 +3,37 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: "getNetwork is not a function" when swapping with a connected wallet
+**What:** the app's `getNetwork()` helper now reads the wallet's chain from AppKit's
+`getCaipNetwork()` (`src/utils/network.js`).
+**Why:** it called `appKit.getNetwork()`, which does not exist in the installed AppKit
+(1.8.24). The swap code asks for the current chain as soon as a wallet is connected, so
+every connected swap failed with "getNetwork is not a function". It never showed before
+because nothing runs that call until a wallet is connected. A small test now builds a
+fake AppKit without `getNetwork` to keep it from coming back. A live wallet swap was not
+tested here.
+
+## Unreleased: working Claim button for Merkl rewards
+**What:** the Rewards tab's Claim button now works and is always visible. Each chain shows
+an active button when something can be claimed, or a disabled one saying why ("Nothing to
+claim", or "Not ready yet" with the 8-hour note). Ethereum shows a gas warning for small
+amounts. The claim steps are now build, switch chain, simulate, sign, wait
+(`src/merkl-claim.js`, `src/merkl-view.js`). Ethereum was added as a wallet network.
+**Why:** the old button crashed when clicked: it called `.request()` on the wallet object,
+which the app's ethers provider doesn't have. It also had no dry-run before signing (the
+Swap tab always has one), hid itself when nothing was ready so it looked missing, and
+could not switch wallets to Ethereum, where most of the test wallet's rewards were. The
+claim data itself was already right: it dry-ran successfully on real data on Ethereum,
+Base and Monad. A real signed claim was not tested here.
+
+## Unreleased: 0x quotes moved to the server
+**What:** 0x quotes now go through `/api/zerox/quote` (`server/zerox.js`). The key is read
+from `ZEROX_API_KEY`, or the old `VITE_0X_API_KEY` name so an existing setting keeps working.
+**Why:** the 0x row always showed "temporarily unavailable" even with a valid key. 0x v2
+needs a `0x-version` request header, and 0x's browser (CORS) rules don't allow that header,
+so the browser blocked every call before it left the page. A server call works, and the key
+no longer has to sit in the public web page. Checked against real 0x on Base and Monad.
+
 ## Unreleased: "Buffer is not defined" when connecting a wallet
 **What:** a browser `Buffer` polyfill (`src/shims/buffer-global.js`, using the
 `buffer` package) loaded first in `src/main.js`.
