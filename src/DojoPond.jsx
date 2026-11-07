@@ -1,6 +1,5 @@
 // The Dojo garden: a quiet Meiji-era (late 1800s Japan) pond scene, drawn as inline SVG so it needs no
-// image files. It reflects the warrior: more koi as the stage rises, the stone lantern glows once you have
-// bowed today, and the maple turns with the streak. Decoration only: nothing here touches a wallet.
+// image files. Decoration only: nothing here touches a wallet.
 import React from 'react';
 
 const KOI = [
@@ -30,8 +29,11 @@ function Koi({ x, y, flip, c }) {
 }
 
 export default function DojoPond({ stageIndex = 0, bowed = false, streak = 0, name = '', children }) {
-  const koi = KOI.slice(0, Math.min(KOI.length, stageIndex + 1));
-  const leaf = streak >= 7 ? '#dc2626' : streak >= 3 ? '#f97316' : '#65a30d'; // maple turns with the streak
+  // The garden always looks its fullest: every koi, a lit lantern and a red maple. (The rank, bow and streak
+  // props stay so a future version can vary the scene again without changing the card.)
+  const koi = KOI;
+  const leaf = '#dc2626';
+  const lit = true;
   return (
     <div className="relative rounded-lg overflow-hidden mb-3" style={{ background: '#0b1220' }} data-testid="dojo-pond">
       <svg viewBox="0 0 320 210" className="w-full block" role="img" aria-label={`The dojo garden. ${name}`}>
@@ -91,16 +93,16 @@ export default function DojoPond({ stageIndex = 0, bowed = false, streak = 0, na
           <line x1="160" y1="118" x2="160" y2="130" stroke="#b91c1c" strokeWidth="2" />
           <line x1="195" y1="124" x2="195" y2="136" stroke="#b91c1c" strokeWidth="2" />
         </g>
-        {/* ishidōrō stone lantern, glows once you have bowed today */}
+        {/* ishidōrō stone lantern, always lit */}
         <g transform="translate(44 150)">
-          {bowed && <circle cx="0" cy="-22" r="22" fill="#fbbf24" opacity="0.22" />}
+          {lit && <circle cx="0" cy="-22" r="22" fill="#fbbf24" opacity="0.22" />}
           <rect x="-4" y="-6" width="8" height="18" fill="#6b7280" />
           <rect x="-9" y="-14" width="18" height="9" fill="#4b5563" />
-          <rect x="-4" y="-12" width="8" height="5" fill={bowed ? '#fde047' : '#1f2937'} />
+          <rect x="-4" y="-12" width="8" height="5" fill={lit ? '#fde047' : '#1f2937'} />
           <path d="M-13 -14 L0 -24 L13 -14 Z" fill="#6b7280" />
           <rect x="-8" y="10" width="16" height="4" fill="#4b5563" />
         </g>
-        {/* maple, colour follows the streak */}
+        {/* maple in autumn red */}
         <g transform="translate(284 128)">
           <rect x="-2" y="-4" width="4" height="30" fill="#44302a" />
           <circle cx="-8" cy="-12" r="13" fill={leaf} opacity="0.92" />

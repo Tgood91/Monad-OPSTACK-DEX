@@ -7,6 +7,7 @@ import { reportOps } from './bushido-gate.js';
 import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet, loadMonBalance } from './dojo/dojo-core.js';
 import { bow, bowedToday, growthStage, isLowGas, liveStreak, loadBow, saveBow } from './dojo/growth.js';
 import DojoPond from './DojoPond.jsx';
+import { loadPerk, unlockPerks } from './perks-client.js';
 import { runDojoTx } from './dojo/dojo-tx.js';
 import { retryOnce } from './utils/retry.js';
 
@@ -26,6 +27,7 @@ export default function DojoCard({ trader }) {
   const [busy, setBusy] = useState(false);
   const [bowRec, setBowRec] = useState(() => (trader ? loadBow(trader) : null));
   const [monWei, setMonWei] = useState(null);
+  const [perk, setPerk] = useState(() => (trader ? loadPerk(trader) : null));
   const explorer = CHAINS.monad.explorer;
 
   const refresh = useCallback(async () => {
@@ -38,6 +40,7 @@ export default function DojoCard({ trader }) {
       setData(d);
       setFaucet(f);
       setBowRec(loadBow(trader));
+      setPerk(loadPerk(trader));
       loadMonBalance(trader).then(setMonWei); // fail-soft: null means no gas warning
     } catch (e) {
       setError(String(e.message || e).slice(0, 140));
@@ -78,6 +81,22 @@ export default function DojoCard({ trader }) {
       const m = String(e.shortMessage || e.reason || e.message || e).slice(0, 160);
       setMsg('Not sent: ' + m);
       reportOps('warn', 'dojo', m);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlock() {
+    setBusy(true);
+    setMsg('Confirm the message in your wallet. It is only a signature: no transaction and no gas.');
+    try {
+      const web3 = await import('./utils/web3.js');
+      if (!web3.isConnected()) throw new Error('Connect a wallet first');
+      const rec = await unlockPerks(trader, { signMessage: async (m) => (await web3.getSigner()).signMessage(m) });
+      setPerk(rec);
+      setMsg(`Pass perks are on for 7 days: ${rec.multiplier}× quote allowance.`);
+    } catch (e) {
+      setMsg('Perks not unlocked: ' + String(e.shortMessage || e.reason || e.message || e).slice(0, 160));
     } finally {
       setBusy(false);
     }
@@ -246,6 +265,29 @@ export default function DojoCard({ trader }) {
                 You haven't entered the Dojo yet. Each wallet gets one warrior.
               </div>
               <Btn action={v.pet.action} />
+            </div>
+          )}
+          {v.pass.has && (
+            <div className="rounded border border-emerald-400/30 bg-emerald-400/5 p-3 mt-3">
+              {perk ? (
+                <div className="text-xs text-emerald-200">
+                  Pass perks are on: {perk.multiplier}× quote allowance until{' '}
+                  {new Date(perk.exp).toLocaleDateString([], { dateStyle: 'medium' })}.
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs opacity-80 mb-2">
+                    Your Dojo Pass gives you a {3}× quote allowance. Unlock it with one free signature (valid 7 days).
+                  </div>
+                  <button
+                    disabled={busy}
+                    onClick={unlock}
+                    className="w-full rounded border border-emerald-400/60 bg-transparent text-emerald-300 font-semibold p-2 disabled:opacity-40"
+                  >
+                    {busy ? 'Working…' : 'Unlock Pass perks'}
+                  </button>
+                </>
+              )}
             </div>
           )}
           {!v.pass.has && (

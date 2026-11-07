@@ -4,6 +4,9 @@
 import './shims/buffer-global.js';
 import { ethers } from 'ethers';
 import { appKit } from './config.js';
+import { installPerkHeader } from './perks-client.js';
+
+installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';
 import { ADAPTERS } from './dex/adapters.js';
 import { quoteAll, buildTxFor } from './dex/engine.js';

@@ -10,12 +10,19 @@ const WINDOW_MS = 60_000;
 export const QUOTE_PATH =
   /^\/api\/(uniswap\/quote|oneinch\/quote|zerox\/quote|zerion\/quote|coinbase\/swap-quote|fusion\/(quoter|orders)\/)/;
 
-export function createLimiter({ general = 90, quotes = 400, windowMs = WINDOW_MS, now = () => Date.now() } = {}) {
+// `perkMultiplier(req)` -> number >= 1 raises the quote bucket for verified Dojo Pass holders (server/perks.js).
+export function createLimiter({
+  general = 90,
+  quotes = 400,
+  windowMs = WINDOW_MS,
+  now = () => Date.now(),
+  perkMultiplier = () => 1,
+} = {}) {
   const buckets = new Map(); // "ip|bucket" -> { count, reset }
   return (req, res, next) => {
     const t = now();
     const bucket = QUOTE_PATH.test(req.originalUrl.split("?")[0]) ? "quotes" : "general";
-    const limit = bucket === "quotes" ? quotes : general;
+    const limit = bucket === "quotes" ? Math.round(quotes * (perkMultiplier(req) || 1)) : general;
     const key = `${req.ip || "unknown"}|${bucket}`;
     let rec = buckets.get(key);
     if (!rec || t > rec.reset) {
