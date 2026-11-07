@@ -48,6 +48,8 @@ import {
 import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { createZeroxProxy, zeroxKey } from "./zerox.js";
 import { assetLinksHandler } from "./assetlinks.js";
+import { createLimiter } from "./limits.js";
+import { disabledSources, switchesMiddleware } from "./switches.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
@@ -93,18 +95,10 @@ app.use(
   })
 );
 
-// ---- tiny in-memory rate limiter: 90 req/min per IP on /api ----
-const hits = new Map();
-app.use("/api", (req, res, next) => {
-  const now = Date.now();
-  const ip = req.ip || "unknown";
-  const rec = hits.get(ip) || { count: 0, reset: now + 60_000 };
-  if (now > rec.reset) { rec.count = 0; rec.reset = now + 60_000; }
-  rec.count += 1;
-  hits.set(ip, rec);
-  if (rec.count > 90) return res.status(429).json({ error: "rate_limited" });
-  next();
-});
+// ---- per-IP rate limits: quote lookups get their own, larger bucket (server/limits.js) ----
+app.use("/api", createLimiter());
+// ---- DISABLED_SOURCES kill switch for provider routes (server/switches.js) ----
+app.use("/api", switchesMiddleware());
 
 // Which server-held source keys are configured. Booleans only, never values,
 // so the UI can mark sources that need a key with the 🔑 chip accurately.
@@ -121,7 +115,7 @@ function serverKeys() {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), stream: streamStatus(), time: new Date().toISOString() });
+  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), time: new Date().toISOString() });
 });
 
 // GET /api/coinbase/prices?products=ETH-USD,BTC-USD

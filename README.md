@@ -148,6 +148,18 @@ back to the Secure Vault surrogate socket, which only exists on the original
 dev machine. NEAR Intents uses the vault when available and otherwise runs
 keyless.)
 
+**Turning a source off** — set `DISABLED_SOURCES` (comma separated, e.g.
+`DISABLED_SOURCES=zerion,fusion`) on the server and redeploy. Server-proxied
+sources answer 503 "turned off" and the app skips every listed source
+(including the ones the browser calls directly) and greys out its chip. Names:
+`aerodrome, velodrome, uniswap, kyberswap, lifi, velora, coinbase, oneinch,
+fusion, zerox, zerion`. Use it when a provider has an outage or you want to stop
+spending on it, with no code change.
+
+**Request limits** — each visitor gets 90 requests a minute for general `/api`
+calls and a separate 400 a minute for quote lookups, because one quote asks
+several sources at once (`server/limits.js`).
+
 ## Deploying
 
 See [DEPLOY.md](DEPLOY.md) for a full Node.js guide (env, build, pm2,

@@ -29,6 +29,7 @@ TRUST_PROXY=                   # 1 if behind nginx/Cloudflare/a PaaS router (see
 UNISWAP_API_KEY=               # https://developers.uniswap.org
 ONEINCH_API_KEY=               # https://portal.1inch.dev
 ZERION_API_KEY=                # https://developers.zerion.io
+DISABLED_SOURCES=              # optional kill switch, e.g. zerion,fusion (see README)
 CDP_API_KEY_ID=                # https://portal.cdp.coinbase.com
 CDP_API_KEY_SECRET="-----BEGIN EC PRIVATE KEY-----\n...\n-----END EC PRIVATE KEY-----\n"
 

@@ -23,6 +23,7 @@ let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
 let enabledSources = new Set(Object.values(CHAINS).flatMap((c) => c.sources));
 let quotes = null;
 let selectedQuote = null;
+let quoteRun = 0;         // id of the newest quote request (older ones are ignored)
 let compareOpen = false;  // route card: is the full source list showing?
 let userPick = null;      // source the user tapped; kept until the pair or chain changes
 let lastPairKey = '';
@@ -46,7 +47,13 @@ function renderChains() {
 // Server-held keys (from /api/health). null until loaded: assume set, so chips
 // don't flash 🔑 on first paint.
 let serverKeys = null;
-fetch('/api/health').then(r => r.json()).then(j => { serverKeys = j.keys || null; renderSources(); }).catch(() => {});
+let serverDisabled = new Set(); // sources switched off with DISABLED_SOURCES on the server
+fetch('/api/health').then(r => r.json()).then(j => {
+  serverKeys = j.keys || null;
+  serverDisabled = new Set(j.disabled || []);
+  renderSources();
+  scheduleQuote();
+}).catch(() => {});
 
 function sourceKeySet(src) {
   if (serverKeys && src in serverKeys) return !!serverKeys[src];
@@ -65,10 +72,12 @@ function renderSources() {
   for (const src of getChain(chainKey).sources) {
     const m = SOURCE_META[src];
     const keySet = sourceKeySet(src);
+    const turnedOff = serverDisabled.has(src);
     const chip = el('button',
-      'src-chip' + (enabledSources.has(src) ? ' active' : ' off') + (keySet ? '' : ' no-key'),
-      `${m.label}${keySet ? '' : ' 🔑'}`);
-    chip.title = `${m.tag}${keySet ? '' : ' — API key not set (see .env)'}`;
+      'src-chip' + (enabledSources.has(src) && !turnedOff ? ' active' : ' off') + (keySet ? '' : ' no-key'),
+      `${m.label}${turnedOff ? ' · off' : keySet ? '' : ' 🔑'}`);
+    chip.title = turnedOff ? 'Temporarily turned off' : `${m.tag}${keySet ? '' : ' — API key not set (see .env)'}`;
+    chip.disabled = turnedOff;
     chip.onclick = () => {
       enabledSources.has(src) ? enabledSources.delete(src) : enabledSources.add(src);
       renderSources();
@@ -162,7 +171,7 @@ async function refreshQuotes() {
   selectedQuote = null;
   const amtStr = $('fromAmount').value;
   const { in: tIn, out: tOut } = selTokens();
-  const activeSources = getChain(chainKey).sources.filter(s => enabledSources.has(s));
+  const activeSources = getChain(chainKey).sources.filter(s => enabledSources.has(s) && !serverDisabled.has(s));
   const pairKey = `${chainKey}:${tIn.address}:${tOut.address}`;
   if (pairKey !== lastPairKey) { userPick = null; lastPairKey = pairKey; }
 
@@ -188,18 +197,33 @@ async function refreshQuotes() {
   detail.innerHTML = '';
   swapBtn.disabled = true;
 
+  // Newest run wins: a slow older run must not overwrite a newer one.
+  const run = ++quoteRun;
   try {
     const amountInWei = ethers.parseUnits(amtStr, tIn.decimals);
-    quotes = await quoteAll({ chainKey, tokenIn: tIn, tokenOut: tOut, amountInWei, wallet: getAddress(), sources: activeSources, slippageBps });
+    const result = await quoteAll({
+      chainKey, tokenIn: tIn, tokenOut: tOut, amountInWei, wallet: getAddress(), sources: activeSources, slippageBps,
+      disabled: serverDisabled,
+      // Show quotes as they arrive instead of waiting for the slowest source.
+      onResult: (_r, snap) => {
+        if (run !== quoteRun || !snap.good.length || !snap.pending) return;
+        quotes = snap;
+        renderQuotes(tIn, tOut, amtStr, true);
+      },
+    });
+    if (run !== quoteRun) return;
+    quotes = result;
     renderQuotes(tIn, tOut, amtStr);
   } catch (e) {
-    box.innerHTML = `<div class="status error">Quote failed: ${e.message.slice(0, 100)}</div>`;
+    if (run === quoteRun) box.innerHTML = `<div class="status error">Quote failed: ${e.message.slice(0, 100)}</div>`;
   }
 }
 
-function renderQuotes(tIn, tOut, amtStr) {
+function renderQuotes(tIn, tOut, amtStr, partial = false) {
   const box = $('quoteBox'), detail = $('quoteDetail'), swapBtn = $('swapBtn');
   const good = quotes.good;
+  // Sources that can't serve this pair (or are switched off) were never asked: leave them out.
+  const shown = quotes.all.filter(r => !r.skipped);
   if (!good.length && !navigator.onLine) {
     box.innerHTML = '<div class="status warn">You\'re offline. Quotes need a connection; they\'ll refresh when you\'re back online.</div>';
     swapBtn.disabled = true; swapBtn.textContent = 'Offline'; renderSafety(null);
@@ -207,7 +231,7 @@ function renderQuotes(tIn, tOut, amtStr) {
     return;
   }
   if (!good.length) {
-    const reasons = quotes.all.map(r => `${SOURCE_META[r.source].label}: ${r.reason}`).join(' · ');
+    const reasons = shown.map(r => `${SOURCE_META[r.source].label}: ${r.reason}`).join(' · ');
     box.innerHTML = `<div class="status warn">No liquidity from any enabled source.</div><div class="status" style="font-size:11px">${reasons}</div>`;
     swapBtn.disabled = true; swapBtn.textContent = 'No liquidity'; renderSafety(null);
     $('toAmount').value = '';
@@ -225,7 +249,7 @@ function renderQuotes(tIn, tOut, amtStr) {
   const isBestSel = sel === quotes.best;
   const mSel = SOURCE_META[selectedQuote.source];
   let list = '<div class="quote-table">';
-  for (const r of quotes.all) {
+  for (const r of shown) {
     const m = SOURCE_META[r.source];
     if (!r.ok) {
       list += `<div class="qr"><span class="qsrc">${m.label}<span class="tag">${r.reason}</span></span><span></span><span></span></div>`;
@@ -241,7 +265,7 @@ function renderQuotes(tIn, tOut, amtStr) {
   list += '</div>';
   box.innerHTML = `<div class="route-top"><span class="route-name">${mSel.label}${isBestSel ? ' <span class="qbadge">BEST</span>' : ''}</span>
       ${gain !== null && gain > 0 ? `<span class="route-gain">+${gain.toFixed(2)}% vs next</span>` : ''}</div>
-    <div class="route-sub">${good.length} of ${quotes.all.length} sources quoted<button type="button" id="cmpBtn" aria-expanded="${compareOpen}">${compareOpen ? 'hide ⌃' : 'compare ⌄'}</button></div>
+    <div class="route-sub">${partial && quotes.pending ? `<span class="spinner"></span>${good.length} quoted · ${quotes.pending} still checking…` : `${good.length} of ${shown.length} sources quoted`}<button type="button" id="cmpBtn" aria-expanded="${compareOpen}">${compareOpen ? 'hide ⌃' : 'compare ⌄'}</button></div>
     <div class="route-list">${list}</div>`;
   $('routeCard').classList.toggle('open', compareOpen);
   $('routeCard').classList.toggle('best-card', isBestSel);
@@ -269,6 +293,7 @@ function renderQuotes(tIn, tOut, amtStr) {
   </div>`;
 
   renderSafety(q);
+  if (partial) { swapBtn.disabled = true; swapBtn.textContent = 'Checking more sources…'; return; }
   if (!isConnected()) { swapBtn.disabled = false; swapBtn.textContent = 'Connect wallet'; }
   else checkApproval();
 }
