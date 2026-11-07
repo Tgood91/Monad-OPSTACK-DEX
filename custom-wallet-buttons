@@ -1,0 +1,32 @@
+<!-- Enter Bushido Games card -->
+<a class="door-card" href="#games">
+  <span class="door-title">Enter Bushido Games</span>
+  <span class="door-sub">Practice · play · progress</span>
+  <span class="door-arrow">→</span>
+</a>
+
+<style>
+.door-card {
+  display: block; position: relative;
+  background: #12151d;
+  border: 1px solid #2a2f3a;
+  border-radius: 16px;
+  padding: 26px 24px;
+  text-decoration: none;
+}
+.door-title {
+  display: block;
+  color: #FFFFFF;
+  font: 400 30px Georgia, 'Times New Roman', serif;
+  margin-bottom: 6px;
+}
+.door-sub {
+  color: #9aa3b2;
+  font: 400 14px 'Public Sans', sans-serif;
+}
+.door-arrow {
+  position: absolute; right: 24px; top: 50%;
+  transform: translateY(-50%);
+  color: #FFFFFF; font-size: 22px;
+}
+</style>
