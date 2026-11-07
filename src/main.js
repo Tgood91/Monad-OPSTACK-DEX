@@ -5,6 +5,7 @@ import './shims/buffer-global.js';
 import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
+import { retryOnce } from './utils/retry.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';
@@ -146,19 +147,26 @@ async function updateBalances() {
   if (!addr) { $('fromBalance').textContent = 'Balance: —'; $('toBalance').textContent = 'Balance: —'; return; }
   const { in: tIn, out: tOut } = selTokens();
   const cfg = getChain(chainKey);
-  let rp;
-  try { rp = getWalletEthersProvider(); } catch { rp = await getReadProvider(chainKey); }
+  // Reads don't need the wallet. Use our public RPCs first (they work in every wallet browser); some in-app
+  // wallet browsers silently fail eth_call, which used to leave "Balance: —" with no explanation.
+  const providers = [];
+  try { providers.push(await getReadProvider(chainKey)); } catch { /* fall back to the wallet below */ }
+  try { providers.push(getWalletEthersProvider()); } catch { /* no wallet provider */ }
   for (const [tok, elId] of [[tIn, 'fromBalance'], [tOut, 'toBalance']]) {
-    try {
-      const c = new ethers.Contract(tok.address, ERC20_ABI, rp);
-      const [wrapped, dec] = await Promise.all([c.balanceOf(addr), c.decimals().catch(() => tok.decimals)]);
-      let label = `${fmtAmount(wrapped, Number(dec))} ${tok.symbol}`;
-      if (tok.isNative) {
-        const native = await rp.getBalance(addr);
-        label = `${fmtAmount(native, 18)} ${cfg.native} (+${fmtAmount(wrapped, Number(dec))} wrapped)`;
-      }
-      $(elId).textContent = 'Balance: ' + label;
-    } catch { $(elId).textContent = 'Balance: —'; }
+    let label = null;
+    for (const rp of providers) {
+      try {
+        label = await retryOnce(async () => {
+          const c = new ethers.Contract(tok.address, ERC20_ABI, rp);
+          const [wrapped, dec] = await Promise.all([c.balanceOf(addr), c.decimals().catch(() => tok.decimals)]);
+          if (!tok.isNative) return `${fmtAmount(wrapped, Number(dec))} ${tok.symbol}`;
+          const native = await rp.getBalance(addr);
+          return `${fmtAmount(native, 18)} ${cfg.native} (+${fmtAmount(wrapped, Number(dec))} wrapped)`;
+        });
+        break;
+      } catch { /* try the next provider */ }
+    }
+    $(elId).textContent = 'Balance: ' + (label ?? '—');
   }
 }
 
