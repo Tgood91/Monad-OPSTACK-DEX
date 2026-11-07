@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
 import { retryOnce } from './utils/retry.js';
+import { enhanceAllSelects } from './token-picker.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';
@@ -524,3 +525,6 @@ async function switchTab(which) {
   // Merkl module loads only when the Rewards tab is first opened.
   if (which === 'merkl') (await import('./merkl.js')).showMerkl();
 }
+
+// Our own coin/chain list instead of native dropdowns (those never open in some wallet in-app browsers).
+enhanceAllSelects();
