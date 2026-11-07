@@ -1,0 +1,8 @@
+dist
+node_modules
+server/node_modules
+.claude
+package-lock.json
+*.md
+*.html
+*.json

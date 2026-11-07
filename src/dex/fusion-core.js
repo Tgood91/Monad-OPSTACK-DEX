@@ -35,11 +35,12 @@ export function relayHttp(fetchImpl = (...a) => globalThis.fetch(...a)) {
   };
   return {
     get: (url) => run(url, { headers: { Accept: 'application/json' } }),
-    post: (url, data) => run(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(data),
-    }),
+    post: (url, data) =>
+      run(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(data),
+      }),
   };
 }
 
@@ -82,7 +83,16 @@ export function fusionSpender(chainId) {
 }
 
 /** Quote: expected output, guaranteed minimum, and the approval spender. */
-export async function fusionQuote({ chainId, origin, tokenIn, tokenOut, amountInWei, wallet, slippageBps = 50, fetchImpl }) {
+export async function fusionQuote({
+  chainId,
+  origin,
+  tokenIn,
+  tokenOut,
+  amountInWei,
+  wallet,
+  slippageBps = 50,
+  fetchImpl,
+}) {
   // Fusion orders are made from an ERC-20 allowance; the chain's native coin has none.
   if (tokenIn.isNative) throw new Error('Fusion sells tokens, not the native coin');
   const sdk = createSdk({ chainId, origin, fetchImpl });
@@ -109,7 +119,18 @@ export async function fusionQuote({ chainId, origin, tokenIn, tokenOut, amountIn
  * least the user will accept; the order is built from a fresh quote, so if the
  * price moved against them we refuse before they are asked to sign.
  */
-export async function placeFusionOrder({ chainId, origin, connector, tokenIn, tokenOut, amountInWei, wallet, slippageBps = 50, minAcceptable, fetchImpl }) {
+export async function placeFusionOrder({
+  chainId,
+  origin,
+  connector,
+  tokenIn,
+  tokenOut,
+  amountInWei,
+  wallet,
+  slippageBps = 50,
+  minAcceptable,
+  fetchImpl,
+}) {
   const sdk = createSdk({ chainId, origin, connector, fetchImpl });
   const prepared = await sdk.createOrder({
     fromTokenAddress: addrIn(tokenIn),
@@ -130,7 +151,14 @@ export async function placeFusionOrder({ chainId, origin, connector, tokenIn, to
  * Poll until the order is filled (returns the status) or can no longer be
  * filled (throws). `onStatus(status, elapsedSec)` is called on every poll.
  */
-export async function waitForFusionFill({ sdk, orderHash, onStatus, signal, intervalMs = 2500, timeoutMs = 10 * 60 * 1000 }) {
+export async function waitForFusionFill({
+  sdk,
+  orderHash,
+  onStatus,
+  signal,
+  intervalMs = 2500,
+  timeoutMs = 10 * 60 * 1000,
+}) {
   const t0 = Date.now();
   for (;;) {
     if (signal?.aborted) throw new Error('Stopped waiting. The order may still fill; check your wallet.');
@@ -138,17 +166,22 @@ export async function waitForFusionFill({ sdk, orderHash, onStatus, signal, inte
     onStatus?.(s.status, Math.round((Date.now() - t0) / 1000), s);
     if (s.status === OrderStatus.Filled) return s;
     if (DEAD.has(s.status)) throw new Error(failMessage(s.status));
-    if (Date.now() - t0 > timeoutMs) throw new Error('Still waiting after 10 minutes. The order may still fill; check your wallet.');
+    if (Date.now() - t0 > timeoutMs)
+      throw new Error('Still waiting after 10 minutes. The order may still fill; check your wallet.');
     await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 
 function failMessage(status) {
   switch (status) {
-    case OrderStatus.Expired: return 'No resolver filled the order in time. Nothing was spent. Try again, or pick another source.';
-    case OrderStatus.Cancelled: return 'The order was cancelled. Nothing was spent.';
-    case OrderStatus.NotEnoughBalanceOrAllowance: return 'Your balance or approval dropped below the order amount. Nothing was spent.';
-    default: return `The order can't be filled (${status}). Nothing was spent.`;
+    case OrderStatus.Expired:
+      return 'No resolver filled the order in time. Nothing was spent. Try again, or pick another source.';
+    case OrderStatus.Cancelled:
+      return 'The order was cancelled. Nothing was spent.';
+    case OrderStatus.NotEnoughBalanceOrAllowance:
+      return 'Your balance or approval dropped below the order amount. Nothing was spent.';
+    default:
+      return `The order can't be filled (${status}). Nothing was spent.`;
   }
 }
 

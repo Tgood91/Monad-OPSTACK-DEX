@@ -18,9 +18,15 @@ export async function runFusionSwap({ chainKey, chainId, q, wallet, slippageBps,
   // guaranteed minimum the user was shown, by more than their slippage setting.
   const minAcceptable = (q.minAmountOut * BigInt(10000 - slippageBps)) / 10000n;
   const { sdk, orderHash } = await placeFusionOrder({
-    chainId, origin: window.location.origin, connector: walletConnector({ signer, provider }),
-    tokenIn: q.tokenIn, tokenOut: q.tokenOut, amountInWei: q.amountInWei,
-    wallet, slippageBps, minAcceptable,
+    chainId,
+    origin: window.location.origin,
+    connector: walletConnector({ signer, provider }),
+    tokenIn: q.tokenIn,
+    tokenOut: q.tokenOut,
+    amountInWei: q.amountInWei,
+    wallet,
+    slippageBps,
+    minAcceptable,
   });
   onStage('wait', 'pending', 0);
   const fill = await waitForFusionFill({ sdk, orderHash, onStatus: (status, sec) => onStage('wait', status, sec) });

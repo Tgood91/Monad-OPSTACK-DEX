@@ -8,9 +8,23 @@ const good = { chainId: "8453", sellToken: USDC, buyToken: WETH, sellAmount: "50
 
 function run(handler, query) {
   return new Promise((resolve) => {
-    const res = { code: 200, body: null,
-      status(c) { this.code = c; return this; }, type() { return this; },
-      json(b) { resolve({ code: this.code, body: b }); }, send(b) { resolve({ code: this.code, body: JSON.parse(b) }); } };
+    const res = {
+      code: 200,
+      body: null,
+      status(c) {
+        this.code = c;
+        return this;
+      },
+      type() {
+        return this;
+      },
+      json(b) {
+        resolve({ code: this.code, body: b });
+      },
+      send(b) {
+        resolve({ code: this.code, body: JSON.parse(b) });
+      },
+    };
     handler({ query }, res);
   });
 }
@@ -30,7 +44,10 @@ test("key comes from ZEROX_API_KEY, falling back to the old VITE_0X_API_KEY name
 
 test("proxy sends the key and the v2 header server-side; 503 without a key; maps 401", async () => {
   let seen;
-  const fetchImpl = async (url, init) => { seen = { url, init }; return { status: 200, text: async () => JSON.stringify({ buyAmount: "123" }) }; };
+  const fetchImpl = async (url, init) => {
+    seen = { url, init };
+    return { status: 200, text: async () => JSON.stringify({ buyAmount: "123" }) };
+  };
   const ok = await run(createZeroxProxy({ getKey: () => "K", fetchImpl }), good);
   assert.equal(ok.body.buyAmount, "123");
   assert.equal(seen.init.headers["0x-api-key"], "K");

@@ -21,14 +21,19 @@ export function assetLinks(env = process.env) {
     .map((s) => s.trim().toUpperCase())
     .filter((s) => FINGERPRINT.test(s));
   if (!/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(pkg) || !fingerprints.length) return [];
-  return [{
-    relation: ["delegate_permission/common.handle_all_urls"],
-    target: { namespace: "android_app", package_name: pkg, sha256_cert_fingerprints: fingerprints },
-  }];
+  return [
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: { namespace: "android_app", package_name: pkg, sha256_cert_fingerprints: fingerprints },
+    },
+  ];
 }
 
 export function assetLinksHandler(env = process.env) {
   return (_req, res) => {
-    res.set("Cache-Control", "public, max-age=300").type("application/json").send(JSON.stringify(assetLinks(env)));
+    res
+      .set("Cache-Control", "public, max-age=300")
+      .type("application/json")
+      .send(JSON.stringify(assetLinks(env)));
   };
 }

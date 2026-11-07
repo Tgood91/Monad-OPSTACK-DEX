@@ -22,7 +22,12 @@ export function gateTrade({ slippagePct, sim }) {
 /** Report an error to the Operations log (never throws). */
 export function reportOps(severity, source, message) {
   try {
-    fetch('/api/ops/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ severity, source, message: String(message).slice(0, 300) }) }).catch(() => {});
-  } catch { /* ignore */ }
+    fetch('/api/ops/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ severity, source, message: String(message).slice(0, 300) }),
+    }).catch(() => {});
+  } catch {
+    /* ignore */
+  }
 }
