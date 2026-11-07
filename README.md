@@ -232,3 +232,7 @@ submission), `src/dex/solvers.js` (solver registry, selection + quoting).
 
 - **Virtue Compass** (Gi, Yu, Jin, Rei, Makoto), **gated Swap panel** (ETH→USDC on Base; blocked unless slippage is 0.1%–1% and the dry-run simulation passes) and **Operations panel**.
 - High-severity errors are emailed through Resend. Set `RESEND_API_KEY`, `ALERT_EMAIL_TO` (comma-separated) and optionally `ALERT_EMAIL_FROM` on the server. Without them errors are still logged and shown.
+
+## License
+
+[MIT](LICENSE) © 2026 Tgood91
