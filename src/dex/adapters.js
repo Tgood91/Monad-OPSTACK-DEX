@@ -148,13 +148,18 @@ const Aerodrome = {
 };
 
 /* ================= KyberSwap (keyless) ================= */
+// KyberSwap credits traffic to the app named in the x-client-id header (it appears in the swap
+// data's source tag). KyberSwap's browser (CORS) rules allow this header on both calls.
+export const KYBER_CLIENT_ID = 'bushido-dapp';
+const KYBER_HEADERS = { 'x-client-id': KYBER_CLIENT_ID };
+
 const KyberSwap = {
   async quote(chainKey, tokenIn, tokenOut, amountInWei) {
     const name = CHAINS[chainKey].kyberName;
     if (!name) return null;
     const inAddr = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
     const url = `https://aggregator-api.kyberswap.com/${name}/api/v1/routes?tokenIn=${inAddr}&tokenOut=${tokenOut.address}&amountIn=${amountInWei.toString()}&gasInclude=true`;
-    const r = await (await fetch(url)).json();
+    const r = await (await fetch(url, { headers: KYBER_HEADERS })).json();
     const rs = r?.data?.routeSummary;
     if (!rs?.amountOut) return null;
     return { source: 'kyberswap', amountOut: BigInt(rs.amountOut), amountOutUsd: parseFloat(rs.amountOutUsd || 0), gasUsd: parseFloat(rs.gasUsd || 0), raw: rs };
@@ -162,7 +167,7 @@ const KyberSwap = {
   async buildTx(q, wallet, slippageBps) {
     const name = CHAINS[q.chainKey].kyberName;
     const r = await (await fetch(`https://aggregator-api.kyberswap.com/${name}/api/v1/route/build`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...KYBER_HEADERS },
       body: JSON.stringify({ routeSummary: q.raw, sender: wallet, recipient: wallet, slippageTolerance: slippageBps, deadline: Math.floor(Date.now() / 1000) + 1200 }),
     })).json();
     const tx = r?.data;

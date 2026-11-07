@@ -3,6 +3,15 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: KyberSwap client ID
+**What:** quote and swap-build requests to KyberSwap now send `x-client-id: bushido-dapp`.
+**Why:** a real swap on Monad showed KyberSwap tagging the trade `null:bushido-dapp.onrender.com`:
+the `null` was the missing app name. With the header, KyberSwap records the trade as coming from
+`bushido-dapp`. Checked first that KyberSwap's browser rules allow the header on both requests
+(a header they didn't allow would have broken the whole KyberSwap row, as happened with 0x),
+then against the real API (the tag appears in the swap data) and in a real browser (no failed
+requests, KyberSwap still quotes).
+
 ## Verified on-chain (real wallet tests, 7 Nov 2026)
 Transactions made from a connected wallet through the app, checked on the block explorers.
 
