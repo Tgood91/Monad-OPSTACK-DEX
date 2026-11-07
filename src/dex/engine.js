@@ -3,6 +3,7 @@
 
 import { ADAPTERS, adapterKeySet } from './adapters.js';
 import { QUOTE_TIMEOUT_MS } from './chains.js';
+import { resilient } from './resilience.js';
 
 function withTimeout(promise, ms, label) {
   const t = new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout (${label})`)), ms));
@@ -15,11 +16,11 @@ export async function quoteAll({ chainKey, tokenIn, tokenOut, amountInWei, walle
       return { source: src, ok: false, reason: 'API key not set' };
     }
     try {
-      const q = await withTimeout(
+      const q = await resilient(`swap:${src}`, () => withTimeout(
         ADAPTERS[src].quote(chainKey, tokenIn, tokenOut, amountInWei, wallet, slippageBps),
         QUOTE_TIMEOUT_MS,
         src,
-      );
+      ));
       if (!q || q.amountOut <= 0n) return { source: src, ok: false, reason: 'no liquidity' };
       return { source: src, ok: true, quote: { ...q, chainKey, tokenIn, tokenOut, amountInWei } };
     } catch (e) {
