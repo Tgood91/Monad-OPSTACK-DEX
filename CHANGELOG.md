@@ -3,6 +3,18 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## #5: Bridge health monitor (brought up to date and merged)
+**What:** a status strip at the top of the Bridge tab: one chip per provider (live, degraded, down,
+not configured) with the probed routes, timings and a Re-probe button. The server probes each
+provider with a real 1 USDC quote on its test routes (read-only, nothing is ever submitted),
+caches the result for 5 minutes, and serves it at `/api/bridge/health`.
+**Why:** a bridge can be paused or erroring without any sign until someone tries to use it. A quote
+that fails is the earliest signal, so the page shows it before you start. It found Aori's outage
+the first time it ran. The PR was written before the Bridge tab was reworked, so it was merged
+onto the current layout (the strip sits above the gas card and the route-first form). A provider
+that is not set up on this server (1inch Fusion+ needs a vault that only exists on the original
+dev machine) now reads "not configured" instead of "down".
+
 ## Unreleased: guardrails for keeping every source on
 **What:** (1) sources that can't serve the pair (Zerion on Monad, Fusion on a native-coin sale,
 Uniswap/Zerion/Coinbase with no wallet connected) are skipped without a call and left out of the
