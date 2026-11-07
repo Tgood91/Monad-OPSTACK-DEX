@@ -7,6 +7,20 @@ import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 import { base, optimism, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
 
+// Line shown in the wallet's sign-in prompt, between the address and the "URI:" line.
+// AppKit's Reown Authentication leaves the SIWE "statement" empty and offers no
+// option for it, so we set it on the message it creates.
+export const SIGN_IN_STATEMENT = 'Welcome bushido warriors. Enjoy exploring the bushido beta dex.';
+
+export class BushidoAuthentication extends ReownAuthentication {
+  async createMessage(input) {
+    const msg = await super.createMessage(input);
+    // msg.toString() reads this same object, so the text includes the statement.
+    msg.statement = SIGN_IN_STATEMENT;
+    return msg;
+  }
+}
+
 const projectId = import.meta.env.VITE_PROJECT_ID || 'YOUR_PROJECT_ID_HERE';
 
 // Custom chains not in AppKit's preset list
@@ -77,7 +91,7 @@ export const appKit = createAppKit({
   // one-time message proving ownership; Reown stores the session. Must be enabled
   // for this project in Reown Cloud. Default required=true: declining the
   // signature disconnects the wallet.
-  siwx: new ReownAuthentication(),
+  siwx: new BushidoAuthentication(),
 });
 
 // Map our internal chain key → AppKit network object
