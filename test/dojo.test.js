@@ -61,7 +61,9 @@ const data = (over = {}) => ({ hasPass: true, fee: 10n ** 15n, warrior: decodeWa
 test("not connected, loading and error states", () => {
   assert.equal(dojoView({ connected: false }).kind, "connect");
   assert.equal(dojoView({ connected: true, loading: true }).kind, "loading");
-  assert.equal(dojoView({ connected: true, error: "Monad is not answering" }).kind, "error");
+  const err = dojoView({ connected: true, error: "Monad is not answering" });
+  assert.equal(err.kind, "error");
+  assert.match(err.message, /usually brief/);
 });
 
 test("a wallet with a pass and a warrior sees its pet and no buy button", () => {

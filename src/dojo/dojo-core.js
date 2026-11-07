@@ -74,7 +74,7 @@ export function fmtMon(wei) {
 export function dojoView({ connected, loading, error, data, faucet, nowSec = Math.floor(Date.now() / 1000) }) {
   if (!connected) return { kind: 'connect', message: 'Connect a wallet to see your Dojo.' };
   if (loading) return { kind: 'loading', message: 'Reading your Dojo from Monad…' };
-  if (error) return { kind: 'error', message: error };
+  if (error) return { kind: 'error', message: "Can't reach Monad right now. This is usually brief." };
   const w = data.warrior;
   // Free starter MON, only for a wallet with no activity on Monad (the server decides: see server/faucet.js).
   const offer =

@@ -142,3 +142,10 @@ test("Ethereum dust gets a gas warning", () => {
   const big = chainBlock({ chainId: 1, claimableUsd: 25, rewards: [row({ claimableUsd: 25 })] });
   assert.doesNotMatch(big, /gas can cost more/);
 });
+
+test("a chain that failed to load is amber, not red, and says it is usually brief", () => {
+  const h = chainBlock({ chainId: 143, error: "merkl 502", rewards: [] });
+  assert.match(h, /status warn/);
+  assert.doesNotMatch(h, /status error/);
+  assert.match(h, /Tap Refresh/);
+});

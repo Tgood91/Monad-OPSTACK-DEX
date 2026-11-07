@@ -63,7 +63,8 @@ export async function getReadProvider(chainKey) {
 export async function switchNetwork(chainKey) {
   const net = appKitNetworkFor(chainKey);
   if (!net) throw new Error(`No AppKit network for ${chainKey}`);
-  await appKit.switchNetwork(net);
+  // Without throwOnFailure AppKit swallows a refused switch and the page just stays on the old chain.
+  await appKit.switchNetwork(net, { throwOnFailure: true });
 }
 
 export async function getNativeBalance(address, chainKey) {

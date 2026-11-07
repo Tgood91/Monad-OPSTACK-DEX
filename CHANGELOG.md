@@ -3,6 +3,55 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: one wallet signature now covers every chain
+**What:** switching chains no longer asks you to sign a message again. The sign-in you make once is reused on Base, Monad, Optimism, Ink, Unichain and Ethereum for the same wallet, and the check is remembered for 60 seconds so fast switches don't hit the sign-in service each time.
+**Why:** the sign-in library only accepted a signature made on the *same* chain you were on, so every switch triggered a new prompt, and declining it sent you back to the last signed chain (the "can't leave Base" symptom). A signature proves you own the address, and an address is identical on every EVM chain, so reusing it is safe. Different wallets and non-EVM chains still need their own signature.
+
+## Unreleased: red only when something has really stayed broken
+**What:** a one-off glitch no longer shows red. The rule is the same in three read-only places:
+- **Bridge health strip:** a failed check is retried once right away (if the retry works, the route is simply
+  live). A failure that survives is **amber** ("unstable: check 1 of 3, may be a glitch"). Only three failed checks in
+  a row, at least a minute apart, turn a route **red** ("down for about N min"). Clicking Re-probe repeatedly can't
+  rush it, and one good check wipes the count. "Not configured" is unchanged (grey, never counted).
+- **Dojo card:** the Monad read is retried once; if it still fails it is an amber "Can't reach Monad right now. This is
+  usually brief." with Try again, not red.
+- **Rewards tab:** loading rewards, opportunities or one chain is retried once; a failure is amber with "Tap Refresh".
+Red is kept for things that are really wrong: a mismatched deposit address, a claim, swap or transaction that failed.
+**Why:** a single failed probe used to turn a provider red at once, so a one-second hiccup looked like an outage.
+Checked on the real providers (Aori, which is genuinely down, now starts amber at check 1 of 3) and in a real
+browser. `src/utils/retry.js` and 11 new tests, using a fake clock so none of them wait.
+
+## Unreleased: Bushido swap panel works on every chain, and a refused network switch is no longer silent
+**What:** the gated swap panel on the Bushido tab is no longer fixed to ETH to USDC on Base. It has chain buttons
+(Base, Monad, Optimism, Ink, Unichain), starts on the wallet's chain (or Monad if the wallet is on a chain the app
+can't swap on), follows the wallet when it changes network, and swaps the chain's own coin to USDC (MON on Monad).
+If the wallet refuses a switch, or says yes and never moves, the panel now says so. Also fixed: the amount and
+slippage boxes stuck out of the card on a phone and their numbers were dark on dark.
+**Why:** on the Bushido page the panel always pulled the wallet back to Base (`switchNetwork('base')`), so a
+Monad user could not stay on Monad. Separately, the wallet library swallows a refused switch unless asked
+(`throwOnFailure`), which our code never did anywhere, so a failed switch looked like "it won't let me".
+`src/bushido-swap.js`, 7 new tests, checked in a real browser with a stand-in wallet (follows Base, switches to
+Monad, refusal, never moves, unsupported chain). A real wallet was not tested here.
+
+## Unreleased: safer deposit screen for NEAR Intents bridges
+**What:** the box that appears after you create a bridge intent is now a "Review before you pay" screen:
+what you send and receive (with the minimum), your wallet as the receiver, where a refund goes (and the refund
+fee), the time, the provider, and the real deadline. A short "Why does my wallet need the funds?" explains that
+a bridge doesn't move your coins: you pay on the source chain and the bridge's liquidity providers pay you on
+the other from their own funds, so the money plus a little gas coin must be in your wallet first. "Send deposit
+from wallet" is the main button; sending manually is tucked under "Advanced" with a warning about fake
+look-alike addresses. Code in `src/bridge-deposit.js` and `src/bridge-deposit-ui.js`.
+**Why:** the old box was a bare address, "Send exactly…" and "Copy address", with no destination, receiver or
+refund address, exactly what a scam prompt looks like, and it said the address expires in "~10 min" when the
+real deadline is 24 hours. Worse, nothing checked the address: it reached the page through our server.
+**The check:** before the send button turns on, the browser asks NEAR's own status service (not our server) about
+that exact address and confirms NEAR recorded it with YOUR wallet as both receiver and refund address, for the
+amount and token you chose, as a live unexpired quote. A mismatch (including a look-alike of your address) shows
+a red "Do not pay this address", keeps the button off and keeps the address off the page. If NEAR can't be
+reached, nothing can be sent until "Check again" succeeds. The server now passes the deadline and refund fee
+through. 16 new tests, plus the same check run against NEAR's real record for a real, unpaid intent. A real
+deposit was not made here.
+
 ## Unreleased: Monad faucet for new Dojo wallets
 **What:** a small faucet on Monad mainnet (chain 143). A wallet with no activity there sees "Get 0.05 free
 MON for gas" on the Dojo card, so it can enter the Dojo or buy a Dojo Pass. `server/faucet.js`, routes
@@ -51,10 +100,12 @@ Transactions made from a connected wallet through the app, checked on the block 
 |---|---|
 | **Swap, KyberSwap (Monad)** | 0.0777 USDC to 4.718 WMON, succeeded, 21:28 UTC. `0x38565fcb1913a59dc1d1ae1c6cdb898e8223364a7c7a10775c9639fa05f877bb`. The swap data carries the source tag `bushido-dapp.onrender.com`. |
 | **Swap, 1inch (Monad)** | Approve then swap, 2 WMON to USDC, succeeded, 20:32 UTC. `0xcf43098cbf99f5cb160f308807eb23251f9160db59a9fbd0f6a302a4c7067f6e` |
+| **Swaps on Monad, 8 Nov 2026, 22:09 to 22:10 UTC** | 1 MON each, all succeeded: KyberSwap `0xde3fd12c8a885c690cf957fe2d50ec09937651d3a161ec0d9b377b1e2ae61455` and `0xf5dd30e2e2c3f4fe826fa94ace0f98dbc9accfa41ba859bd9d05a754b890eeb8`; 1inch `0x6155ed7377aeb098628ac857c44a64394cdaa59e52576a1f819c463388fb9171`; LI.FI `0x431f3b9b09c6f0f4cc299e948bfde98e84788fe4411fd37d0957caab0e4218fd` (LI.FI's native-to-token swap function). |
+| **One failed swap (Monad, 21:28 UTC)** | 1inch `0x6e12a3940f801c3566576494c8831f7f3a6b4178c3f0680d8ca4334198443960`: reverted with a contract error before mining (a replay one block earlier also reverts, with or without extra gas), so the route or price had moved past the tolerance. It is not an out-of-gas failure: Monad charges the full gas limit on every transaction. Cost about 0.0325 MON. The next swap (KyberSwap, same minute) succeeded. |
 | **Bridge, NEAR Intents, Base to Avalanche** | 0.30 USDC deposit on Base at 20:34:17 UTC (`0x97bcfe73b151b31e42728f8dd49d96c674cc73648ed4b9f515efa59600a37ada`), 0.035812 AVAX delivered on Avalanche at 20:35:00 UTC (`0x2a7c09f619b7b92a953a4d43332b2d8a4a3c2c9753d9120a1e7107a00d22b809`): 43 seconds, matching the quoted rate. |
 | **Merkl claim (Monad)** | 7 tokens in one claim, succeeded. `0xce9b3703af85824cb6da9b279637403e9ab8c7c9625d79b9a344b571d29c27e1` |
 
-Not yet tested with a real wallet: a Fusion gasless order, Stargate and Aori bridges, a Base or Ethereum Merkl claim.
+Not seen on-chain yet: a 0x swap on Monad, a Fusion gasless order, Stargate and Aori bridges, a Base or Ethereum Merkl claim.
 
 ## #5: Bridge health monitor (brought up to date and merged)
 **What:** a status strip at the top of the Bridge tab: one chip per provider (live, degraded, down,

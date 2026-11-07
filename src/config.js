@@ -6,6 +6,7 @@ import { ReownAuthentication } from '@reown/appkit-siwx';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 import { mainnet, base, optimism, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
+import { coversChain, createSessionCache } from './siwx-share.js';
 
 // Line shown in the wallet's sign-in prompt, between the address and the "URI:" line.
 // AppKit's Reown Authentication leaves the SIWE "statement" empty and offers no
@@ -13,6 +14,32 @@ import { CHAINS } from './dex/chains.js';
 export const SIGN_IN_STATEMENT = 'Welcome bushido warriors. Enjoy exploring the bushido beta dex.';
 
 export class BushidoAuthentication extends ReownAuthentication {
+  _cache = createSessionCache();
+
+  // One signature covers every EVM chain (see siwx-share.js), so switching chains no longer asks again.
+  async getSessions(chainId, address) {
+    try {
+      let account = this._cache.get(address);
+      if (!account) {
+        if (!this.getStorageToken(this.localAuthStorageKey)) return [];
+        account = await this.request({ method: 'GET', key: 'me', query: {}, headers: ['auth'] });
+        if (account) this._cache.set(address, account);
+      }
+      if (!coversChain(account, chainId, address)) return super.getSessions(chainId, address);
+      const session = { data: { accountAddress: account.address, chainId }, message: '', signature: '' };
+      this.emit('sessionChanged', session);
+      this.setAppKitAccountUser(account);
+      return [session];
+    } catch {
+      return [];
+    }
+  }
+
+  async revokeSession(chainId, address) {
+    this._cache.clear();
+    return super.revokeSession(chainId, address);
+  }
+
   async createMessage(input) {
     const msg = await super.createMessage(input);
     // msg.toString() reads this same object, so the text includes the statement.
@@ -59,7 +86,9 @@ export const appKit = createAppKit({
   metadata: {
     name: import.meta.env.VITE_APP_NAME || 'Bushido-dApp',
     description: import.meta.env.VITE_APP_DESCRIPTION || 'Best-price DEX across Base, Monad, Optimism, Ink, Unichain',
-    url: import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
+    url:
+      import.meta.env.VITE_APP_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'),
     icons: [import.meta.env.VITE_APP_ICON || 'https://velodrome.finance/favicon.ico'],
   },
   features: {
@@ -72,10 +101,10 @@ export const appKit = createAppKit({
   // a short list of popular wallets up front, the full list behind "All wallets".
   themeMode: 'dark',
   themeVariables: {
-    '--w3m-accent': '#B6509E',             // Aave pink (buttons, links, focus)
-    '--w3m-color-mix': '#1B2030',          // Aave navy tint over the modal surface
+    '--w3m-accent': '#B6509E', // Aave pink (buttons, links, focus)
+    '--w3m-color-mix': '#1B2030', // Aave navy tint over the modal surface
     '--w3m-color-mix-strength': 40,
-    '--w3m-border-radius-master': '4px',   // rounder corners, like Aave's modal
+    '--w3m-border-radius-master': '4px', // rounder corners, like Aave's modal
     '--w3m-font-family': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     '--w3m-z-index': 1000,
   },
@@ -96,7 +125,8 @@ export const appKit = createAppKit({
 });
 
 // Merkl claims: chain id -> AppKit network (Ethereum, Base, Monad, Optimism)
-export const appKitNetworkForChainId = (id) => ({ 1: mainnet, 8453: base, 143: monad, 10: optimism }[Number(id)] || null);
+export const appKitNetworkForChainId = (id) =>
+  ({ 1: mainnet, 8453: base, 143: monad, 10: optimism })[Number(id)] || null;
 
 // Map our internal chain key → AppKit network object
 const NETWORK_BY_KEY = { base, monad, optimism, ink, unichain };
@@ -106,5 +136,5 @@ export function appKitNetworkFor(chainKey) {
 }
 
 export function chainKeyForChainId(chainId) {
-  return Object.values(CHAINS).find(c => c.chainId === Number(chainId))?.key || null;
+  return Object.values(CHAINS).find((c) => c.chainId === Number(chainId))?.key || null;
 }
