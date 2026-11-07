@@ -65,7 +65,8 @@ which the app's ethers provider doesn't have. It also had no dry-run before sign
 Swap tab always has one), hid itself when nothing was ready so it looked missing, and
 could not switch wallets to Ethereum, where most of the test wallet's rewards were. The
 claim data itself was already right: it dry-ran successfully on real data on Ethereum,
-Base and Monad. A real signed claim was not tested here.
+Base and Monad. Confirmed with a real signed claim on Monad: tx 0xce9b3703af85824cb6da9b279637403e9ab8c7c9625d79b9a344b571d29c27e1
+(7 tokens in one claim, 1,424,523 gas, about 0.145 MON, against roughly $0.03 of rewards).
 
 ## Unreleased: 0x quotes moved to the server
 **What:** 0x quotes now go through `/api/zerox/quote` (`server/zerox.js`). The key is read
