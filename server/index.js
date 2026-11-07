@@ -45,6 +45,7 @@ import {
   seykotaSignal,
   dashboardData,
 } from "./bushido.js";
+import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
 import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
@@ -403,6 +404,18 @@ app.get("/api/aori/status", async (req, res) => {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
 });
+
+// ---- Operations log (errors; high severity is emailed via Resend) ----
+const opsHits = new Map();
+app.post("/api/ops/log", async (req, res) => {
+  const ip = req.ip, t = Date.now();
+  const hits = (opsHits.get(ip) || []).filter((x) => t - x < 60_000);
+  if (hits.length >= 20) return res.status(429).json({ error: "slow down" });
+  hits.push(t); opsHits.set(ip, hits);
+  const e = await logOps(req.body || {});
+  res.json({ ok: true, escalated: e.escalated });
+});
+app.get("/api/ops/log", (_req, res) => res.json({ entries: recentOps(50), email: opsConfigured() }));
 
 // ---- Bushido trading dashboard (virtue scores + Seykota signals) ----
 // GET /api/bushido/virtues?trader=0x… — 7-virtue scores (0-1 scale)
