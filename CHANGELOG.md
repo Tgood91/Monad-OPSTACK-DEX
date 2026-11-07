@@ -3,6 +3,18 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Verified on-chain (real wallet tests, 7 Nov 2026)
+Transactions made from a connected wallet through the app, checked on the block explorers.
+
+| Feature | Evidence |
+|---|---|
+| **Swap, KyberSwap (Monad)** | 0.0777 USDC to 4.718 WMON, succeeded, 21:28 UTC. `0x38565fcb1913a59dc1d1ae1c6cdb898e8223364a7c7a10775c9639fa05f877bb`. The swap data carries the source tag `bushido-dapp.onrender.com`. |
+| **Swap, 1inch (Monad)** | Approve then swap, 2 WMON to USDC, succeeded, 20:32 UTC. `0xcf43098cbf99f5cb160f308807eb23251f9160db59a9fbd0f6a302a4c7067f6e` |
+| **Bridge, NEAR Intents, Base to Avalanche** | 0.30 USDC deposit on Base at 20:34:17 UTC (`0x97bcfe73b151b31e42728f8dd49d96c674cc73648ed4b9f515efa59600a37ada`), 0.035812 AVAX delivered on Avalanche at 20:35:00 UTC (`0x2a7c09f619b7b92a953a4d43332b2d8a4a3c2c9753d9120a1e7107a00d22b809`): 43 seconds, matching the quoted rate. |
+| **Merkl claim (Monad)** | 7 tokens in one claim, succeeded. `0xce9b3703af85824cb6da9b279637403e9ab8c7c9625d79b9a344b571d29c27e1` |
+
+Not yet tested with a real wallet: a Fusion gasless order, Stargate and Aori bridges, a Base or Ethereum Merkl claim.
+
 ## #5: Bridge health monitor (brought up to date and merged)
 **What:** a status strip at the top of the Bridge tab: one chip per provider (live, degraded, down,
 not configured) with the probed routes, timings and a Re-probe button. The server probes each
