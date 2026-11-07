@@ -69,7 +69,8 @@ export function createFusionRelay({ getToken, upstream = UPSTREAM, fetchImpl = f
       const text = await r.text();
       res.status(r.status).type("application/json");
       // Upstream auth problems are our key's problem, not the user's: say so plainly.
-      if (r.status === 401 || r.status === 403) return res.send(JSON.stringify({ error: `1inch rejected the API key (${r.status})` }));
+      if (r.status === 401 || r.status === 403)
+        return res.send(JSON.stringify({ error: `1inch rejected the API key (${r.status})` }));
       return res.send(text);
     } catch (e) {
       return res.status(502).json({ error: String(e.message || e).slice(0, 160) });

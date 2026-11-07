@@ -3,6 +3,23 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Bridge asks for the route first, then the provider
+**What:** on the Bridge tab, From and To come first and list every chain any provider supports;
+"Bridge via" moved below them and lists only the providers that can carry that route (NEAR Intents,
+Stargate, Aori). If your provider can't do a new route it switches to one that can. A route no
+provider supports says so ("No bridge supports Arbitrum to Polygon yet") instead of failing later.
+The routing rules live in `src/bridge-route.js` and are tested.
+**Why:** the old order made you pick a provider before you knew what you wanted to do, and the
+provider then silently limited which chains and tokens you could pick. People think "Base to Monad",
+not "Aori". Provider-specific steps (deposit address, Stargate transaction, Aori signed order) are
+unchanged. Checked in a browser, including the "Get gas" card; a real bridge was not run here.
+
+## Unreleased: Prettier and `bun run format`
+**What:** Prettier, a `.prettierrc.json`, and scripts `format`, `format:check` and `format:all`.
+`format` covers the files added in this work; `format:all` formats the whole project.
+**Why:** the project had no formatter. Formatting only the new files keeps the diff reviewable;
+the rest can be formatted later in one separate commit with `format:all`.
+
 ## Unreleased: Android app (Trusted Web Activity)
 **What:** `Bushido-dApp-android/` (build settings and a step-by-step guide) and a server route,
 `/.well-known/assetlinks.json` (`server/assetlinks.js`), that proves to Android the app belongs

@@ -20,10 +20,18 @@ export function zeroxKey(env = process.env) {
 export function zeroxParams(q) {
   const chainId = Number(q.chainId);
   if (!CHAINS.has(chainId)) return { error: "chain not supported by 0x", status: 400 };
-  if (!ADDR.test(String(q.sellToken)) || !ADDR.test(String(q.buyToken))) return { error: "bad token address", status: 400 };
-  if (!/^\d{1,40}$/.test(String(q.sellAmount)) || /^0+$/.test(String(q.sellAmount))) return { error: "bad sellAmount", status: 400 };
+  if (!ADDR.test(String(q.sellToken)) || !ADDR.test(String(q.buyToken)))
+    return { error: "bad token address", status: 400 };
+  if (!/^\d{1,40}$/.test(String(q.sellAmount)) || /^0+$/.test(String(q.sellAmount)))
+    return { error: "bad sellAmount", status: 400 };
   const taker = ADDR.test(String(q.taker || "")) ? q.taker : PLACEHOLDER_TAKER;
-  const p = new URLSearchParams({ chainId: String(chainId), sellToken: q.sellToken, buyToken: q.buyToken, sellAmount: String(q.sellAmount), taker });
+  const p = new URLSearchParams({
+    chainId: String(chainId),
+    sellToken: q.sellToken,
+    buyToken: q.buyToken,
+    sellAmount: String(q.sellAmount),
+    taker,
+  });
   return { query: p.toString() };
 }
 
@@ -41,7 +49,8 @@ export function createZeroxProxy({ getKey = zeroxKey, fetchImpl = fetch, upstrea
       });
       const text = await r.text();
       res.status(r.status).type("application/json");
-      if (r.status === 401 || r.status === 403) return res.send(JSON.stringify({ error: `0x rejected the API key (${r.status})` }));
+      if (r.status === 401 || r.status === 403)
+        return res.send(JSON.stringify({ error: `0x rejected the API key (${r.status})` }));
       return res.send(text);
     } catch (e) {
       return res.status(502).json({ error: String(e.message || e).slice(0, 160) });

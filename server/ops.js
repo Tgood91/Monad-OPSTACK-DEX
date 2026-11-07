@@ -15,7 +15,10 @@ export function recentOps(limit = 50) {
   return entries.slice(-limit).reverse();
 }
 
-export function _resetOps() { entries.length = 0; lastSent.clear(); }
+export function _resetOps() {
+  entries.length = 0;
+  lastSent.clear();
+}
 
 const clip = (v, n) => String(v ?? "").slice(0, n);
 
@@ -42,14 +45,18 @@ export async function logOps(input, { env = process.env, fetchImpl = fetch, now 
           headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             from: env.ALERT_EMAIL_FROM || "Bushido Ops <onboarding@resend.dev>",
-            to: env.ALERT_EMAIL_TO.split(",").map((s) => s.trim()).filter(Boolean),
+            to: env.ALERT_EMAIL_TO.split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
             subject: `[Bushido] HIGH: ${entry.message.slice(0, 80)}`,
             text: `${entry.at}\nsource: ${entry.source}\n\n${entry.message}`,
           }),
           signal: AbortSignal.timeout(10_000),
         });
         entry.escalated = r.ok;
-      } catch { /* logging must never throw */ }
+      } catch {
+        /* logging must never throw */
+      }
     }
   }
   return entry;

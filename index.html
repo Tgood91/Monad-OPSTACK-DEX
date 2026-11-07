@@ -283,16 +283,6 @@
     </div>
 
     <div class="card">
-      <span class="lbl">Bridge via</span>
-      <div class="chain-row">
-        <select class="chain-select" id="bBridgeSource">
-          <option value="near">NEAR Intents</option>
-          <option value="stargate">Stargate</option>
-          <option value="aori">Aori</option>
-        </select>
-      </div>
-    </div>
-    <div class="card">
       <span class="lbl">From</span>
       <div class="chain-row"><select class="chain-select" id="bFromChain"></select></div>
       <div class="token-row">
@@ -313,6 +303,12 @@
       </div>
     </div>
 
+    <div class="card">
+      <span class="lbl">Bridge via <span style="opacity:.6">(providers that support this route)</span></span>
+      <div class="chain-row">
+        <select class="chain-select" id="bBridgeSource" aria-label="Bridge provider"></select>
+      </div>
+    </div>
     <div class="card">
       <div id="bQuoteBox"><div class="status">Enter an amount to get a bridge quote</div></div>
       <div id="bQuoteDetail"></div>

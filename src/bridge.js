@@ -10,6 +10,9 @@ import {
 } from './utils/web3.js';
 import { ERC20_ABI } from './utils/abis.js';
 import { resilient } from './dex/resilience.js';
+import {
+  PROVIDER_LABELS, fromChainsAll, toChainsAll, providersFor, pickProvider,
+} from './bridge-route.js';
 
 /* ---------------- config ---------------- */
 const BRIDGE_CHAINS = {
@@ -129,21 +132,72 @@ function setStatus(msg, kind = '') {
 }
 
 /* ---------------- rendering ---------------- */
-function toKeys() {
-  return state.source === 'near' ? [...SOURCE_CHAINS.near, ...NEAR_TO_ONLY] : SOURCE_CHAINS[state.source];
-}
-
+// Route first: From/To list every chain any provider supports. The provider follows the route.
 function renderChains() {
-  const keys = SOURCE_CHAINS[state.source];
-  for (const [id, list] of [['fromChain', keys], ['toChain', toKeys()]]) {
+  const fromKeys = fromChainsAll(SOURCE_CHAINS);
+  const toKeys = toChainsAll(SOURCE_CHAINS, NEAR_TO_ONLY);
+  for (const [id, list] of [['fromChain', fromKeys], ['toChain', toKeys]]) {
     const s = $(id);
     s.innerHTML = '';
     for (const key of list) s.add(new Option(BRIDGE_CHAINS[key].label, key));
   }
-  if (!keys.includes(state.fromChain)) state.fromChain = keys[0];
-  if (!toKeys().includes(state.toChain)) state.toChain = keys[1] || keys[0];
+  if (!fromKeys.includes(state.fromChain)) state.fromChain = fromKeys[0];
+  if (!toKeys.includes(state.toChain) || state.toChain === state.fromChain) {
+    state.toChain = toKeys.find(k => k !== state.fromChain);
+  }
   $('fromChain').value = state.fromChain;
   $('toChain').value = state.toChain;
+}
+
+// "Bridge via" lists only the providers that can carry the chosen route.
+function renderProviders() {
+  const list = providersFor(state.fromChain, state.toChain, SOURCE_CHAINS, NEAR_TO_ONLY);
+  const sel = $('bridgeSource');
+  sel.innerHTML = '';
+  for (const src of list) sel.add(new Option(PROVIDER_LABELS[src], src));
+  if (list.includes(state.source)) sel.value = state.source;
+  sel.disabled = list.length < 2;
+  return list;
+}
+
+function resetFlow() {
+  state.quote = null; state.intent = null;
+  $('depositCard').style.display = 'none';
+  $('statusCard').style.display = 'none';
+  clearInterval(state.statusTimer);
+}
+
+// No provider can carry the chosen route (or both chains are the same).
+function showNoRoute() {
+  const same = state.fromChain === state.toChain;
+  $('quoteBox').innerHTML = `<div class="status ${same ? 'error' : 'warn'}">${same
+    ? 'Pick two different chains'
+    : `No bridge supports ${BRIDGE_CHAINS[state.fromChain].label} to ${BRIDGE_CHAINS[state.toChain].label} yet. Try another chain.`}</div>`;
+  $('quoteDetail').innerHTML = '';
+  $('toAmount').value = '';
+  $('bridgeBtn').disabled = true;
+  $('bridgeBtn').textContent = same ? 'Select chains' : 'No route';
+}
+
+// The route changed: keep the provider if it still works, otherwise switch to one that does.
+// `sides` are the token lists to reload; a provider switch reloads both (tokens differ per provider).
+async function applyRoute(sides = ['from', 'to']) {
+  resetFlow();
+  const list = providersFor(state.fromChain, state.toChain, SOURCE_CHAINS, NEAR_TO_ONLY);
+  const next = pickProvider(state.source, list);
+  if (!next) {
+    renderProviders();
+    showNoRoute();
+    return;
+  }
+  const switched = next !== state.source;
+  state.source = next;
+  renderProviders();
+  try {
+    await Promise.all((switched ? ['from', 'to'] : sides).map(refreshTokens));
+  } catch (e) {
+    $('quoteBox').innerHTML = `<div class="status error">Could not load bridge tokens: ${e.message.slice(0, 100)}</div>`;
+  }
 }
 
 async function refreshTokens(side) {
@@ -214,9 +268,8 @@ async function refreshQuote() {
   const amtStr = $('fromAmount').value;
   const { fi, ti } = selTokens();
   if (!fi || !ti) return;
-  if (state.fromChain === state.toChain) {
-    box.innerHTML = '<div class="status error">Pick two different chains</div>';
-    btn.disabled = true; btn.textContent = 'Select chains';
+  if (!providersFor(state.fromChain, state.toChain, SOURCE_CHAINS, NEAR_TO_ONLY).length) {
+    showNoRoute();
     return;
   }
   if (!amtStr || parseFloat(amtStr) <= 0) {
@@ -573,39 +626,32 @@ async function pollAoriStatus() {
 /* ---------------- events ---------------- */
 function bindEvents() {
   $('bridgeBtn').onclick = startBridge;
+  // Choosing a provider (only those that support the route are listed): tokens differ per provider.
   $('bridgeSource').addEventListener('change', e => {
     state.source = e.target.value;
-    state.quote = null; state.intent = null;
-    $('depositCard').style.display = 'none';
-    $('statusCard').style.display = 'none';
-    clearInterval(state.statusTimer);
-    renderChains();
+    resetFlow();
     refreshTokens('from');
     refreshTokens('to');
   });
-  $('fromChain').addEventListener('change', e => { state.fromChain = e.target.value; refreshTokens('from'); });
-  $('toChain').addEventListener('change', e => { state.toChain = e.target.value; refreshTokens('to'); });
+  $('fromChain').addEventListener('change', e => { state.fromChain = e.target.value; applyRoute(['from']); });
+  $('toChain').addEventListener('change', e => { state.toChain = e.target.value; applyRoute(['to']); });
   $('fromToken').addEventListener('change', () => { updateBalance(); scheduleQuote(); });
   $('toToken').addEventListener('change', scheduleQuote);
   $('fromAmount').addEventListener('input', scheduleQuote);
-  $('flipBtn').onclick = () => {
-    if (!SOURCE_CHAINS[state.source].includes(state.toChain)) {
+  $('flipBtn').onclick = async () => {
+    if (!providersFor(state.toChain, state.fromChain, SOURCE_CHAINS, NEAR_TO_ONLY).length) {
       setStatus(`${BRIDGE_CHAINS[state.toChain].label} is receive-only here: you can bridge to it, not from it.`, 'warn');
       return;
     }
+    const fromSym = (selTokens().fi || {}).symbol, toSym = (selTokens().ti || {}).symbol;
     [state.fromChain, state.toChain] = [state.toChain, state.fromChain];
     $('fromChain').value = state.fromChain; $('toChain').value = state.toChain;
-    [state.fromTokens, state.toTokens] = [state.toTokens, state.fromTokens];
-    const fi = $('fromToken').value, ti = $('toToken').value;
-    fillTokenSelect($('fromToken'), state.fromTokens); fillTokenSelect($('toToken'), state.toTokens);
-    if (state.fromTokens[Number(ti)]) $('fromToken').value = ti;
-    if (state.toTokens[Number(fi)]) $('toToken').value = fi;
-    // Stargate is same-asset only — keep the pair matched after flipping.
-    if (state.source === 'stargate') {
-      const sym = (state.fromTokens[Number($('fromToken').value)] || {}).symbol;
-      const matchIdx = state.toTokens.findIndex(t => t.symbol === sym);
-      if (matchIdx >= 0) $('toToken').value = String(matchIdx);
-    }
+    await applyRoute(['from', 'to']);
+    // Keep the same assets on each side after flipping, where the new lists have them.
+    const fi = state.fromTokens.findIndex(t => t.symbol === toSym);
+    const ti = state.toTokens.findIndex(t => t.symbol === fromSym);
+    if (fi >= 0) $('fromToken').value = String(fi);
+    if (ti >= 0) $('toToken').value = String(ti);
     updateBalance(); scheduleQuote();
   };
   $('maxBtn').onclick = async () => {
@@ -643,13 +689,13 @@ export async function setupGasRefill({ toChain, fromChain, usd }) {
   if (!(Number(usd) >= GAS_MIN_USD)) throw new Error(`Minimum gas refill is $${GAS_MIN_USD.toFixed(2)}`);
   if (toChain === fromChain) throw new Error('pay from a different chain than the one you need gas on');
   state.source = 'near';
-  $('bridgeSource').value = 'near';
   state.quote = null; state.intent = null;
   $('depositCard').style.display = 'none';
   $('statusCard').style.display = 'none';
   clearInterval(state.statusTimer);
   state.fromChain = fromChain; state.toChain = toChain;
   renderChains();
+  renderProviders();
   await Promise.all([refreshTokens('from'), refreshTokens('to')]);
   const usdcIdx = state.fromTokens.findIndex(t => t.symbol === 'USDC');
   const nativeIdx = state.toTokens.findIndex(t => !t.address);
@@ -665,6 +711,7 @@ export async function setupGasRefill({ toChain, fromChain, usd }) {
 /* ---------------- init ---------------- */
 if (document.getElementById('bBridgeBtn')) {
   renderChains();
+  renderProviders();
   bindEvents();
   (async () => {
     try {

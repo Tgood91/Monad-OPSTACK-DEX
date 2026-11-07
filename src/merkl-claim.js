@@ -14,7 +14,17 @@ export async function waitFor(check, { tries = 20, ms = 400, sleep = defaultSlee
   return false;
 }
 
-export async function runClaim({ chainId, address, fetchClaim, getChainId, switchChain, simulate, send, onStage = () => {}, sleep }) {
+export async function runClaim({
+  chainId,
+  address,
+  fetchClaim,
+  getChainId,
+  switchChain,
+  simulate,
+  send,
+  onStage = () => {},
+  sleep,
+}) {
   onStage('build');
   const j = await fetchClaim(address, chainId);
   if (!j.claimable) return { claimed: false, reason: j.reason || 'Nothing claimable right now.' };
@@ -28,7 +38,10 @@ export async function runClaim({ chainId, address, fetchClaim, getChainId, switc
 
   onStage('simulate', j);
   const sim = await simulate({ to: j.to, data: j.data, from: address });
-  if (!sim.ok) throw new Error('Simulation reverted: the rewards may have just been claimed or the claim data changed. ' + (sim.reason || ''));
+  if (!sim.ok)
+    throw new Error(
+      'Simulation reverted: the rewards may have just been claimed or the claim data changed. ' + (sim.reason || ''),
+    );
 
   onStage('sign', j);
   const tx = await send({ to: j.to, data: j.data });

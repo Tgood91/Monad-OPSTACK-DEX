@@ -7,7 +7,10 @@ const env = { RESEND_API_KEY: "re_test", ALERT_EMAIL_TO: "a@x.io, b@x.io" };
 test("high severity emails via Resend once per message", async () => {
   _resetOps();
   const calls = [];
-  const fetchImpl = async (url, init) => { calls.push({ url, init }); return { ok: true }; };
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true };
+  };
   const a = await logOps({ severity: "high", message: "RPC down" }, { env, fetchImpl, now: 1e12 });
   const b = await logOps({ severity: "high", message: "RPC down" }, { env, fetchImpl, now: 1e12 + 1000 });
   assert.equal(a.escalated, true);
@@ -21,7 +24,10 @@ test("high severity emails via Resend once per message", async () => {
 test("low severity and missing key never email", async () => {
   _resetOps();
   let n = 0;
-  const fetchImpl = async () => { n++; return { ok: true }; };
+  const fetchImpl = async () => {
+    n++;
+    return { ok: true };
+  };
   await logOps({ severity: "warn", message: "x" }, { env, fetchImpl });
   await logOps({ severity: "high", message: "y" }, { env: {}, fetchImpl });
   assert.equal(n, 0);

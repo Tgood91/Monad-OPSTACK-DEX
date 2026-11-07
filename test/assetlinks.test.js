@@ -18,7 +18,10 @@ test("builds the Digital Asset Link for the default package", () => {
 });
 
 test("accepts several fingerprints (upload key + Play app-signing key), tidies case, drops junk", () => {
-  const out = assetLinks({ ANDROID_PACKAGE_NAME: "com.example.app", ANDROID_CERT_SHA256: `${FP.toLowerCase()}, not-a-fingerprint ,${FP}` });
+  const out = assetLinks({
+    ANDROID_PACKAGE_NAME: "com.example.app",
+    ANDROID_CERT_SHA256: `${FP.toLowerCase()}, not-a-fingerprint ,${FP}`,
+  });
   assert.equal(out[0].target.package_name, "com.example.app");
   assert.deepEqual(out[0].target.sha256_cert_fingerprints, [FP, FP]);
 });

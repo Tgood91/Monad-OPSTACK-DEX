@@ -26,9 +26,16 @@ export function pausedFor(key, now = Date.now()) {
   return t > now ? t - now : 0;
 }
 
-export function _resetPauses() { paused.clear(); strikes.clear(); }
+export function _resetPauses() {
+  paused.clear();
+  strikes.clear();
+}
 
-export async function resilient(key, fn, { delay = RETRY_DELAY_MS, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+export async function resilient(
+  key,
+  fn,
+  { delay = RETRY_DELAY_MS, now = () => Date.now(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {},
+) {
   const left = pausedFor(key, now());
   if (left) throw new Error(`temporarily unavailable (retry in ${Math.ceil(left / 1000)}s)`);
   try {
@@ -38,7 +45,11 @@ export async function resilient(key, fn, { delay = RETRY_DELAY_MS, now = () => D
   } catch (e) {
     if (isTransient(e)) {
       await sleep(delay);
-      try { return await fn(); } catch (e2) { e = e2; }
+      try {
+        return await fn();
+      } catch (e2) {
+        e = e2;
+      }
     }
     // Pause on service trouble only; user/key/liquidity errors are not the service's fault.
     if (isTransient(e) || /timeout/i.test(String(e?.message))) {
