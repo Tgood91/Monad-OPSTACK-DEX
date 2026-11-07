@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
 import { checkSlippage, gateTrade, reportOps } from './bushido-gate.js';
+import { FALLBACK_CHAIN, swapSetup, switchAndConfirm } from './bushido-swap.js';
 
 const FIVE = ['gi', 'yu', 'jin', 'rei', 'makoto'];
 
@@ -41,15 +42,64 @@ export function VirtueCompass({ virtues }) {
   );
 }
 
-// ETH -> USDC on Base through the same quote engine as the Swap tab. A trade
-// goes out only if slippage is 0.1%-1% AND the dry-run simulation passes.
+// Native coin -> USDC on the chain you pick (it follows your wallet, or starts on Monad), through the same
+// quote engine as the Swap tab. A trade goes out only if slippage is 0.1%-1% AND the dry-run simulation passes.
 export function SwapPanel() {
-  const chain = CHAINS.base;
-  const [amount, setAmount] = useState('0.001');
+  const [chainKey, setChainKey] = useState(FALLBACK_CHAIN);
+  const setup = swapSetup(chainKey);
+  const [amount, setAmount] = useState(setup.defaultAmount);
   const [slip, setSlip] = useState('0.5');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const s = checkSlippage(slip);
+
+  // Start on the wallet's chain if the app supports it, and follow it when the wallet changes network.
+  useEffect(() => {
+    let off = () => {};
+    let alive = true;
+    import('./utils/web3.js')
+      .then((web3) => {
+        if (!alive) return;
+        const follow = () => {
+          if (!web3.isConnected()) return;
+          const k = web3.getChainKey();
+          if (k && CHAINS[k]) pickAndSet(k);
+        };
+        follow();
+        off = web3.subscribeToNetworkChanges(follow) || off;
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+
+  function pickAndSet(k) {
+    setChainKey((prev) => {
+      if (prev !== k) setAmount(swapSetup(k).defaultAmount);
+      return k;
+    });
+  }
+
+  async function choose(k) {
+    pickAndSet(k);
+    setMsg('');
+    try {
+      const web3 = await import('./utils/web3.js');
+      if (!web3.isConnected()) return;
+      setMsg(`Switching your wallet to ${CHAINS[k].label}…`);
+      await switchAndConfirm({
+        chainKey: k,
+        label: CHAINS[k].label,
+        getChainKey: web3.getChainKey,
+        switchNetwork: web3.switchNetwork,
+      });
+      setMsg('');
+    } catch (e) {
+      setMsg('Not switched: ' + String(e.shortMessage || e.reason || e.message || e).slice(0, 140));
+    }
+  }
 
   async function run() {
     setBusy(true);
@@ -61,18 +111,21 @@ export function SwapPanel() {
         import('ethers'),
       ]);
       if (!web3.isConnected()) throw new Error('Connect a wallet first');
-      if (web3.getChainKey() !== 'base') await web3.switchNetwork('base');
-      const [tIn, tOut] = chain.tokens;
+      await switchAndConfirm({
+        chainKey,
+        label: setup.chain.label,
+        getChainKey: web3.getChainKey,
+        switchNetwork: web3.switchNetwork,
+      });
       const wallet = web3.getAddress();
-      const amountInWei = ethers.parseUnits(amount, tIn.decimals);
-      const sources = chain.sources.filter((x) => x !== 'fusion');
+      const amountInWei = ethers.parseUnits(amount, setup.tIn.decimals);
       const r = await quoteAll({
-        chainKey: 'base',
-        tokenIn: tIn,
-        tokenOut: tOut,
+        chainKey,
+        tokenIn: setup.tIn,
+        tokenOut: setup.tOut,
         amountInWei,
         wallet,
-        sources,
+        sources: setup.sources,
         slippageBps: s.bps || 50,
       });
       if (!r.best) throw new Error('No quote available');
@@ -96,25 +149,42 @@ export function SwapPanel() {
   }
 
   return (
-    <div className="rounded-lg border border-white/10 p-4 mb-6">
-      <div className="font-medium mb-2">Swap ETH → USDC on Base</div>
+    <div className="rounded-lg border border-white/10 p-4 mb-6" data-testid="bushido-swap">
+      <div className="font-medium mb-2">{setup.title}</div>
+      <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Chain">
+        {Object.keys(CHAINS).map((k) => (
+          <button
+            key={k}
+            disabled={busy}
+            onClick={() => choose(k)}
+            aria-pressed={k === chainKey}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              k === chainKey
+                ? 'border-amber-400 bg-amber-400/10 text-white'
+                : 'border-white/15 bg-transparent opacity-70'
+            }`}
+          >
+            {CHAINS[k].label}
+          </button>
+        ))}
+      </div>
       <div className="flex gap-2 mb-2">
-        <label className="flex-1 text-xs opacity-70">
-          ETH amount
+        <label className="flex-1 min-w-0 text-xs opacity-70">
+          {setup.amountLabel}
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
-            className="w-full mt-1 rounded bg-white/5 border border-white/10 p-2 text-sm"
+            className="box-border w-full mt-1 rounded bg-white/5 border border-white/10 p-2 text-sm text-white"
           />
         </label>
-        <label className="w-28 text-xs opacity-70">
+        <label className="w-24 shrink-0 text-xs opacity-70">
           Slippage %
           <input
             value={slip}
             onChange={(e) => setSlip(e.target.value)}
             inputMode="decimal"
-            className="w-full mt-1 rounded bg-white/5 border border-white/10 p-2 text-sm"
+            className="box-border w-full mt-1 rounded bg-white/5 border border-white/10 p-2 text-sm text-white"
           />
         </label>
       </div>
@@ -122,7 +192,7 @@ export function SwapPanel() {
       <button
         disabled={busy || !s.ok}
         onClick={run}
-        className="w-full rounded bg-amber-500/90 text-black font-semibold p-2 disabled:opacity-40"
+        className="w-full rounded border-0 bg-amber-500/90 text-black font-semibold p-2 disabled:opacity-40"
       >
         {busy ? 'Working…' : 'Simulate & swap'}
       </button>
