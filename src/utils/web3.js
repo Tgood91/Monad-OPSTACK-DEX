@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { appKit, appKitNetworkFor, chainKeyForChainId } from '../config.js';
 import { getChain } from '../dex/chains.js';
 import { ERC20_ABI } from './abis.js';
+import { currentChainId } from './network.js';
 
 export function getAccount() {
   const a = appKit.getAccount();
@@ -19,8 +20,10 @@ export function getAddress() {
   return getAccount()?.address || null;
 }
 
+/** { chainId } of the wallet's current network, or null. (AppKit 1.8 has no getNetwork().) */
 export function getNetwork() {
-  return appKit.getNetwork();
+  const chainId = currentChainId(appKit);
+  return chainId ? { chainId } : null;
 }
 
 export function getChainKey() {

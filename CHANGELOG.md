@@ -3,6 +3,16 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: "getNetwork is not a function" when swapping with a connected wallet
+**What:** the app's `getNetwork()` helper now reads the wallet's chain from AppKit's
+`getCaipNetwork()` (`src/utils/network.js`).
+**Why:** it called `appKit.getNetwork()`, which does not exist in the installed AppKit
+(1.8.24). The swap code asks for the current chain as soon as a wallet is connected, so
+every connected swap failed with "getNetwork is not a function". It never showed before
+because nothing runs that call until a wallet is connected. A small test now builds a
+fake AppKit without `getNetwork` to keep it from coming back. A live wallet swap was not
+tested here.
+
 ## Unreleased: working Claim button for Merkl rewards
 **What:** the Rewards tab's Claim button now works and is always visible. Each chain shows
 an active button when something can be claimed, or a disabled one saying why ("Nothing to
