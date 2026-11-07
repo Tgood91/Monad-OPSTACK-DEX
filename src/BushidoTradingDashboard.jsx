@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Zap, Target, AlertCircle, CheckCircle, ChevronRight } from 'lucide-react';
 
 import { VirtueCompass, SwapPanel, OperationsPanel } from './BushidoPanels.jsx';
+import DojoCard from './DojoCard.jsx';
 
 const API = ''; // same-origin
 
@@ -66,6 +67,7 @@ const BushidoTradingDashboard = ({ trader }) => {
         {source && <span className="text-xs opacity-50">scores: {source}</span>}
       </div>
 
+      <DojoCard trader={trader} />
       <VirtueCompass virtues={virtues} />
       <SwapPanel />
 
