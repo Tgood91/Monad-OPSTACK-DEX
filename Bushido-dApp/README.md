@@ -28,15 +28,15 @@ modal). The app never holds keys or funds.
 |---|---|
 | `manifest.webmanifest` | App name (**Bushido-dApp**), icons, full-screen mode, colours, and the Swap/Bridge home-screen shortcuts |
 | `sw.js` | Service worker: loads the app when offline, keeps the build files cached. **Never caches `/api`, prices, RPC or wallet traffic**, so quotes are always live. |
-| `pwa.js` | Registers the service worker, shows the *Install* / *Add to Home Screen* banner, opens the right tab for shortcuts |
-| `pwa.css` | Phone-only styles: notch / home-indicator safe areas when installed, the install banner |
+| `pwa.js` | Registers the service worker and opens the right tab for home-screen shortcuts (there is no in-page install banner; install from the browser menu) |
+| `pwa.css` | Phone-only styles: notch / home-indicator safe areas when installed, safe-area padding |
 | `icons/` | Home-screen icons: 192 and 512 px, a maskable 512 for Android shapes, and the 180 px Apple touch icon |
 | `vite-plugin.js` | Publishes these files with every build: `sw.js` at the site root (so it controls the whole app), and the manifest and icons under `/Bushido-dApp/` |
 
 ## How it plugs in
 
 - `vite.config.js` adds `bushidoDapp()` to the build.
-- `index.html` links the manifest, icons and `pwa.js`, and has the install-banner markup (`#pwaInstall`).
+- `index.html` links the manifest, icons and `pwa.js`.
 
 Nothing else is needed. `npm run build` produces the website and the app
 together, and every host in `DEPLOY.md` (Node, Vercel, Replit) serves them.
