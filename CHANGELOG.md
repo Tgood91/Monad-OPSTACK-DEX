@@ -7,6 +7,10 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 **What:** a wallet that holds a Dojo Pass can unlock a 3× quote allowance (the cap on how many price lookups it can make per minute). One free signature (no transaction, no gas) lasts 7 days. The card shows the button, then "Pass perks are on until …".
 **Why:** perks need the server to *trust* that a visitor holds a pass, and a wallet address alone proves nothing. So the wallet signs a short plain message, the server checks the signer and asks Monad itself whether that wallet holds a pass, then issues a signed token the limiter honours. The message is time-stamped (5 minutes) so it can't be replayed, the token can't be forged or edited, and it only raises a request limit: it never touches funds. Set `PERKS_SECRET` in Render so tokens survive restarts (without it, holders re-sign after a restart); `PERK_QUOTE_MULTIPLIER` changes the 3×.
 
+## Unreleased: the Bushido swap panel starts on, and stays on, the chain your wallet is really on
+**What:** the panel now asks the wallet itself which chain it is on (`eth_chainId`) instead of trusting AppKit's cached value, re-checks when you return to the tab, and uses that same answer when it confirms a chain switch.
+**Why:** inside Zerion's in-app browser AppKit kept reporting Base while the wallet was already on Monad. The panel opened on Base with 0.001 ETH, and tapping Monad asked AppKit to switch to a chain the wallet was already on. No change event ever fired, so the switch never "confirmed". Asking the wallet removes the disagreement.
+
 ## Unreleased: balances show up in wallet in-app browsers
 **What:** the Swap tab's "Balance" lines now read from our public chain RPCs first (with their fallbacks), fall back to the wallet's own connection, and retry once before giving up.
 **Why:** in Zerion's in-app browser the wallet connection quietly refused balance reads, so both lines showed "Balance: —" even though quotes and swaps worked. Reading a balance doesn't need the wallet, so it no longer depends on it. Checked against the real chain: this wallet reads 15.73 MON and 0.18 USDC on Monad.

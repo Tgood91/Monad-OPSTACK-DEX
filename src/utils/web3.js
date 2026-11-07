@@ -32,6 +32,20 @@ export function getChainKey() {
   return id ? chainKeyForChainId(id) : null;
 }
 
+/**
+ * Which of our chains the WALLET is on right now, asked of the wallet itself (eth_chainId).
+ * AppKit's own idea of the chain can be stale inside wallet in-app browsers (it kept saying Base while the
+ * wallet was on Monad), so anything that must match the wallet should use this. Falls back to AppKit's value.
+ */
+export async function getWalletChainKey() {
+  try {
+    const id = Number(await getWalletEthersProvider().send('eth_chainId', []));
+    return (Number.isFinite(id) && chainKeyForChainId(id)) || getChainKey();
+  } catch {
+    return getChainKey();
+  }
+}
+
 /** Ethers provider for the connected wallet (throws if not connected). */
 export function getWalletEthersProvider() {
   const wp = appKit.getWalletProvider();
