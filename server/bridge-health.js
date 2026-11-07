@@ -47,18 +47,92 @@ export function errorStatus(e) {
   return /not set|surrogate|api key|unauthor|401|403|ENOENT|authd/i.test(m) ? "unknown" : "down";
 }
 
-async function probeRoute(sourceId, run) {
-  const t0 = Date.now();
-  try {
+// A route only turns RED once it has stayed broken. One failed check is very often a glitch, so:
+//   1. a quick failure is retried once right away; if the retry works, the route is simply live;
+//   2. a failure that survives the retry shows AMBER ("having trouble, check 1 of 3, may be a glitch");
+//   3. only RED_AFTER failed checks in a row, at least COUNT_GAP_MS apart, make it red ("down").
+// "Re-probe" clicks cannot rush a route to red: a route's failure is counted at most once a minute.
+export const RED_AFTER = 3;
+export const COUNT_GAP_MS = 60_000;
+export const RETRY_DELAY_MS = 1500;
+const QUICK_FAIL_MS = 8000; // a failure that already took this long is a timeout, not a hiccup: no retry
+
+export function createTracker({ redAfter = RED_AFTER, gapMs = COUNT_GAP_MS } = {}) {
+  const seen = new Map(); // route key -> { fails, since, lastCount }
+  return {
+    record(key, ok, now = Date.now()) {
+      if (ok) {
+        seen.delete(key);
+        return { fails: 0, since: null, red: false };
+      }
+      const r = seen.get(key) || { fails: 0, since: now, lastCount: 0 };
+      if (r.fails === 0 || now - r.lastCount >= gapMs) {
+        r.fails += 1;
+        r.lastCount = now;
+      }
+      seen.set(key, r);
+      return { fails: r.fails, since: r.since, red: r.fails >= redAfter };
+    },
+  };
+}
+
+const sharedTracker = createTracker();
+
+export async function probeRoute(
+  sourceId,
+  run,
+  {
+    tracker = sharedTracker,
+    key = sourceId,
+    now = () => Date.now(),
+    sleep = (t) => new Promise((r) => setTimeout(r, t)),
+    delayMs = RETRY_DELAY_MS,
+  } = {},
+) {
+  const t0 = now();
+  const attempt = async () => {
     await withTimeout(run(), sourceId);
-    const ms = Date.now() - t0;
-    return { status: ms > SLOW_MS ? "degraded" : "live", ms };
+  };
+  let failure = null;
+  try {
+    await attempt();
   } catch (e) {
-    const status = errorStatus(e);
-    // "Not configured" is about this server, not the bridge: don't show internal paths or keys.
-    const detail = status === "unknown" ? "not set up on this server" : String(e?.message || e).slice(0, 140);
-    return { status, ms: Date.now() - t0, detail };
+    failure = e;
   }
+  if (failure && errorStatus(failure) === "down" && now() - t0 < QUICK_FAIL_MS) {
+    await sleep(delayMs); // glitch filter: one quiet retry
+    const t1 = now();
+    try {
+      await attempt();
+      failure = null;
+      const ms = now() - t1;
+      tracker.record(key, true, now());
+      return { status: ms > SLOW_MS ? "degraded" : "live", ms };
+    } catch (e) {
+      failure = e;
+    }
+  }
+  const ms = now() - t0;
+  if (!failure) {
+    tracker.record(key, true, now());
+    return { status: ms > SLOW_MS ? "degraded" : "live", ms };
+  }
+  if (errorStatus(failure) === "unknown") {
+    // "Not configured" is about this server, not the bridge: don't show internal paths or keys.
+    return { status: "unknown", ms, detail: "not set up on this server" };
+  }
+  const rec = tracker.record(key, false, now());
+  const msg = String(failure?.message || failure).slice(0, 120);
+  if (rec.red) {
+    const mins = Math.max(1, Math.round((now() - rec.since) / 60000));
+    return { status: "down", ms, detail: `${msg} (failing for about ${mins} min)`, fails: rec.fails };
+  }
+  return {
+    status: "degraded",
+    ms,
+    detail: `${msg} (check ${rec.fails} of ${RED_AFTER}, may be a glitch)`,
+    fails: rec.fails,
+  };
 }
 
 /* ---- per-source quote probes (same calls the bridge routes make) ---- */
@@ -175,7 +249,7 @@ export async function bridgeHealth({ force = false } = {}) {
             from: CHAIN_NAME[f] || String(f),
             to: CHAIN_NAME[t] || String(t),
             asset: "USDC",
-            ...(await probeRoute(s.id, () => s.run(f, t))),
+            ...(await probeRoute(s.id, () => s.run(f, t), { key: `${s.id}:${f}>${t}` })),
           })),
         );
         return { id: s.id, name: s.name, status: aggregate(routes), routes };

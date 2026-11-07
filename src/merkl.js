@@ -10,6 +10,7 @@ import { getAddress, getSigner, getWalletEthersProvider, simulateTx } from './ut
 import { appKit, appKitNetworkForChainId } from './config.js';
 import { runClaim } from './merkl-claim.js';
 import { chainBlock, CHAIN_NAMES, fmt, fmtUsd } from './merkl-view.js';
+import { retryOnce } from './utils/retry.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -39,12 +40,12 @@ async function loadRewards() {
   }
   box.innerHTML = '<div class="status"><span class="spinner"></span>Loading rewards…</div>';
   try {
-    const j = await api(`/api/merkl/rewards?address=${addr}`);
+    const j = await retryOnce(() => api(`/api/merkl/rewards?address=${addr}`));
     box.innerHTML = (j.chains || []).map(chainBlock).join('') ||
       '<div class="status">No rewards found.</div>';
     box.querySelectorAll('[data-claim]').forEach(b => { b.onclick = () => claim(Number(b.dataset.claim)); });
   } catch (e) {
-    box.innerHTML = `<div class="status error">Failed: ${esc(e.message.slice(0, 120))}</div>`;
+    box.innerHTML = `<div class="status warn">Couldn't load this right now (${esc(e.message.slice(0, 80))}). Tap Refresh to try again.</div>`;
   }
 }
 
@@ -93,7 +94,7 @@ async function loadOpps() {
   const chainId = Number($('merklOppChain').value || 8453);
   box.innerHTML = '<div class="status"><span class="spinner"></span>Loading opportunities…</div>';
   try {
-    const list = await api(`/api/merkl/opportunities?chainId=${chainId}&items=15`);
+    const list = await retryOnce(() => api(`/api/merkl/opportunities?chainId=${chainId}&items=15`));
     if (!list.length) { box.innerHTML = '<div class="status">No live opportunities on this chain.</div>'; return; }
     const rows = list.map(o => `<tr>
         <td>${esc(o.name || '—')}${o.protocol ? ` <span style="color:var(--muted);">· ${esc(o.protocol)}</span>` : ''}</td>
@@ -103,7 +104,7 @@ async function loadOpps() {
       </tr>`).join('');
     box.innerHTML = `<div class="intel-table-wrap"><table class="intel-table"><thead><tr><th>Opportunity</th><th>APR</th><th>TVL</th><th>Rewards/day</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } catch (e) {
-    box.innerHTML = `<div class="status error">Failed: ${esc(e.message.slice(0, 120))}</div>`;
+    box.innerHTML = `<div class="status warn">Couldn't load this right now (${esc(e.message.slice(0, 80))}). Tap Refresh to try again.</div>`;
   }
 }
 

@@ -14,7 +14,9 @@ const ETH_DUST_USD = 1;
 
 export function chainBlock(c) {
   const name = CHAIN_NAMES[c.chainId] || `Chain ${c.chainId}`;
-  if (c.error) return `<div class="status error">${esc(name)}: ${esc(c.error)}</div>`;
+  // A read that failed is usually a brief hiccup at Merkl, so it is amber, not red.
+  if (c.error)
+    return `<div class="status warn">${esc(name)}: couldn't load right now (${esc(c.error)}). Tap Refresh.</div>`;
   const rewards = c.rewards || [];
   const live = rewards.filter((r) => r.claimable > 0 || r.pending > 0);
   const claimedCount = rewards.length - live.length;

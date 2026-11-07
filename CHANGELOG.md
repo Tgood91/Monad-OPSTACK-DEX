@@ -3,6 +3,20 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: red only when something has really stayed broken
+**What:** a one-off glitch no longer shows red. The rule is the same in three read-only places:
+- **Bridge health strip:** a failed check is retried once right away (if the retry works, the route is simply
+  live). A failure that survives is **amber** ("unstable: check 1 of 3, may be a glitch"). Only three failed checks in
+  a row, at least a minute apart, turn a route **red** ("down for about N min"). Clicking Re-probe repeatedly can't
+  rush it, and one good check wipes the count. "Not configured" is unchanged (grey, never counted).
+- **Dojo card:** the Monad read is retried once; if it still fails it is an amber "Can't reach Monad right now. This is
+  usually brief." with Try again, not red.
+- **Rewards tab:** loading rewards, opportunities or one chain is retried once; a failure is amber with "Tap Refresh".
+Red is kept for things that are really wrong: a mismatched deposit address, a claim, swap or transaction that failed.
+**Why:** a single failed probe used to turn a provider red at once, so a one-second hiccup looked like an outage.
+Checked on the real providers (Aori, which is genuinely down, now starts amber at check 1 of 3) and in a real
+browser. `src/utils/retry.js` and 11 new tests, using a fake clock so none of them wait.
+
 ## Unreleased: Bushido swap panel works on every chain, and a refused network switch is no longer silent
 **What:** the gated swap panel on the Bushido tab is no longer fixed to ETH to USDC on Base. It has chain buttons
 (Base, Monad, Optimism, Ink, Unichain), starts on the wallet's chain (or Monad if the wallet is on a chain the app

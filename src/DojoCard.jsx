@@ -6,6 +6,7 @@ import { CHAINS } from './dex/chains.js';
 import { reportOps } from './bushido-gate.js';
 import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet } from './dojo/dojo-core.js';
 import { runDojoTx } from './dojo/dojo-tx.js';
+import { retryOnce } from './utils/retry.js';
 
 const MOOD_RING = {
   Radiant: 'ring-emerald-400',
@@ -28,7 +29,8 @@ export default function DojoCard({ trader }) {
     setLoading(true);
     setError('');
     try {
-      const [d, f] = await Promise.all([loadDojo(trader), loadFaucet(trader)]);
+      // One quiet retry first: a one-second hiccup should never reach the screen.
+      const [d, f] = await retryOnce(() => Promise.all([loadDojo(trader), loadFaucet(trader)]));
       setData(d);
       setFaucet(f);
     } catch (e) {
@@ -118,7 +120,7 @@ export default function DojoCard({ trader }) {
       </div>
 
       {v.kind !== 'ready' && (
-        <div className={`text-sm ${v.kind === 'error' ? 'text-red-400' : 'opacity-60'}`}>
+        <div className={`text-sm ${v.kind === 'error' ? 'text-amber-300' : 'opacity-60'}`}>
           {v.message}
           {v.kind === 'error' && (
             <button onClick={refresh} className="ml-2 underline">

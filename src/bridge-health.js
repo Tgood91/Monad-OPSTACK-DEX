@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const DOT = { live: '#35d07f', degraded: '#f5b544', down: '#ef5350', unknown: '#8a8a95' };
-const WORD = { live: 'live', degraded: 'degraded', down: 'down', unknown: 'not configured' };
+const WORD = { live: 'live', degraded: 'unstable', down: 'down', unknown: 'not configured' };
 
 function render(j) {
   const when = j.checkedAt ? new Date(j.checkedAt).toLocaleTimeString() : '';
