@@ -49,6 +49,7 @@ import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { createZeroxProxy, zeroxKey } from "./zerox.js";
 import { assetLinksHandler } from "./assetlinks.js";
 import { createLimiter } from "./limits.js";
+import { createPerks } from "./perks.js";
 import { disabledSources, switchesMiddleware } from "./switches.js";
 import { createFaucet, faucetRoutes } from "./faucet.js";
 import { zerionQuote, zerionSupported } from "./zerion.js";
@@ -98,7 +99,9 @@ app.use(
 );
 
 // ---- per-IP rate limits: quote lookups get their own, larger bucket (server/limits.js) ----
-app.use("/api", createLimiter());
+// Verified Dojo Pass holders get a larger quote allowance (server/perks.js).
+const perks = createPerks();
+app.use("/api", createLimiter({ perkMultiplier: (req) => (perks.fromReq(req) ? perks.multiplier : 1) }));
 // ---- DISABLED_SOURCES kill switch for provider routes (server/switches.js) ----
 app.use("/api", switchesMiddleware());
 
@@ -488,6 +491,8 @@ app.post("/api/intel/ask", (req, res) => {
 // ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
 // The browser uses @1inch/fusion-sdk with url = <origin>/api/fusion; the user's wallet signs the order.
 app.get("/api/zerox/quote", createZeroxProxy());
+app.get("/api/perks/status", perks.routes.status);
+app.post("/api/perks/claim", perks.routes.claim);
 app.get("/api/faucet/status", faucetHandlers.status);
 app.post("/api/faucet/claim", faucetHandlers.claim);
 // Android app (Trusted Web Activity) ownership proof; see server/assetlinks.js

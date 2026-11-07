@@ -3,6 +3,14 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: Dojo Pass perks, verified
+**What:** a wallet that holds a Dojo Pass can unlock a 3× quote allowance (the cap on how many price lookups it can make per minute). One free signature (no transaction, no gas) lasts 7 days. The card shows the button, then "Pass perks are on until …".
+**Why:** perks need the server to *trust* that a visitor holds a pass, and a wallet address alone proves nothing. So the wallet signs a short plain message, the server checks the signer and asks Monad itself whether that wallet holds a pass, then issues a signed token the limiter honours. The message is time-stamped (5 minutes) so it can't be replayed, the token can't be forged or edited, and it only raises a request limit: it never touches funds. Set `PERKS_SECRET` in Render so tokens survive restarts (without it, holders re-sign after a restart); `PERK_QUOTE_MULTIPLIER` changes the 3×.
+
+## Unreleased: Dojo garden, pet growth stages and daily bow
+**What:** the Dojo card now opens on a late-1800s Japanese garden (torii gate, arched bridge, koi pond, stone lantern, maple, dojo hall). Your warrior has five ranks (Deshi, Samurai, Rōnin, Sensei, Meijin) with a progress bar to the next. The garden always shows its fullest look (five koi, a lit lantern, a red maple). A free daily "bow" keeps a streak. The card also warns when your wallet is low on MON for gas.
+**Why:** the live Warrior contract only lets its owner change stats, so the pet could never grow. Growth is now *calculated* from what the contract does hold (level, days in the dojo) plus the bow streak, so it feels alive without a new contract. Honest limits: the streak is stored on this device only, and nothing is written on-chain. A shared leaderboard or on-chain growth needs a server store or a new contract, which are separate decisions.
+
 ## Unreleased: one wallet signature now covers every chain
 **What:** switching chains no longer asks you to sign a message again. The sign-in you make once is reused on Base, Monad, Optimism, Ink, Unichain and Ethereum for the same wallet, and the check is remembered for 60 seconds so fast switches don't hit the sign-in service each time.
 **Why:** the sign-in library only accepted a signature made on the *same* chain you were on, so every switch triggered a new prompt, and declining it sent you back to the last signed chain (the "can't leave Base" symptom). A signature proves you own the address, and an address is identical on every EVM chain, so reusing it is safe. Different wallets and non-EVM chains still need their own signature.

@@ -4,7 +4,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
 import { reportOps } from './bushido-gate.js';
-import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet } from './dojo/dojo-core.js';
+import { DOJO, claimFaucet, dojoTx, dojoView, loadDojo, loadFaucet, loadMonBalance } from './dojo/dojo-core.js';
+import { bow, bowedToday, growthStage, isLowGas, liveStreak, loadBow, saveBow } from './dojo/growth.js';
+import DojoPond from './DojoPond.jsx';
+import { loadPerk, unlockPerks } from './perks-client.js';
 import { runDojoTx } from './dojo/dojo-tx.js';
 import { retryOnce } from './utils/retry.js';
 
@@ -22,6 +25,9 @@ export default function DojoCard({ trader }) {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bowRec, setBowRec] = useState(() => (trader ? loadBow(trader) : null));
+  const [monWei, setMonWei] = useState(null);
+  const [perk, setPerk] = useState(() => (trader ? loadPerk(trader) : null));
   const explorer = CHAINS.monad.explorer;
 
   const refresh = useCallback(async () => {
@@ -33,6 +39,9 @@ export default function DojoCard({ trader }) {
       const [d, f] = await retryOnce(() => Promise.all([loadDojo(trader), loadFaucet(trader)]));
       setData(d);
       setFaucet(f);
+      setBowRec(loadBow(trader));
+      setPerk(loadPerk(trader));
+      loadMonBalance(trader).then(setMonWei); // fail-soft: null means no gas warning
     } catch (e) {
       setError(String(e.message || e).slice(0, 140));
     } finally {
@@ -77,6 +86,33 @@ export default function DojoCard({ trader }) {
     }
   }
 
+  async function unlock() {
+    setBusy(true);
+    setMsg('Confirm the message in your wallet. It is only a signature: no transaction and no gas.');
+    try {
+      const web3 = await import('./utils/web3.js');
+      if (!web3.isConnected()) throw new Error('Connect a wallet first');
+      const rec = await unlockPerks(trader, { signMessage: async (m) => (await web3.getSigner()).signMessage(m) });
+      setPerk(rec);
+      setMsg(`Pass perks are on for 7 days: ${rec.multiplier}× quote allowance.`);
+    } catch (e) {
+      setMsg('Perks not unlocked: ' + String(e.shortMessage || e.reason || e.message || e).slice(0, 160));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function doBow() {
+    const next = bow(bowRec || undefined);
+    saveBow(trader, next);
+    setBowRec(next);
+    setMsg(
+      next.streak > 1
+        ? `You bowed. ${next.streak} days in a row.`
+        : 'You bowed. Come back tomorrow to keep the streak.',
+    );
+  }
+
   async function claimStarter() {
     setBusy(true);
     setMsg('Sending your starter MON…');
@@ -92,6 +128,12 @@ export default function DojoCard({ trader }) {
   }
 
   const v = dojoView({ connected: !!trader, loading, error, data, faucet });
+  const stage = growthStage({
+    days: v.pet?.days || 0,
+    level: v.pet?.level || 1,
+    streak: liveStreak(bowRec),
+  });
+  const fmtBal = (w) => String(parseFloat((Number(w) / 1e18).toFixed(4)));
   const Btn = ({ action, secondary }) => (
     <button
       disabled={busy}
@@ -144,6 +186,48 @@ export default function DojoCard({ trader }) {
               </button>
             </div>
           )}
+          {monWei !== null && isLowGas(monWei) && !v.faucet && (
+            <div className="text-xs text-amber-300 mb-3">
+              Low on MON for gas ({fmtBal(monWei)} MON). Swaps and Dojo buttons on Monad need a little MON.
+            </div>
+          )}
+          <DojoPond
+            stageIndex={stage.index}
+            bowed={bowedToday(bowRec)}
+            streak={liveStreak(bowRec)}
+            name={`${stage.name}, ${stage.blurb}`}
+          />
+          {v.pet.registered && (
+            <div className="mb-3">
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium">
+                  {stage.kanji} {stage.name}
+                </span>
+                <span className="text-xs opacity-70">
+                  {stage.next ? `${stage.next.left} to ${stage.next.name}` : 'Highest rank'}
+                </span>
+              </div>
+              <div className="h-1.5 rounded bg-white/10 overflow-hidden mt-1">
+                <div
+                  className="h-full rounded bg-gradient-to-r from-rose-500 to-amber-400"
+                  style={{ width: `${stage.pct}%` }}
+                />
+              </div>
+              <div className="text-[11px] opacity-60 mt-1">{stage.blurb}</div>
+              <button
+                disabled={bowedToday(bowRec)}
+                onClick={doBow}
+                className="mt-2 w-full rounded border border-rose-400/50 bg-transparent text-rose-200 font-semibold p-2 disabled:opacity-50"
+              >
+                {bowedToday(bowRec)
+                  ? `Bowed today · ${liveStreak(bowRec)} day streak`
+                  : 'Bow to your dojo (free, daily)'}
+              </button>
+              <div className="text-[11px] opacity-50 mt-1">
+                The streak is kept on this device. Growth is calculated in the app; nothing is written on-chain.
+              </div>
+            </div>
+          )}
           {v.pet.registered ? (
             <div className="flex gap-4 items-center">
               <img
@@ -181,6 +265,29 @@ export default function DojoCard({ trader }) {
                 You haven't entered the Dojo yet. Each wallet gets one warrior.
               </div>
               <Btn action={v.pet.action} />
+            </div>
+          )}
+          {v.pass.has && (
+            <div className="rounded border border-emerald-400/30 bg-emerald-400/5 p-3 mt-3">
+              {perk ? (
+                <div className="text-xs text-emerald-200">
+                  Pass perks are on: {perk.multiplier}× quote allowance until{' '}
+                  {new Date(perk.exp).toLocaleDateString([], { dateStyle: 'medium' })}.
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs opacity-80 mb-2">
+                    Your Dojo Pass gives you a {3}× quote allowance. Unlock it with one free signature (valid 7 days).
+                  </div>
+                  <button
+                    disabled={busy}
+                    onClick={unlock}
+                    className="w-full rounded border border-emerald-400/60 bg-transparent text-emerald-300 font-semibold p-2 disabled:opacity-40"
+                  >
+                    {busy ? 'Working…' : 'Unlock Pass perks'}
+                  </button>
+                </>
+              )}
             </div>
           )}
           {!v.pass.has && (
