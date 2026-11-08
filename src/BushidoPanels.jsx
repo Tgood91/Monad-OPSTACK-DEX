@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
 import { checkSlippage, gateTrade, reportOps } from './bushido-gate.js';
 import { FALLBACK_CHAIN, swapSetup, switchAndConfirm } from './bushido-swap.js';
+import { BUSHIDO_REPOS, txUrl } from './bushido-links.js';
 
 const FIVE = ['gi', 'yu', 'jin', 'rei', 'makoto'];
 
@@ -51,6 +52,7 @@ export function SwapPanel() {
   const [slip, setSlip] = useState('0.5');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null); // { hash, url } of the last swap, so the hash is a real link
   const s = checkSlippage(slip);
 
   // Start on the wallet's chain if the app supports it, and follow it when the wallet changes network.
@@ -111,6 +113,7 @@ export function SwapPanel() {
   async function run() {
     let simResult = null; // kept so the Operations log only says "high" for a REAL on-chain revert
     setBusy(true);
+    setDone(null);
     setMsg('Quoting…');
     try {
       const [{ quoteAll, buildTxFor }, web3, { ethers }] = await Promise.all([
@@ -147,7 +150,8 @@ export function SwapPanel() {
       setMsg('Confirm in your wallet…');
       const sent = await signer.sendTransaction({ to: tx.to, data: tx.data, value: tx.value });
       await sent.wait();
-      setMsg(`Swapped ✓ via ${r.best.source} — ${sent.hash.slice(0, 10)}…`);
+      setMsg(`Swapped ✓ via ${r.best.source} — `);
+      setDone({ hash: sent.hash, url: txUrl(setup.chain, sent.hash) });
     } catch (e) {
       const m = (e.reason || e.message || 'failed').slice(0, 140);
       setMsg('Blocked: ' + m);
@@ -206,7 +210,30 @@ export function SwapPanel() {
       >
         {busy ? 'Working…' : 'Simulate & swap'}
       </button>
-      {msg && <div className="text-xs mt-2 opacity-80">{msg}</div>}
+      {msg && (
+        <div className="text-xs mt-2 opacity-80">
+          {msg}
+          {done &&
+            (done.url ? (
+              <a href={done.url} target="_blank" rel="noopener noreferrer" className="underline text-sky-300">
+                {done.hash.slice(0, 10)}…
+              </a>
+            ) : (
+              `${done.hash.slice(0, 10)}…`
+            ))}
+        </div>
+      )}
+      <div className="text-[11px] opacity-60 mt-3">
+        Bushido code on GitHub:{' '}
+        {BUSHIDO_REPOS.map((r, i) => (
+          <span key={r.name}>
+            {i > 0 && ' · '}
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-sky-300">
+              {r.name}
+            </a>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
