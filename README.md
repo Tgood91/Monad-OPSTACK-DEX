@@ -247,11 +247,12 @@ This is the one place the server holds a private key, so keep the blast radius s
 3. Put the key in your host's **Environment tab** only, never in the repo or in chat.
 4. To switch it off, remove the key or set `FAUCET_DISABLED=1`.
 
-**The claim button.** When the faucet is on, a gradient button under the header (the same style as Connect) does the
-whole job: **Connect & claim 0.1 MON free**. It opens the wallet connect, and once the wallet is connected it checks
-eligibility and claims in one go, then shows the transaction link. It hides itself for wallets that already have gas
-(unless you pressed it, when it explains why), and shows nothing at all if the faucet is off (`src/faucet-button.js`,
-`src/faucet-button-ui.js`).
+**The pond is the claim button.** At the top of the **Rewards** tab, the koi pond itself is a tappable button: **Connect &
+claim 0.1 MON free**. Tapping it opens the wallet connect, and once the wallet is connected it checks eligibility and
+claims in one go. A coin drops into the pond while it works, ripples spread when the MON lands, and a link shows the
+transaction. The card hides itself for wallets that already have gas (unless you tapped it, when it explains why), and
+shows nothing if the faucet is off. A tap stays armed for 2 minutes, so an unrelated later connect never sends anything
+(`src/FaucetPond.jsx`; wording and rules in `src/faucet-button.js`).
 
 Who can claim: a wallet with **no activity on Monad** (it has never sent a transaction and holds under
 `FAUCET_MIN_BALANCE_MON`). That alone makes it one claim per wallet. Extra limits: one claim per visitor per day,

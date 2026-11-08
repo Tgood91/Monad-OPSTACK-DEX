@@ -31,8 +31,10 @@ export function faucetBarView(s) {
       tone: 'ok',
     };
   }
-  if (s.phase === 'claiming') return { show: true, label: 'Sending your MON…', disabled: true, hint: '', tone: 'normal' };
-  if (s.phase === 'checking') return { show: true, label: 'Checking your wallet…', disabled: true, hint: '', tone: 'normal' };
+  if (s.phase === 'claiming')
+    return { show: true, label: 'Sending your MON…', disabled: true, hint: '', tone: 'normal' };
+  if (s.phase === 'checking')
+    return { show: true, label: 'Checking your wallet…', disabled: true, hint: '', tone: 'normal' };
   if (s.phase === 'error')
     return { show: true, label: 'Try again', disabled: false, hint: s.error || 'Something went wrong.', tone: 'warn' };
 
@@ -55,8 +57,20 @@ export function faucetBarView(s) {
       : hide;
   }
   if (st.available === false)
-    return { show: true, label: 'Faucet is empty right now', disabled: true, hint: 'Please try again later.', tone: 'warn' };
-  return { show: true, label: `Claim ${st.dripMon ? st.dripMon + ' MON' : amount} free`, disabled: false, hint: '', tone: 'normal' };
+    return {
+      show: true,
+      label: 'Faucet is empty right now',
+      disabled: true,
+      hint: 'Please try again later.',
+      tone: 'warn',
+    };
+  return {
+    show: true,
+    label: `Claim ${st.dripMon ? st.dripMon + ' MON' : amount} free`,
+    disabled: false,
+    hint: '',
+    tone: 'normal',
+  };
 }
 
 /**
@@ -72,7 +86,8 @@ export async function runFaucetClaim(address, { loadFaucet, claimFaucet }) {
     status = null;
   }
   if (!status) return { state: 'error', message: "Can't reach the faucet right now. This is usually brief." };
-  if (!status.eligible) return { state: 'not-eligible', reason: status.reason || 'This wallet does not need a claim.', status };
+  if (!status.eligible)
+    return { state: 'not-eligible', reason: status.reason || 'This wallet does not need a claim.', status };
   if (status.available === false) return { state: 'empty', status };
   try {
     const r = await claimFaucet(address);

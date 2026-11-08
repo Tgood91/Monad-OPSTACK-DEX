@@ -69,15 +69,6 @@
   /* Primary actions (Connect, Swap, Bridge) share one gradient; violet marks selection,
      green marks BEST/success. Teal end darkened to #177E87: white text 4.80:1 (pink end 4.54:1). */
   .btn-connect { background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); color: #fff; }
-  /* Faucet button: same gradient as Connect */
-  [hidden] { display: none !important; }
-  .faucet-bar { margin: 0 0 14px; }
-  #faucetBtn { padding: 14px; min-height: 48px; }
-  #faucetBtn:disabled { background: #2a2a35; color: #a1a1aa; cursor: not-allowed; }
-  .faucet-hint { font-size: 12px; margin-top: 6px; color: var(--muted); text-align: center; }
-  .faucet-hint.ok { color: var(--green); }
-  .faucet-hint.warn { color: #fcd34d; }
-  .faucet-hint a { color: #7dd3fc; }
   .btn-connect:hover { filter: brightness(1.08); }
   .btn-swap { background: linear-gradient(248.86deg, #B6509E 10.51%, #177E87 93.41%); color: #fff; margin-top: 8px; }
   .btn-swap:not(:disabled):hover { filter: brightness(1.08); }
@@ -243,10 +234,6 @@
     <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect</button>
   </div>
 
-  <!-- Free starter MON (only shown when the faucet is on, and hidden for wallets that already have gas) -->
-  <div class="faucet-bar" id="faucetBar" hidden>
-    <button class="btn btn-connect" id="faucetBtn" type="button">Connect &amp; claim free MON</button>
-    <div class="faucet-hint" id="faucetHint" aria-live="polite"></div>
   </div>
 
   <div class="tab-bar">
@@ -401,6 +388,7 @@
 
   <!-- ============ MERKL REWARDS PANE ============ -->
   <div id="merklPane" style="display:none;">
+    <div id="faucetPondRoot"></div>
     <div class="card">
       <span class="lbl">Your Merkl rewards — Ethereum · Base · Monad</span>
       <div id="merklRewards"><div class="status">Connect a wallet to see your Merkl rewards.</div></div>

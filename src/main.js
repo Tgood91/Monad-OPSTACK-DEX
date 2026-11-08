@@ -6,7 +6,6 @@ import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
 import { retryOnce } from './utils/retry.js';
-import { initFaucetButton } from './faucet-button-ui.js';
 import { enhanceAllSelects } from './token-picker.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
@@ -527,12 +526,14 @@ async function switchTab(which) {
   // React + the dashboard load only when the Bushido tab is first opened.
   if (which === 'bushido') (await import('./bushido-mount.jsx')).showBushido();
   // Merkl module loads only when the Rewards tab is first opened.
-  if (which === 'merkl') (await import('./merkl.js')).showMerkl();
+  if (which === 'merkl') {
+    (await import('./merkl.js')).showMerkl();
+    (await import('./faucet-pond-mount.jsx')).showFaucetPond(); // the pond-as-button for free starter MON
+  }
 }
 
 // Our own coin/chain list instead of native dropdowns (those never open in some wallet in-app browsers).
 enhanceAllSelects();
 
-// Free starter MON button (hidden unless the faucet is on). Refresh balances shortly after a claim lands.
-initFaucetButton();
+// Refresh balances shortly after a faucet claim lands (the pond on the Rewards tab fires this event).
 window.addEventListener('bushido:faucet-sent', () => setTimeout(updateBalances, 4000));
