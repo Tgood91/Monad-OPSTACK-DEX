@@ -109,6 +109,7 @@ export function SwapPanel() {
   }
 
   async function run() {
+    let simResult = null; // kept so the Operations log only says "high" for a REAL on-chain revert
     setBusy(true);
     setMsg('Quoting…');
     try {
@@ -140,6 +141,7 @@ export function SwapPanel() {
       const signer = await web3.getSigner();
       const tx = await buildTxFor(r.best.quote, wallet, s.bps, signer);
       const sim = await web3.simulateTx({ to: tx.to, data: tx.data, value: tx.value, from: wallet });
+      simResult = sim;
       const gate = gateTrade({ slippagePct: slip, sim });
       if (!gate.allowed) throw new Error(gate.reason);
       setMsg('Confirm in your wallet…');
@@ -149,7 +151,8 @@ export function SwapPanel() {
     } catch (e) {
       const m = (e.reason || e.message || 'failed').slice(0, 140);
       setMsg('Blocked: ' + m);
-      reportOps(/revert|simulation/i.test(m) ? 'high' : 'warn', 'bushido-swap', m);
+      // Only a genuine revert is "high". A refusal, a missing balance or a flaky read is just a warning.
+      reportOps(simResult?.reverted ? 'high' : 'warn', 'bushido-swap', m);
     } finally {
       setBusy(false);
     }

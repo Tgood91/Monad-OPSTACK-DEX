@@ -15,7 +15,14 @@ export function checkSlippage(pct) {
 export function gateTrade({ slippagePct, sim }) {
   const s = checkSlippage(slippagePct);
   if (!s.ok) return { allowed: false, reason: s.reason };
-  if (!sim?.ok) return { allowed: false, reason: 'Simulation failed: ' + (sim?.reason || 'not run') };
+  if (!sim?.ok) {
+    // "Simulation failed" is only true when the chain actually said no. A missing balance or a check we
+    // couldn't run is a different message, in plain words.
+    const reason = sim?.reason || 'not run';
+    if (sim && sim.reverted === false)
+      return { allowed: false, reason: reason.charAt(0).toUpperCase() + reason.slice(1) };
+    return { allowed: false, reason: 'Simulation failed: ' + reason };
+  }
   return { allowed: true, bps: s.bps };
 }
 

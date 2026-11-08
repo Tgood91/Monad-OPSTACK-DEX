@@ -1,6 +1,7 @@
 // Web3 helpers built on AppKit + ethers v6.
 // Single place for: account, network, provider/signer, balances, contract calls.
 
+import { runSimulation } from '../simulate.js';
 import { ethers } from 'ethers';
 import { appKit, appKitNetworkFor, chainKeyForChainId } from '../config.js';
 import { getChain } from '../dex/chains.js';
@@ -107,15 +108,24 @@ export async function approveToken(tokenAddress, spender, amountWei) {
   return tx.wait();
 }
 
-/** Dry-run a transaction via eth_call. Throws with a friendly message if it would revert. */
+/**
+ * Dry-run a transaction via eth_call. Asks our public RPC for the wallet's chain first, then the wallet:
+ * some wallet browsers refuse eth_call and answer "Call failed", which is not a failed swap (src/simulate.js).
+ */
 export async function simulateTx({ to, data, value, from }) {
-  const p = getWalletEthersProvider();
+  const providers = [];
   try {
-    await p.call({ to, data, value: value ?? 0n, from });
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, reason: (e?.reason || e?.message || 'simulation reverted').slice(0, 160) };
+    const key = await getWalletChainKey();
+    if (key) providers.push(await getReadProvider(key));
+  } catch {
+    /* public RPC unreachable: the wallet is still asked below */
   }
+  try {
+    providers.push(getWalletEthersProvider());
+  } catch {
+    /* no wallet provider */
+  }
+  return runSimulation(providers, { to, data, value, from });
 }
 
 export function formatAddress(addr) {
