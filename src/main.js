@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
 import { retryOnce } from './utils/retry.js';
+import { initFaucetButton } from './faucet-button-ui.js';
 import { enhanceAllSelects } from './token-picker.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
@@ -531,3 +532,7 @@ async function switchTab(which) {
 
 // Our own coin/chain list instead of native dropdowns (those never open in some wallet in-app browsers).
 enhanceAllSelects();
+
+// Free starter MON button (hidden unless the faucet is on). Refresh balances shortly after a claim lands.
+initFaucetButton();
+window.addEventListener('bushido:faucet-sent', () => setTimeout(updateBalances, 4000));
