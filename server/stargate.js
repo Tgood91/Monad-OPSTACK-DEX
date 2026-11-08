@@ -19,12 +19,14 @@ const EIDS = {
 
 export const STARGATE_CHAINS = Object.keys(EIDS).map(Number);
 
-// Stargate V2 pool contracts (from official docs) + underlying tokens.
+// Stargate V2 pool contracts (from official docs) + underlying tokens. Every token address below was checked
+// against its pool's own token() on-chain and must pass an EIP-55 checksum (test/stargate-table.test.js).
+// `decimals` defaults to 6; BNB Chain's USDC and USDT are 18.
 // token() on each pool returns the underlying ERC-20; address(0) = native.
 const POOLS = {
   1: { // Ethereum
     USDC: { pool: "0xc026395860Db2d07ee33e05fE50ed7bD583189C7", token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
-    USDT: { pool: "0x933597a323Eb81cAe705C5bC29985172fd5A3973", token: "0xdAC17F958D2ee523a2206206994597c13D831ec7" },
+    USDT: { pool: "0x933597a323Eb81cAe705C5bC29985172fd5A3973", token: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
     NATIVE: { pool: "0x77b2043768d28E9C9aB44E1aBfC95944bcE57931", token: null },
   },
   8453: { // Base
@@ -32,22 +34,22 @@ const POOLS = {
     NATIVE: { pool: "0xdc181Bd607330aeeBEF6ea62e03e5e1Fb4B6F7C7", token: null },
   },
   10: { // Optimism
-    USDC: { pool: "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0", token: "0x0b2c639c533813f4aa9d7837CAF62653d097Ff85" },
-    USDT: { pool: "0x19cFCE47eD54a88614648DC3f19A5980097007dD", token: "0x94b008aA00579c1307B0Ef2c499Ad98a8Ce58e58" },
+    USDC: { pool: "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0", token: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" },
+    USDT: { pool: "0x19cFCE47eD54a88614648DC3f19A5980097007dD", token: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58" },
     NATIVE: { pool: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3", token: null },
   },
   42161: { // Arbitrum
-    USDC: { pool: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3", token: "0xaf88d065E77c8cC2239327C5dB5A432268e5831" },
-    USDT: { pool: "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0", token: "0xFd086bC7CD5C481DCC9c85eBe478A1C0B69FCbb" },
+    USDC: { pool: "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3", token: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" },
+    USDT: { pool: "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0", token: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9" },
     NATIVE: { pool: "0xA45B5130f36CDcA45667738e2a258AB09f4A5f7F", token: null },
   },
   43114: { // Avalanche
-    USDC: { pool: "0x5634c4a5FEd09819E3c46D86A965Dd9447d86e47", token: "0xB97EF9Ef8734C71904d8002f8b6Bc66Dd9c48a6E" },
-    USDT: { pool: "0x12dC9256Acc9895B076f6638D628382881e62CeE", token: "0x9702230A8a47E5c5810F8fFfE72Cc03A2F7a59a4Bb" },
+    USDC: { pool: "0x5634c4a5FEd09819E3c46D86A965Dd9447d86e47", token: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
+    USDT: { pool: "0x12dC9256Acc9895B076f6638D628382881e62CeE", token: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7" },
   },
   56: { // BNB Chain
-    USDC: { pool: "0x962Bd449E630b0d928f308Ce63f1A21F02576057", token: "0x8AC76a51C950d982fF0a94163b2e68F9E4b8d8c6" },
-    USDT: { pool: "0x138EB30f73BC423c6455C53df6D89CB01d9eBc63", token: "0x55d398326f99059fF775485246999027B3197955" },
+    USDC: { pool: "0x962Bd449E630b0d928f308Ce63f1A21F02576057", token: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18 },
+    USDT: { pool: "0x138EB30f73BC423c6455C53df6D89CB01d9eBc63", token: "0x55d398326f99059fF775485246999027B3197955", decimals: 18 },
   },
 };
 
@@ -102,7 +104,7 @@ export function resolvePool(chainId, tokenRef) {
   const entry = pools[key];
   if (!entry) return null;
   return { pool: entry.pool, token: entry.token, symbol: key === "NATIVE" ? "native" : key, key,
-           decimals: key === "NATIVE" ? 18 : 6 };
+           decimals: key === "NATIVE" ? 18 : entry.decimals ?? 6 };
 }
 
 /** Tokens Stargate can bridge FROM a chain (pool-backed). */
@@ -110,8 +112,8 @@ export function stargateTokens(chainId) {
   const pools = POOLS[Number(chainId)];
   if (!pools) return [];
   const out = [];
-  if (pools.USDC) out.push({ symbol: "USDC", ref: "USDC", address: pools.USDC.token, decimals: 6 });
-  if (pools.USDT) out.push({ symbol: "USDT", ref: "USDT", address: pools.USDT.token, decimals: 6 });
+  if (pools.USDC) out.push({ symbol: "USDC", ref: "USDC", address: pools.USDC.token, decimals: pools.USDC.decimals ?? 6 });
+  if (pools.USDT) out.push({ symbol: "USDT", ref: "USDT", address: pools.USDT.token, decimals: pools.USDT.decimals ?? 6 });
   if (pools.NATIVE) out.push({ symbol: "native", ref: "NATIVE", address: null, decimals: 18 });
   return out;
 }
