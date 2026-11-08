@@ -76,12 +76,13 @@ const monad = defineChain({
 });
 
 // Ethereum is listed so the wallet can switch to it for Merkl claims; swaps don't use it.
-const networks = [base, monad, optimism, ink, unichain, mainnet];
+const networks = [monad, base, optimism, ink, unichain, mainnet];
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
-  defaultNetwork: base,
+  // Monad first: AppKit moves a freshly connected wallet to this network, and the app itself starts on Monad.
+  defaultNetwork: monad,
   projectId,
   metadata: {
     name: import.meta.env.VITE_APP_NAME || 'Bushido-dApp',
