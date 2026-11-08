@@ -4,6 +4,9 @@ import { CHAINS } from './dex/chains.js';
 
 export const FALLBACK_CHAIN = 'monad';
 
+// A sensible first amount of each chain's native coin (about a dollar or less, so a first test costs little).
+const DEFAULT_AMOUNT = { monad: '1', bsc: '0.01', avalanche: '0.1' };
+
 /** Native coin -> USDC on the chosen chain, the sources to ask, and the words to show. */
 export function swapSetup(chainKey) {
   const chain = CHAINS[chainKey];
@@ -19,7 +22,7 @@ export function swapSetup(chainKey) {
     sources: chain.sources.filter((s) => s !== 'fusion'),
     title: `Swap ${chain.native} → USDC on ${chain.label}`,
     amountLabel: `${chain.native} amount`,
-    defaultAmount: chainKey === 'monad' ? '1' : '0.001',
+    defaultAmount: DEFAULT_AMOUNT[chainKey] ?? '0.001',
   };
 }
 

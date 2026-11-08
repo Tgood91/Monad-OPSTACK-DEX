@@ -6,11 +6,13 @@ EVM chain IDs and LayerZero V2 endpoint IDs for all chains in this DEX.
 
 | Chain | EVM Chain ID | Native | LayerZero EID |
 |-------|-------------|--------|---------------|
-
+| Monad (default) | 143 | MON | 30390 |
 | Optimism | 10 | ETH | 30111 |
 | Ink | 57073 | ETH | — |
 | Base | 8453 | ETH | 30184 |
 | Unichain | 130 | ETH | 30320 |
+| BNB Chain | 56 | BNB | 30102 |
+| Avalanche | 43114 | AVAX | 30106 |
 
 ## Bridge chains
 

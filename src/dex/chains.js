@@ -143,6 +143,46 @@ export const CHAINS = {
       { symbol: 'USDT', address: '0x588CE4F028D8e7B53B687865d6A67b3A54C75518', decimals: 6 },
     ],
   },
+  // BNB Chain and Avalanche (swaps). Every token below was read on its own chain (symbol and decimals) and priced
+  // from the chain's wrapped native coin through KyberSwap at two trade sizes, keeping only coins under 0.5% loss
+  // at about $20 and 0.25% at about $200. NOTE: BNB Chain's USDC and USDT have 18 decimals, not 6.
+  bsc: {
+    key: 'bsc',
+    label: 'BNB Chain',
+    chainId: 56,
+    native: 'BNB',
+    color: '#f0b90b',
+    rpcs: ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.bnbchain.org', 'https://bsc.drpc.org'],
+    explorer: 'https://bscscan.com',
+    sources: ['lifi', 'kyberswap', 'velora', 'oneinch', 'zerox'], // quoted live; Zerion and Uniswap left off until verified
+    kyberName: 'bsc',
+    tokens: [
+      { symbol: 'BNB', address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', decimals: 18, isNative: true }, // WBNB (wrapped)
+      { symbol: 'USDC', address: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', decimals: 18 },
+      { symbol: 'USDT', address: '0x55d398326f99059fF775485246999027B3197955', decimals: 18 },
+      { symbol: 'BTCB', address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', decimals: 18 },
+      { symbol: 'ETH', address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', decimals: 18 }, // Binance-Peg ETH
+      { symbol: 'CAKE', address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', decimals: 18 },
+    ],
+  },
+  avalanche: {
+    key: 'avalanche',
+    label: 'Avalanche',
+    chainId: 43114,
+    native: 'AVAX',
+    color: '#e84142',
+    rpcs: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche-c-chain-rpc.publicnode.com', 'https://avalanche.drpc.org'],
+    explorer: 'https://snowtrace.io',
+    sources: ['lifi', 'kyberswap', 'velora', 'oneinch', 'zerox'], // quoted live; Zerion and Uniswap left off until verified
+    kyberName: 'avalanche',
+    tokens: [
+      { symbol: 'AVAX', address: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', decimals: 18, isNative: true }, // WAVAX (wrapped)
+      { symbol: 'USDC', address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimals: 6 },
+      { symbol: 'USDt', address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimals: 6 },
+      { symbol: 'BTC.b', address: '0x152b9d0FdC40C096757F570A51E494bd4b943E50', decimals: 8 },
+      { symbol: 'WETH.e', address: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', decimals: 18 },
+    ],
+  },
 };
 
 export const SOURCE_META = {
