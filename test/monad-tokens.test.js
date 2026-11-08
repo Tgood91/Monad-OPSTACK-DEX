@@ -11,7 +11,7 @@ test('MON and USDC stay first, so the app defaults do not move', () => {
   assert.equal(toks[0].isNative, true);
 });
 test('Monad lists the verified extra tokens', () => {
-  for (const s of ['USDT0', 'WETH', 'WBTC', 'AUSD', 'sMON', 'gMON', 'shMON', 'GHO', 'cbBTC', 'LBTC', 'Cake', 'avUSD', 'mUSD', 'XAUt0', 'aprMON', 'syrupUSDC', 'WMON']) assert.ok(toks.find((t) => t.symbol === s), s);
+  for (const s of ['USDT0', 'WETH', 'WBTC', 'AUSD', 'sMON', 'gMON', 'shMON', 'GHO', 'cbBTC', 'LBTC', 'Cake', 'avUSD', 'mUSD', 'XAUt0', 'aprMON', 'syrupUSDC', 'WMON', 'MONAZ']) assert.ok(toks.find((t) => t.symbol === s), s);
 });
 test('every address is a valid checksummed address, with sane decimals, and no duplicates', () => {
   const seen = new Set();

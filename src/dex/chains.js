@@ -73,6 +73,9 @@ export const CHAINS = {
       { symbol: 'XAUt0', address: '0x01bFF41798a0BcF287b996046Ca68b395DbC1071', decimals: 6 }, // Tether Gold
       { symbol: 'aprMON', address: '0x0c65A0BC65a5D819235B71F554D210D3F80E0852', decimals: 18 }, // aPriori staked MON
       { symbol: 'syrupUSDC', address: '0xaB6e5a0C3799d020c790D34F7B2C02639e238AF7', decimals: 6 }, // Maple
+      // Clanker token created by the project owner. Verified on Monad (MonazolaM, 18 decimals) with a live route;
+      // its pool is small (about $2k when added), so large swaps will show a big price impact in the quote.
+      { symbol: 'MONAZ', address: '0x261E706FA130825b48b99989732a4eE31fFFeB07', decimals: 18 },
     ],
   },
   optimism: {
