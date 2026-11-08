@@ -9,10 +9,25 @@ description: Write and run tests for the DEX — adapter unit tests, engine inte
 
 | Layer | Tool | What to test |
 |---|---|---|
-| Adapter unit | Vitest / Jest | `quote()` return shape, `buildTx()` output fields, null on no-route |
-| Engine integration | Vitest + msw mocks | Fan-out, timeout handling, ranking, simulation check |
+| Adapter unit | `node:test` (`npm test`) | `quote()` return shape, `buildTx()` output fields, null on no-route |
+| Engine integration | `node:test` with injected fakes | Fan-out, timeout handling, ranking |
 | Contract | Foundry (`forge test`) | VirtueFeeRouter discount math, registry access control |
 | E2E (optional) | Playwright | Full swap flow on a fork |
+
+## How tests are written in this repo (the real conventions)
+
+- **Runner:** Node's built-in `node:test` with `assert/strict`: `npm test` runs every `test/*.test.js`. No Vitest, Jest or msw.
+- **No network, no wallet, no DOM.** Logic that matters is kept in pure modules and tested with injected fakes:
+  `fetchImpl`, `sleep`, `now` and `storage` parameters, fake providers (`{ call: async () => ... }`), and plain objects
+  standing in for `localStorage`. Examples: `test/simulate.test.js`, `test/faucet-button.test.js`, `test/perks.test.js`,
+  `test/bridge-health.test.js`.
+- **One file per area**, named for the module. When a bug reaches production, add a test that pins it (for example
+  `test/stargate-table.test.js` for the Stargate address/decimals bug, `test/page-structure.test.js` for the stray `</div>`).
+- **Data tables get table tests** (`test/chains-table.test.js`, `test/monad-tokens.test.js`): valid checksummed addresses,
+  decimals, no duplicates. These catch typos offline; `npm run verify:chains` checks the same table against the real chains.
+- **New files must be added to the Prettier lists** (`format`, `format:check`) in `package.json`.
+- A passing browser check is done by hand outside the repo (phone-sized and desktop screens, a stand-in wallet); do not commit
+  test harnesses.
 
 ## Adapter unit tests
 
@@ -24,23 +39,23 @@ Every adapter must be tested for:
 4. **Native token** — `value === amountInWei` and no allowance call when `tokenIn.isNative`.
 
 ```js
-// Example test structure (Vitest)
-import { Aerodrome } from '../src/dex/adapters.js';
+// Example test structure (node:test, a fake fetch instead of the network)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { runSimulation } from '../src/simulate.js';
 
-vi.mock('ethers', () => ({ /* mock provider + contract */ }));
+const refuse = () => ({ call: async () => { throw new Error('Call failed'); } });
+const fine = () => ({ call: async () => '0x' });
 
-test('Aerodrome quote returns null when no pool', async () => {
-  // mock getAmountsOut to return 0
-  const result = await Aerodrome.quote('base', tokenIn, tokenOut, 1000000n);
-  expect(result).toBeNull();
+test('a wallet that refuses eth_call falls through to the next provider', async () => {
+  const r = await runSimulation([refuse(), fine()], { to: '0x1', data: '0x', from: '0x2' });
+  assert.equal(r.ok, true);
 });
 
-test('Aerodrome buildTx returns all required fields', async () => {
-  const tx = await Aerodrome.buildTx(mockQuote, wallet, 50, mockSigner);
-  expect(tx).toHaveProperty('to');
-  expect(tx).toHaveProperty('data');
-  expect(tx).toHaveProperty('value');
-  expect(tx).toHaveProperty('spender');
+test('a real revert is believed and blocks', async () => {
+  const reverts = { call: async () => { throw Object.assign(new Error('execution reverted'), { code: 'CALL_EXCEPTION' }); } };
+  const r = await runSimulation([reverts, fine()], { to: '0x1', data: '0x', from: '0x2' });
+  assert.deepEqual([r.ok, r.reverted], [false, true]);
 });
 ```
 
@@ -51,10 +66,10 @@ Key scenarios:
 - **Fan-out**: all adapter `quote()` calls run in parallel; results are returned sorted by `amountOut` descending.
 - **Timeout**: an adapter that hangs past `QUOTE_TIMEOUT_MS` (8000ms) is dropped; others still return.
 - **Single adapter error**: one adapter throws — the others still return (verify `Promise.allSettled` behavior).
-- **Simulation block**: mock `eth_call` to revert — confirm `executeSwap` throws before sending the signature request.
+- **Simulation block**: give `runSimulation` a fake provider that reverts and confirm the result is `ok: false, reverted: true`; a provider that only refuses ("Call failed") must fall through to the next one (`test/simulate.test.js`).
 - **Allowance skip**: when `tokenIn.isNative`, confirm no `allowance` or `approve` call runs.
 
-Mock the RPC and external API calls with `msw` or manual `vi.mock`. Do not make real network calls in unit/integration tests.
+Inject fake `fetch` and provider objects. Do not make real network calls in unit/integration tests.
 
 ## Contract tests (Foundry)
 
@@ -95,7 +110,7 @@ Only run against live RPCs manually — never in CI. CI uses mocks.
 
 ## CI setup (`.github/workflows`)
 
-The repo has `npm-publish-github-packages.yml`. Add a test job:
+The workflow `npm-publish-github-packages.yml` already runs `npm ci`, `npm test` and `npm run build` on Node 20 for every pull request (its publish job is skipped). A job like this one is what it looks like:
 
 ```yaml
 test:
