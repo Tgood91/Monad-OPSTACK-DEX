@@ -12,9 +12,9 @@ description: Deploy or redeploy the DEX — build the frontend, configure server
 | Var | Required | Notes |
 |---|---|---|
 | `VITE_PROJECT_ID` | ✅ | Reown / WalletConnect project ID from cloud.reown.com |
-| `VITE_0X_API_KEY` | Optional | Enables 0x source; origin-restricted rate-limit key |
+| `VITE_APP_NAME`, `VITE_APP_DESCRIPTION`, `VITE_APP_URL`, `VITE_APP_ICON` | Optional | Shown in the wallet-connect popup |
 
-`VITE_*` vars are baked at build time. If you change them, rebuild.
+`VITE_*` vars are baked at build time and visible to every visitor: **never put a secret in one** (0x's key is server-side now). If you change them, rebuild.
 
 ### Server (`server/.env`)
 
@@ -25,9 +25,16 @@ description: Deploy or redeploy the DEX — build the frontend, configure server
 | `ONEINCH_API_KEY` | ✅ for 1inch source | Without it, server falls back to Secure Vault socket (dev only) |
 | `UNISWAP_API_KEY` | ✅ for Uniswap source | Same fallback behavior |
 | `ZERION_API_KEY` | ✅ for Zerion source | |
-| `NEAR_INTENTS_API_KEY` | Optional | 0.25% fee without key |
+| `ZEROX_API_KEY` | ✅ for 0x source | Server-side (0x v2 cannot be called from a browser); `VITE_0X_API_KEY` is still read as an old name |
+| `DISABLED_SOURCES` | Optional | Comma-separated sources to switch off, e.g. `zerion,fusion` (see `server/switches.js`) |
+| `FAUCET_PRIVATE_KEY` | Optional | Turns the Monad faucet on. A fresh dedicated wallet holding a few MON only. See [dex-dojo-faucet](../dex-dojo-faucet/SKILL.md) |
+| `FAUCET_DRIP_MON`, `FAUCET_MIN_BALANCE_MON`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Optional | Faucet tuning (defaults 0.05, 0.02, 100, 0.1) |
+| `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Optional | Dojo Pass perk tokens survive restarts only with a secret; multiplier default 3 |
+| `RESEND_API_KEY`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | Optional | Emails high-severity errors |
 | `PORT` | Optional | Default 3001 |
-| `TRUST_PROXY` | Set `1` behind nginx | Enables `req.ip` behind a proxy |
+| `TRUST_PROXY` | **Set to the number of proxies in front** | `1` behind one nginx. **`3` on Render** (Cloudflare, Render's edge, Render's proxy). Wrong value = everyone shares one address (limits and the faucet's per-visitor rule break) or addresses can be faked. Verify on `/api/health` -> `proxy.yourIp` |
+
+NEAR Intents needs no key here: it uses a vault surrogate when one is available and otherwise runs keyless (0.25% fee).
 
 Copy `server/.env.example` — do not commit real keys.
 
@@ -55,6 +62,14 @@ pm2 save
 ```
 
 See `DEPLOY.md` for the full pm2 + nginx setup including SSL and `TRUST_PROXY`.
+
+## Render (the reference deployment)
+
+- Service `bushido-dapp`, branch `main`, auto-deploys on every push (about 2 minutes). Free plan: it can sleep when idle.
+- Build `npm ci && npm run build && cd server && npm ci`; start `npm start`; health-check path `/healthz` (a page, not a real
+  status endpoint: use `/api/health`).
+- Env vars are set in the dashboard's Environment tab (never pasted into chat). Changing one needs a redeploy.
+- After a deploy: `GET /api/health` (keys, faucet, `proxy`), then a phone-sized browser pass over the tabs.
 
 ## Replit deploy
 
@@ -96,7 +111,7 @@ Deploy with the same Hardhat flow. After deploy, update the registry address ref
 [ ] All server/.env keys filled (no placeholders)
 [ ] npm run build ran after setting VITE_* vars
 [ ] server/node_modules installed
-[ ] TRUST_PROXY=1 if behind nginx/proxy
+[ ] TRUST_PROXY = the number of proxies in front (3 on Render); /api/health shows yourIp as the visitor's own address
 [ ] Contract deployed and address updated in server/bushido.js
 [ ] pm2 / process manager configured for auto-restart
 [ ] Test one swap quote in production before announcing
@@ -112,5 +127,5 @@ Contract: deploy a new version — contracts are not upgradeable unless using a 
 
 - Building the frontend before setting `VITE_PROJECT_ID` — wallet modal will not initialize.
 - Running `node server/index.js` from the repo root instead of `cd server && node index.js` — `__dirname` paths break.
-- Forgetting `TRUST_PROXY=1` behind nginx — `req.ip` returns the proxy IP, breaking rate limiting.
+- Wrong `TRUST_PROXY`: too low and every visitor looks like the proxy (shared limits, faucet per-visitor rule skipped); too high and addresses can be spoofed. Count the hops (`/api/health` -> `proxy.forwardedFor`) and set it to that.
 - Not rebuilding after a `.env` change — `VITE_*` changes are invisible until rebuild.

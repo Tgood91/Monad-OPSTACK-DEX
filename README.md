@@ -32,7 +32,8 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 12. [API reference](#api-reference)
 13. [Project layout](#project-layout)
 14. [Notes and limits](#notes-and-limits)
-15. [License](#license)
+15. [Working on this repo](#working-on-this-repo)
+16. [License](#license)
 
 ---
 
@@ -478,6 +479,24 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 - CCTP v2 for faster stablecoin bridging is planned.
 
 ---
+
+## Working on this repo
+
+Everything an assistant or a new developer needs is in the repo, so no separate agent is required:
+
+- **[CLAUDE.md](CLAUDE.md)**: the short version. Commands, how the owner works (PR template, a CHANGELOG entry per PR, the owner
+  merges), hard rules (secrets, faucet key, dry run before signing, reads never depend on the wallet), the data rule (never add an
+  address or decimals from memory), where things live, and the known gaps. Tools like Claude Code load it automatically.
+- **[dex-skills/](dex-skills/)**: step-by-step recipes, one folder per topic:
+  [chain-config](dex-skills/dex-chain-config/SKILL.md) (add a chain or coin, verify it), [swap-engine](dex-skills/dex-swap-engine/SKILL.md)
+  (adapters, the engine, the dry run), [bridge](dex-skills/dex-bridge/SKILL.md) (NEAR, Stargate, Aori, route health),
+  [dojo-faucet](dex-skills/dex-dojo-faucet/SKILL.md) (the Dojo contracts, pass perks, faucet, pond button),
+  [audit](dex-skills/dex-audit/SKILL.md), [test](dex-skills/dex-test/SKILL.md) and [deploy](dex-skills/dex-deploy/SKILL.md).
+- **`npm run verify:chains`**: a read-only check of `src/dex/chains.js` against the real chains (each RPC answers with the right
+  chain ID; every coin has contract code and the right decimals). Add `-- --prices` to also price each coin through KyberSwap, or
+  `-- --chain bsc` for one chain. It exits non-zero if anything fails, so run it after any change to the chain table.
+- `test/docs-links.test.js` fails if those docs name a file that no longer exists, so they cannot quietly go stale.
+- `.claude/skills/` holds vendored 1inch skills locked by `skills-lock.json`; leave them alone.
 
 ## License
 
