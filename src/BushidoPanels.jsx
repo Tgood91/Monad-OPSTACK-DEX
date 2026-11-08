@@ -4,6 +4,8 @@ import { CHAINS } from './dex/chains.js';
 import { checkSlippage, gateTrade, reportOps } from './bushido-gate.js';
 import { FALLBACK_CHAIN, swapSetup, switchAndConfirm } from './bushido-swap.js';
 import { BUSHIDO_REPOS, txUrl } from './bushido-links.js';
+import { openChoiceSheet } from './token-picker.js';
+import { chainMenuItems, chainMenuLabel } from './chain-menu.js';
 
 const FIVE = ['gi', 'yu', 'jin', 'rei', 'makoto'];
 
@@ -54,6 +56,7 @@ export function SwapPanel() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null); // { hash, url } of the last swap, so the hash is a real link
   const s = checkSlippage(slip);
+  const cur = chainMenuLabel(CHAINS, chainKey);
 
   // Start on the wallet's chain if the app supports it, and follow it when the wallet changes network.
   useEffect(() => {
@@ -165,23 +168,26 @@ export function SwapPanel() {
   return (
     <div className="rounded-lg border border-white/10 p-4 mb-6" data-testid="bushido-swap">
       <div className="font-medium mb-2">{setup.title}</div>
-      <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Chain">
-        {Object.keys(CHAINS).map((k) => (
-          <button
-            key={k}
-            disabled={busy}
-            onClick={() => choose(k)}
-            aria-pressed={k === chainKey}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              k === chainKey
-                ? 'border-amber-400 bg-amber-400/10 text-white'
-                : 'border-white/15 bg-transparent opacity-70'
-            }`}
-          >
-            {CHAINS[k].label}
-          </button>
-        ))}
-      </div>
+      <button
+        type="button"
+        disabled={busy}
+        aria-haspopup="dialog"
+        aria-label={`Network: ${cur.label}. Tap to change.`}
+        onClick={() =>
+          openChoiceSheet(document, {
+            title: 'Choose network',
+            items: chainMenuItems(CHAINS, chainKey),
+            onPick: (k) => k !== chainKey && choose(k),
+          })
+        }
+        className="flex w-full items-center gap-2.5 mb-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white disabled:opacity-50"
+      >
+        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: cur.color }} />
+        <span className="flex-1 min-w-0 truncate">{cur.label}</span>
+        <span className="text-lg leading-none opacity-80" aria-hidden="true">
+          ☰
+        </span>
+      </button>
       <div className="flex gap-2 mb-2">
         <label className="flex-1 min-w-0 text-xs opacity-70">
           {setup.amountLabel}

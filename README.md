@@ -40,7 +40,7 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 
 | Tab | What it does |
 |---|---|
-| **Swap** | Same-chain swaps on 5 chains. Quotes from up to 10 sources, ranked by output. The app opens on **Monad** with 1 MON → USDC prefilled. |
+| **Swap** | Same-chain swaps on 7 chains. Quotes from up to 10 sources, ranked by output. The app opens on **Monad** with 1 MON → USDC prefilled. |
 | **Bridge** | Cross-chain transfers through NEAR Intents, Stargate V2 and Aori, with a live **health strip** that shows which routes are working. Also **⛽ Get gas**: turn USDC on one chain into native gas (MON, ETH) on another. |
 | **Intel** | Ask about DEX routing and get a structured answer (query, table, chart). The figures are fixed **sample data**, and the UI says so. |
 | **Bushido** | Your **Dojo** card (pass, warrior, garden), the 7 virtue scores, the Seykota trend signal and a **gated swap panel** that works on any chain. |
@@ -53,7 +53,7 @@ Android wrapper ([Bushido-dApp-android/README.md](Bushido-dApp-android/README.md
 
 ## Chains and coins
 
-Swap chains: **Monad (default)**, Base, Optimism, Ink, Unichain. Ethereum is also configured so the wallet can
+Swap chains: **Monad (default)**, Base, Optimism, Ink, Unichain, **BNB Chain** and **Avalanche**. Ethereum is also configured so the wallet can
 switch to it for Merkl claims. Bridge chains and which provider covers each are in [CHAINS.md](CHAINS.md).
 
 Monad is the wallet library's default network, so a wallet that is already on Monad is not pulled to another chain
@@ -75,6 +75,18 @@ and decimals.
 MON. `WMON` is also listed as an ordinary token. Picking MON on one side and WMON on the other shows a plain
 explanation (they are the same value); wrapping directly is not built into the swap.
 
+### BNB Chain and Avalanche coins
+
+- **BNB Chain:** `BNB`, `USDC`, `USDT`, `BTCB`, `ETH` (Binance-Peg), `CAKE`. **BNB Chain's USDC and USDT have 18
+  decimals, not 6**; the table and `test/chains-table.test.js` carry the right value.
+- **Avalanche:** `AVAX`, `USDC`, `USDt`, `BTC.b`, `WETH.e`.
+
+Same screening as Monad: each token was read on its own chain (symbol, decimals) and priced from the chain's wrapped
+native coin through KyberSwap at about $20 and $200, keeping only coins under 0.5% and 0.25% loss. On both chains the
+sources asked are LI.FI, KyberSwap, Velora, 1inch and 0x; each returned a live quote through the app's own code. Zerion
+and Uniswap are **not** enabled there, and 1inch Fusion is not offered, until each is verified. A wallet's native coin
+is traded through its wrapped contract (WBNB, WAVAX), as MON is on Monad.
+
 ### The coin picker
 
 Coin and chain lists open as our own **bottom sheet** instead of the phone's native dropdown, because some wallet
@@ -91,12 +103,12 @@ single source of truth (`src/token-picker.js`).
 | Coinbase | CDP Swap API | Base | Server-side (`CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`) |
 | Aerodrome | On-chain | Base | None |
 | Velodrome | On-chain | Optimism, Ink | None |
-| KyberSwap | Aggregator | Base, Monad, Optimism, Unichain | None (a public client ID is set in `src/dex/adapters.js`) |
-| LI.FI | Aggregator | All 5 | None |
-| Velora | Aggregator (ex-ParaSwap) | Base, Optimism, Unichain | None |
-| 1inch | Aggregator | Base, Monad, Optimism, Unichain | Server-side (`ONEINCH_API_KEY`) |
+| KyberSwap | Aggregator | Base, Monad, Optimism, Unichain, BNB Chain, Avalanche | None (a public client ID is set in `src/dex/adapters.js`) |
+| LI.FI | Aggregator | All 7 | None |
+| Velora | Aggregator (ex-ParaSwap) | Base, Optimism, Unichain, BNB Chain, Avalanche | None |
+| 1inch | Aggregator | Base, Monad, Optimism, Unichain, BNB Chain, Avalanche | Server-side (`ONEINCH_API_KEY`) |
 | 1inch Fusion | Gasless intent swaps | Base, Optimism, Monad, Unichain | Server-side (same 1inch key) |
-| 0x | Aggregator, called through our server | All 5 | Server-side (`ZEROX_API_KEY`) |
+| 0x | Aggregator, called through our server | All 7 | Server-side (`ZEROX_API_KEY`) |
 | Zerion | Aggregator | Base, Optimism, Ink, Unichain | Server-side (`ZERION_API_KEY`) |
 
 On **Monad** the sources are LI.FI, KyberSwap, 1inch, Fusion and 0x. A source that does not route on a chain shows

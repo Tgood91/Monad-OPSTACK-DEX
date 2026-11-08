@@ -23,9 +23,11 @@ export function choose(select, value, doc = globalThis.document) {
 
 const CSS_CLASS = 'pick';
 
-function openSheet(select, title) {
-  const doc = select.ownerDocument;
-  const opts = readOptions(select);
+/**
+ * Open the slide-up list. `items` = [{ value, label, selected?, disabled?, color? }]; `onPick(value)` runs on a tap.
+ * Shared by the coin/chain dropdown replacements and the chain menu. `color` draws a small dot (chain colours).
+ */
+export function openChoiceSheet(doc, { title, items, onPick }) {
   const wrap = doc.createElement('div');
   wrap.className = 'pickWrap';
   wrap.setAttribute('role', 'dialog');
@@ -53,21 +55,36 @@ function openSheet(select, title) {
   head.appendChild(x);
   const list = doc.createElement('div');
   list.className = 'pickList';
-  for (const o of opts) {
+  for (const o of items) {
     const b = doc.createElement('button');
     b.type = 'button';
     b.className = 'pickItem' + (o.selected ? ' on' : '');
-    b.textContent = o.label;
-    b.disabled = o.disabled;
+    if (o.color) {
+      const dot = doc.createElement('span');
+      dot.className = 'pickDot';
+      dot.style.background = o.color;
+      b.appendChild(dot);
+    }
+    b.appendChild(doc.createTextNode(o.label));
+    b.disabled = !!o.disabled;
     b.addEventListener('click', () => {
-      choose(select, o.value, doc);
       close();
+      onPick(o.value);
     });
     list.appendChild(b);
   }
   sheet.append(head, list);
   wrap.append(back, sheet);
   doc.body.appendChild(wrap);
+}
+
+function openSheet(select, title) {
+  const doc = select.ownerDocument;
+  openChoiceSheet(doc, {
+    title,
+    items: readOptions(select),
+    onPick: (value) => choose(select, value, doc),
+  });
 }
 
 /** Replace one <select>'s pop-up with our sheet. Safe to call twice. */

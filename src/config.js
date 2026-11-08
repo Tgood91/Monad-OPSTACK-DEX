@@ -4,7 +4,7 @@
 import { createAppKit } from '@reown/appkit';
 import { ReownAuthentication } from '@reown/appkit-siwx';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { mainnet, base, optimism, defineChain } from '@reown/appkit/networks';
+import { mainnet, base, optimism, bsc, avalanche, defineChain } from '@reown/appkit/networks';
 import { CHAINS } from './dex/chains.js';
 import { coversChain, createSessionCache } from './siwx-share.js';
 
@@ -76,7 +76,7 @@ const monad = defineChain({
 });
 
 // Ethereum is listed so the wallet can switch to it for Merkl claims; swaps don't use it.
-const networks = [monad, base, optimism, ink, unichain, mainnet];
+const networks = [monad, base, optimism, ink, unichain, bsc, avalanche, mainnet];
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
@@ -130,7 +130,7 @@ export const appKitNetworkForChainId = (id) =>
   ({ 1: mainnet, 8453: base, 143: monad, 10: optimism })[Number(id)] || null;
 
 // Map our internal chain key → AppKit network object
-const NETWORK_BY_KEY = { base, monad, optimism, ink, unichain };
+const NETWORK_BY_KEY = { base, monad, optimism, ink, unichain, bsc, avalanche };
 
 export function appKitNetworkFor(chainKey) {
   return NETWORK_BY_KEY[chainKey];

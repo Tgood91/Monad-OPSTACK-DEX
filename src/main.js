@@ -6,7 +6,8 @@ import { ethers } from 'ethers';
 import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
 import { retryOnce } from './utils/retry.js';
-import { enhanceAllSelects } from './token-picker.js';
+import { enhanceAllSelects, openChoiceSheet } from './token-picker.js';
+import { chainMenuItems, chainMenuLabel } from './chain-menu.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';
@@ -39,14 +40,22 @@ const $ = id => document.getElementById(id);
 
 /* ---------------- rendering ---------------- */
 function renderChains() {
+  // One compact button instead of a row of pills: it shows the current chain and opens the chain menu.
   const g = $('chainGrid');
   g.innerHTML = '';
-  for (const [key, c] of Object.entries(CHAINS)) {
-    const b = el('button', 'chain-btn' + (key === chainKey ? ' active' : ''),
-      `<span class="dot" style="background:${c.color}"></span>${c.label}`);
-    b.onclick = () => switchChainUI(key);
-    g.appendChild(b);
-  }
+  const cur = chainMenuLabel(CHAINS, chainKey);
+  const b = el('button', 'chain-menu-btn',
+    `<span class="dot" style="background:${cur.color}"></span><span class="chain-menu-name">${cur.label}</span>` +
+    `<span class="chain-menu-burger" aria-hidden="true">☰</span>`);
+  b.type = 'button';
+  b.setAttribute('aria-haspopup', 'dialog');
+  b.setAttribute('aria-label', `Network: ${cur.label}. Tap to change.`);
+  b.onclick = () => openChoiceSheet(document, {
+    title: 'Choose network',
+    items: chainMenuItems(CHAINS, chainKey),
+    onPick: (key) => { if (key !== chainKey) switchChainUI(key); },
+  });
+  g.appendChild(b);
 }
 
 // Server-held keys (from /api/health). null until loaded: assume set, so chips
