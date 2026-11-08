@@ -51,6 +51,31 @@ export const CHAINS = {
     tokens: [
       { symbol: 'MON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18, isNative: true }, // WMON (wrapped)
       { symbol: 'USDC', address: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', decimals: 6 },
+      // Wrapped MON: the same contract MON stands in for above, here as an ordinary token you can hold and trade.
+      { symbol: 'WMON', address: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', decimals: 18 },
+      // Added after checking each contract on Monad (name, symbol, decimals) and getting a live KyberSwap
+      // route for it from MON. Order matters: the first two stay MON and USDC (the app defaults to them).
+      { symbol: 'USDT0', address: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', decimals: 6 },
+      { symbol: 'WETH', address: '0xEE8c0E9f1BFFb4Eb878d8f15f368A02a35481242', decimals: 18 },
+      { symbol: 'WBTC', address: '0x0555E30da8f98308EdB960aa94C0Db47230d2B9c', decimals: 8 },
+      { symbol: 'AUSD', address: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', decimals: 6 },
+      { symbol: 'sMON', address: '0xA3227C5969757783154C60bF0bC1944180ed81B9', decimals: 18 }, // Kintsu staked MON
+      { symbol: 'gMON', address: '0x8498312A6B3CbD158bf0c93AbdCF29E6e4F55081', decimals: 18 },
+      { symbol: 'shMON', address: '0x1B68626dCa36c7fE922fD2d55E4f631d962dE19c', decimals: 18 }, // ShMonad
+      // From Monad's official token list (github.com/monad-crypto/token-list), keeping only coins whose on-chain
+      // symbol and decimals match the list AND that priced within 0.5% from MON at $16 and 0.25% at $166.
+      { symbol: 'GHO', address: '0xfc421aD3C883Bf9E7C4f42dE845C4e4405799e73', decimals: 18 },
+      { symbol: 'cbBTC', address: '0xd18B7EC58Cdf4876f6AFebd3Ed1730e4Ce10414b', decimals: 8 },
+      { symbol: 'LBTC', address: '0xecAc9C5F704e954931349Da37F60E39f515c11c1', decimals: 8 },
+      { symbol: 'Cake', address: '0xF59D81cd43f620E722E07f9Cb3f6E41B031017a3', decimals: 18 },
+      { symbol: 'avUSD', address: '0x0D9D741FE423Cd5419e4BCb6cB2FfA87AFa93bA4', decimals: 18 },
+      { symbol: 'mUSD', address: '0xacA92E438df0B2401fF60dA7E4337B687a2435DA', decimals: 6 },
+      { symbol: 'XAUt0', address: '0x01bFF41798a0BcF287b996046Ca68b395DbC1071', decimals: 6 }, // Tether Gold
+      { symbol: 'aprMON', address: '0x0c65A0BC65a5D819235B71F554D210D3F80E0852', decimals: 18 }, // aPriori staked MON
+      { symbol: 'syrupUSDC', address: '0xaB6e5a0C3799d020c790D34F7B2C02639e238AF7', decimals: 6 }, // Maple
+      // Clanker token created by the project owner. Verified on Monad (MonazolaM, 18 decimals) with a live route;
+      // its pool is small (about $2k when added), so large swaps will show a big price impact in the quote.
+      { symbol: 'MONAZ', address: '0x261E706FA130825b48b99989732a4eE31fFFeB07', decimals: 18 },
     ],
   },
   optimism: {
