@@ -21,9 +21,13 @@ const CSS = `
 .fp-pond[aria-disabled="true"]{cursor:default}
 .fp-overlay{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;pointer-events:none}
 .fp-label{padding:11px 18px;border-radius:999px;font-weight:700;font-size:15px;color:#fff;max-width:92%;text-align:center;
- background:linear-gradient(248.86deg,#B6509E 10.51%,#177E87 93.41%);box-shadow:0 4px 18px rgba(0,0,0,.45)}
-.fp-pond[aria-disabled="true"] .fp-label{background:#2a2a35;color:#d4d4d8}
-.fp-pond.sent .fp-label{background:#14532d;color:#bbf7d0}
+ /* frosted glass: the pond shows through, the blur keeps the text readable over the koi */
+ background:linear-gradient(248.86deg,rgba(182,80,158,.58) 10.51%,rgba(23,126,135,.58) 93.41%);
+ border:1px solid rgba(255,255,255,.38);
+ -webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+ text-shadow:0 1px 3px rgba(0,0,0,.75);box-shadow:0 4px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.25)}
+.fp-pond[aria-disabled="true"] .fp-label{background:rgba(42,42,53,.62);color:#e4e4e7;border-color:rgba(255,255,255,.22)}
+.fp-pond.sent .fp-label{background:rgba(20,83,45,.62);color:#dcfce7;border-color:rgba(134,239,172,.45)}
 .fp-coin{position:absolute;left:50%;top:6%;width:22px;height:22px;margin-left:-11px;border-radius:50%;
  background:radial-gradient(circle at 35% 30%,#fde68a,#f59e0b 60%,#b45309);box-shadow:0 0 10px rgba(251,191,36,.8);
  opacity:0;pointer-events:none}
