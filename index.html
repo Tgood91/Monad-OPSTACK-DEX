@@ -234,6 +234,8 @@
     <button class="btn btn-connect" id="connectBtn" style="width:auto;padding:10px 20px;">Connect</button>
   </div>
 
+  </div>
+
   <div class="tab-bar">
     <button class="tab-btn active" id="tabSwap"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg> <span class="tab-lb">Swap</span></button>
     <button class="tab-btn" id="tabBridge"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18M5 17V9m14 8V9M3 9c4 5 14 5 18 0"/></svg> <span class="tab-lb">Bridge</span></button>
@@ -386,6 +388,7 @@
 
   <!-- ============ MERKL REWARDS PANE ============ -->
   <div id="merklPane" style="display:none;">
+    <div id="faucetPondRoot"></div>
     <div class="card">
       <span class="lbl">Your Merkl rewards — Ethereum · Base · Monad</span>
       <div id="merklRewards"><div class="status">Connect a wallet to see your Merkl rewards.</div></div>
