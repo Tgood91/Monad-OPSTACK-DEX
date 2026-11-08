@@ -48,7 +48,7 @@ import {
 import { logOps, recentOps, opsConfigured } from "./ops.js";
 import { createZeroxProxy, zeroxKey } from "./zerox.js";
 import { assetLinksHandler } from "./assetlinks.js";
-import { createLimiter } from "./limits.js";
+import { createLimiter, proxyInfo } from "./limits.js";
 import { createPerks } from "./perks.js";
 import { disabledSources, switchesMiddleware } from "./switches.js";
 import { createFaucet, faucetRoutes } from "./faucet.js";
@@ -124,8 +124,8 @@ function serverKeys() {
   };
 }
 
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), time: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), proxy: proxyInfo(req, app.get("trust proxy")), time: new Date().toISOString() });
 });
 
 // Bridge source health: cached probe round (1-USDC quotes, read-only).

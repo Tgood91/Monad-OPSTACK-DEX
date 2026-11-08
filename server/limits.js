@@ -36,3 +36,24 @@ export function createLimiter({
     next();
   };
 }
+
+/**
+ * What the server sees about the caller's connection, for the health page. It reports the caller's OWN request
+ * data back to them, so it exposes nothing new. It exists to answer one question: is TRUST_PROXY the right
+ * number for this host? (`yourIp` should be the visitor's address, not a shared proxy/CDN address.)
+ */
+export function proxyInfo(req, trust) {
+  const raw = String(req.headers?.["x-forwarded-for"] || "");
+  const chain = raw
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  return {
+    trustProxy: trust === undefined || trust === false ? "off" : trust,
+    yourIp: req.ip || null,
+    forwardedFor: chain,
+    forwardedHops: chain.length,
+    behindCdn: Boolean(req.headers?.["cf-ray"]),
+  };
+}
