@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createLimiter } from "../server/limits.js";
+import { createLimiter, proxyInfo } from "../server/limits.js";
 import { disabledSources, sourceForPath, switchesMiddleware } from "../server/switches.js";
 
 function call(mw, url, ip = "1.1.1.1") {
@@ -61,4 +61,22 @@ test("a disabled source's routes answer 503 and others pass", async () => {
   assert.equal(off.code, 503);
   assert.match(off.body.error, /turned off/);
   assert.equal((await call(mw, "/api/oneinch/quote")).passed, true);
+});
+
+test("proxyInfo reports the caller's own connection details, nothing more", () => {
+  const req = { ip: "203.0.113.9", headers: { "x-forwarded-for": "203.0.113.9, 172.70.1.2", "cf-ray": "abc-IAD" } };
+  assert.deepEqual(proxyInfo(req, 1), {
+    trustProxy: 1,
+    yourIp: "203.0.113.9",
+    forwardedFor: ["203.0.113.9", "172.70.1.2"],
+    forwardedHops: 2,
+    behindCdn: true,
+  });
+});
+test("proxyInfo handles no proxy, no header, and a very long header", () => {
+  assert.equal(proxyInfo({ ip: "1.1.1.1", headers: {} }, false).trustProxy, "off");
+  assert.equal(proxyInfo({ ip: "1.1.1.1", headers: {} }, undefined).forwardedHops, 0);
+  assert.equal(proxyInfo({ headers: {} }, 1).yourIp, null);
+  const long = Array.from({ length: 50 }, (_, i) => `10.0.0.${i}`).join(", ");
+  assert.equal(proxyInfo({ ip: "x", headers: { "x-forwarded-for": long } }, 2).forwardedFor.length, 8);
 });
