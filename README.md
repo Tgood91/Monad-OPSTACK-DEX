@@ -194,12 +194,18 @@ The **Your Dojo** card on the Bushido tab is built on three contracts on Monad m
 
 | Contract | Address | Purpose |
 |---|---|---|
-| **Dojo Pass** | `0x2647faf3aaa708d0b9a110744790e1f637fcca53` | `purchasePass()` for a small MON fee (0.001 MON), forwarded to the treasury. Holding a pass is a yes/no flag per wallet. |
-| **Warrior** | `0xafa3dd46746e39a89d411260d93e7514ab99b96e` | `enterDojo()` registers **one warrior per wallet** (no pass needed). It stores a birth time, last-interaction time and a few numbers. Only the contract owner can change a stat. |
-| **Bushido Honor** | `0x46d5f4924f833cd4054a36eaefa3beca6cd92a7e` | ERC-721 virtue badges. Deployed; not used by the app yet. |
+| **Dojo Pass** (`BushidoDojoGate`) | `0x2647faf3aaa708d0b9a110744790e1f637fcca53` | `purchasePass()` for a small MON fee (0.001 MON), forwarded to the treasury. Holding a pass is a yes/no flag per wallet. The owner can grant or revoke a pass and change the fee. |
+| **Warrior** (`BushidoProtocol`) | `0xafa3dd46746e39a89d411260d93e7514ab99b96e` | `enterDojo()` registers **one warrior per wallet** (no pass needed). It stores `createdAt`, `lastActivity`, `level` (starts at 1), `honor` (72), `reputation` (50) and `achievements` (0). The only thing the contract lets anyone change afterwards is `honor`, and only the owner can (`adjustHonor`). |
+| **Bushido Honor** (`BushidoVirtueRegistry`) | `0x46d5f4924f833cd4054a36eaefa3beca6cd92a7e` | ERC-721 virtue registry: per-trader virtue scores (`gi`, `yu`, `jin`, `rei`, `makoto`), trade records, honor tiers and badges. A "virtue controller" address can submit trades. Deployed; not used by the app yet. |
 
-The contracts' source is unpublished, so stat labels in the app are our own (`STAT_LABELS` in
-`src/dojo/dojo-core.js`), not names read from the contract.
+**All three contracts' source is public and verified on Sourcify** (a "perfect" match with the deployed code), so you
+can read exactly what they do. Fetch a contract's files from
+`https://sourcify-api-monad.blockvision.org/files/143/<address>`. Monadscan does not list them as verified; that is a
+gap in Monadscan's database, not a sign anything is wrong.
+
+One naming caveat: the Warrior contract calls its two meters `honor` and `reputation`, but the card currently labels
+them "Vitality" and "Focus" (`STAT_LABELS` in `src/dojo/dojo-core.js`), which were guesses made before the source was
+found. Only `honor` can ever change on-chain.
 
 ### What the card shows
 

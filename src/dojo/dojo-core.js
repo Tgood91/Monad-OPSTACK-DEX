@@ -1,15 +1,20 @@
 // Dojo: the three contracts on Monad mainnet (deployed by 0x00EA…, see CHANGELOG), read-only helpers.
 // No wallet and no library needed here: plain JSON-RPC reads plus small decoders, all unit-tested.
 //
-//   Dojo Pass  purchasePass() payable (fee, default 0.001 MON, forwarded to the treasury).
-//              Holding a pass is a yes/no flag per wallet.
-//   Warrior    enterDojo() registers ONE warrior per wallet (no pass needed). It stores a birth time,
-//              a last-interaction time and four numbers that start at 1, 72, 50 and 0.
-//              Only the contract owner can change a stat, so the app shows it, it does not grow it.
-//   Honor      the virtue registry (HONOR badges). Not used in Phase 1.
+// The source of all three is public and verified on Sourcify (a "perfect" match):
+//   https://sourcify-api-monad.blockvision.org/files/143/<address>
 //
-// The contracts have no published source, so the stat names below are OUR labels for the numbers
-// (kept in STAT_LABELS so they are easy to change), not names read from the contract.
+//   Dojo Pass  (BushidoDojoGate) purchasePass() payable (fee, default 0.001 MON, forwarded to the
+//              treasury). Holding a pass is a yes/no flag per wallet (hasDojoPass / isPractitioner).
+//   Warrior    (BushidoProtocol) enterDojo() registers ONE warrior per wallet (no pass needed). It stores
+//              createdAt, lastActivity, level (1), honor (72), reputation (50), achievements (0), active.
+//              Only the owner can change honor (adjustHonor), so the app shows it, it does not grow it.
+//   Honor      (BushidoVirtueRegistry) the virtue registry: an ERC-721 with per-trader virtue scores, trade
+//              records, honor tiers and badges. Not used in Phase 1.
+//
+// NOTE: the labels in STAT_LABELS ("Vitality", "Focus") are guesses made before the source was found. The
+// contract's own names for those two numbers are honor and reputation, and the field read as `streak`
+// below is the contract's `achievements`. Renaming them is a separate, user-visible change.
 
 export const DOJO = {
   chainId: 143,
