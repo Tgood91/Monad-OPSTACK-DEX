@@ -18,6 +18,7 @@
 import { dryQuote, resolveAsset } from "./near.js";
 import { stargateQuote } from "./stargate.js";
 import { aoriQuote, getChains } from "./aori.js";
+import { relayQuote } from "./relay.js";
 import { fusionQuote } from "./oneinch-fusion.js";
 
 const PROBE_WALLET = "0xBA397fAae1D5Fe10C0356f2e585bef34577ab111"; // quote-only
@@ -26,7 +27,7 @@ const TIMEOUT_MS = 15000;
 const SLOW_MS = 4000;
 const CACHE_MS = 5 * 60_000;
 
-const CHAIN_NAME = { 1: "Ethereum", 8453: "Base", 143: "Monad", 10: "Optimism", 42161: "Arbitrum" };
+const CHAIN_NAME = { 1: "Ethereum", 8453: "Base", 143: "Monad", 10: "Optimism", 42161: "Arbitrum", 57073: "Ink" };
 const USDC = {
   8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   143: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
@@ -182,6 +183,17 @@ async function aoriRoute(fromId, toId) {
   });
 }
 
+async function relayRoute(fromId, toId) {
+  await relayQuote({
+    fromChainId: fromId,
+    toChainId: toId,
+    fromToken: USDC[fromId],
+    toToken: toId === 57073 ? "native" : USDC[toId],
+    amountAtomic: AMOUNT,
+    wallet: PROBE_WALLET,
+  });
+}
+
 async function fusionRoute(fromId, toId) {
   await fusionQuote({
     srcChainId: fromId,
@@ -219,6 +231,15 @@ const SOURCES = [
     routes: [
       [8453, 143],
       [143, 8453],
+    ],
+  },
+  {
+    id: "relay",
+    name: "Relay",
+    run: relayRoute,
+    routes: [
+      [8453, 143],
+      [8453, 57073],
     ],
   },
   { id: "fusion", name: "1inch Fusion+", run: fusionRoute, routes: [[8453, 143]] },

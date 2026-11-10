@@ -5,7 +5,7 @@ A non-custodial **swap aggregator and cross-chain bridge**, built around **Monad
 
 Connect a wallet, pick two coins, and the app asks every enabled liquidity source for a live quote in parallel.
 The best price wins, and you can pick any other quote by hand. Need to move funds between chains? The Bridge
-tab compares three providers and checks the bridge deposit address against the provider's own records before
+tab compares four providers and checks the bridge deposit address against the provider's own records before
 you pay it.
 
 **Your wallet signs every transaction. The app never holds your funds or your keys.** The one exception is the
@@ -42,7 +42,7 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 | Tab | What it does |
 |---|---|
 | **Swap** | Same-chain swaps on 7 chains. Quotes from up to 10 sources, ranked by output. The app opens on **Monad** with 1 MON → USDC prefilled. |
-| **Bridge** | Cross-chain transfers through NEAR Intents, Stargate V2 and Aori, with a live **health strip** that shows which routes are working. Also **⛽ Get gas**: turn USDC on one chain into native gas (MON, ETH) on another. |
+| **Bridge** | Cross-chain transfers through NEAR Intents, Stargate V2, Relay and Aori, with a live **health strip** that shows which routes are working. Also **⛽ Get gas**: turn USDC on one chain into native gas (MON, ETH) on another. |
 | **Intel** | Ask about DEX routing and get a structured answer (query, table, chart). The figures are fixed **sample data**, and the UI says so. |
 | **Bushido** | Your **Dojo** card (pass, warrior, garden), the 7 virtue scores, the Seykota trend signal and a **gated swap panel** that works on any chain. |
 | **Rewards** | Merkl rewards: see your opportunities and claim, signed by your own wallet. |
@@ -166,12 +166,13 @@ transaction hash is a link to that transaction on the chain's explorer.
 
 ## How a bridge works
 
-Three providers, compared side by side:
+Four providers, compared side by side:
 
 | Provider | Covers | Notes |
 |---|---|---|
 | **NEAR Intents** | Base, Ethereum, Optimism, Monad | You pay a one-time deposit address; liquidity providers pay you on the destination chain. |
 | **Stargate V2** | Ethereum, Base, Optimism, Arbitrum, Avalanche, BNB | Same-asset only. |
+| **Relay** | Base, Optimism, Ethereum, Monad, Arbitrum, Avalanche, BNB, Ink, Unichain | Your wallet sends a deposit; a solver pays you on the destination chain. The server checks every transaction before your wallet sees it. The only provider here for Ink and Unichain. |
 | **Aori** | Ethereum, Base, Optimism, Arbitrum, Monad, BNB | Intent-based (EIP-712 orders). |
 
 A fourth, **1inch Fusion+**, is wired in but off until a vault socket is configured.

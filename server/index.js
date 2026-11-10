@@ -38,6 +38,7 @@ import {
   aoriSubmit,
   aoriStatus,
 } from "./aori.js";
+import { RELAY_CHAINS, relayTokens, relayQuote, relayStatus } from "./relay.js";
 import {
   getVirtueScores,
   virtueMeta,
@@ -361,6 +362,47 @@ app.post("/api/stargate/build-tx", (req, res) => {
 
 // ---- Aori intent-based bridging (keyless quotes; user signs EIP-712 order) ----
 // Chain keys: base, optimism, ethereum, arbitrum, monad, etc. (from GET /chains)
+// GET /api/relay/tokens?chainId=8453 — tokens Relay's solver holds on a chain
+app.get("/api/relay/tokens", async (req, res) => {
+  try {
+    const chainId = Number(req.query.chainId);
+    if (!RELAY_CHAINS.includes(chainId)) return res.status(400).json({ error: "unsupported chainId" });
+    res.json({ tokens: await relayTokens(chainId) });
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// POST /api/relay/quote — { fromChainId, toChainId, fromToken ('native'|0x…), toToken, amountAtomic, wallet }
+// Returns the quote plus the CHECKED transactions (server/relay.js checkRelayQuote) for the USER's wallet to send.
+app.post("/api/relay/quote", async (req, res) => {
+  try {
+    const { fromChainId, toChainId, fromToken, toToken, amountAtomic, wallet } = req.body || {};
+    if (!RELAY_CHAINS.includes(Number(fromChainId))) return res.status(400).json({ error: "bad fromChainId" });
+    if (!RELAY_CHAINS.includes(Number(toChainId))) return res.status(400).json({ error: "bad toChainId" });
+    if (Number(fromChainId) === Number(toChainId)) return res.status(400).json({ error: "from/to chains must differ" });
+    const tokenOk = (t) => t === "native" || /^0x[0-9a-fA-F]{40}$/.test(String(t || ""));
+    if (!tokenOk(fromToken) || !tokenOk(toToken)) return res.status(400).json({ error: "bad token" });
+    if (!/^[1-9]\d{0,39}$/.test(String(amountAtomic))) return res.status(400).json({ error: "bad amountAtomic" });
+    if (!/^0x[0-9a-fA-F]{40}$/.test(String(wallet || ""))) return res.status(400).json({ error: "bad wallet" });
+    const quote = await relayQuote({ fromChainId, toChainId, fromToken, toToken, amountAtomic, wallet });
+    res.json({ quote });
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
+// GET /api/relay/status?requestId=0x… — poll until success / failure / refund.
+app.get("/api/relay/status", async (req, res) => {
+  try {
+    const requestId = String(req.query.requestId || "");
+    if (!/^0x[0-9a-fA-F]{64}$/.test(requestId)) return res.status(400).json({ error: "bad requestId" });
+    res.json(await relayStatus(requestId));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
 // GET /api/aori/tokens?chainKey=base — tokens Aori can bridge on a chain
 app.get("/api/aori/tokens", async (req, res) => {
   try {

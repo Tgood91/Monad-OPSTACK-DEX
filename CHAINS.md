@@ -16,15 +16,17 @@ EVM chain IDs and LayerZero V2 endpoint IDs for all chains in this DEX.
 
 ## Bridge chains
 
-| Chain | EVM Chain ID | Native | LayerZero EID | NEAR Intents | Stargate | Aori |
-|-------|-------------|--------|---------------|--------------|----------|------|
-| Ethereum | 1 | ETH | 30101 | ✓ | ✓ | ✓ |
-| Base | 8453 | ETH | 30184 | ✓ | ✓ | ✓ |
-| Optimism | 10 | ETH | 30111 | ✓ | ✓ | ✓ |
-| Monad | 143 | MON | 30390 | ✓ | OFT-only* | ✓ |
-| Arbitrum | 42161 | ETH | 30110 | — | ✓ | ✓ |
-| Avalanche | 43114 | AVAX | 30106 | — | ✓ | — |
-| BNB Chain | 56 | BNB | 30102 | — | ✓ | ✓ |
+| Chain | EVM Chain ID | Native | LayerZero EID | NEAR Intents | Stargate | Relay | Aori |
+|-------|-------------|--------|---------------|--------------|----------|-------|------|
+| Ethereum | 1 | ETH | 30101 | ✓ | ✓ | ✓ | ✓ |
+| Base | 8453 | ETH | 30184 | ✓ | ✓ | ✓ | ✓ |
+| Optimism | 10 | ETH | 30111 | ✓ | ✓ | ✓ | ✓ |
+| Monad | 143 | MON | 30390 | ✓ | OFT-only* | ✓ | ✓ |
+| Arbitrum | 42161 | ETH | 30110 | — | ✓ | ✓ | ✓ |
+| Avalanche | 43114 | AVAX | 30106 | — | ✓ | ✓ | — |
+| BNB Chain | 56 | BNB | 30102 | — | ✓ | ✓ | ✓ |
+| Ink | 57073 | ETH | — | — | — | ✓ | — |
+| Unichain | 130 | ETH | 30320 | — | — | ✓ | — |
 
 \* Stargate pool contracts don't list Monad; its path is via USDT0/WBTC LayerZero OFTs (not yet wired).
 
