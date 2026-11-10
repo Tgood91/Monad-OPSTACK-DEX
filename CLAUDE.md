@@ -80,7 +80,7 @@ Recipes: [dex-skills/dex-chain-config](dex-skills/dex-chain-config/SKILL.md), [d
 | Swap UI | `src/main.js`, `src/token-picker.js`, `src/chain-menu.js`, `src/simulate.js` |
 | Bushido tab and Dojo | `src/BushidoPanels.jsx`, `src/DojoCard.jsx`, `src/DojoPond.jsx`, `src/dojo/` |
 | Faucet pond (Rewards tab) | `src/FaucetPond.jsx`, `src/faucet-button.js`, `src/faucet-pond-mount.jsx` |
-| Bridge | `src/bridge*.js`, `server/near.js`, `server/stargate.js`, `server/aori.js`, `server/bridge-health.js` |
+| Bridge | `src/bridge*.js`, `server/near.js`, `server/stargate.js`, `server/relay.js`, `server/aori.js`, `server/bridge-health.js` |
 | Server | `server/index.js`, `server/limits.js`, `server/faucet.js`, `server/perks.js`, `server/switches.js` |
 | Tests | `test/` (one file per area; fakes instead of the network) |
 
@@ -98,4 +98,5 @@ Recipes: [dex-skills/dex-chain-config](dex-skills/dex-chain-config/SKILL.md), [d
 - Ink has a single RPC. Aori's quote service has been returning 500s. 1inch Fusion+ is not configured.
 - Zerion and Uniswap are not enabled on BNB Chain or Avalanche (unverified); Fusion cannot sell a native coin.
 - A real swap transaction on BNB Chain or Avalanche has not been sent from this environment.
+- A real Relay bridge has not been sent (quotes, checks and dry-runs only).
 - Dojo meter labels (Vitality/Focus) differ from the contract's names (honor/reputation).

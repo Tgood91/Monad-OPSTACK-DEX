@@ -1,18 +1,19 @@
 ---
 name: dex-bridge
-description: Build, debug, or extend the cross-chain bridge tab — NEAR Intents, Stargate V2, and Aori flows in src/bridge.js and server/near.js / server/stargate.js / server/aori.js. Use when fixing bridge quote failures, adding CCTPV2, debugging deposit-address expiry, or wiring in drip-tools gas refill.
+description: Build, debug, or extend the cross-chain bridge tab — NEAR Intents, Stargate V2, Relay and Aori flows in src/bridge.js and server/near.js / server/stargate.js / server/relay.js / server/aori.js. Use when fixing bridge quote failures, adding CCTPV2, debugging deposit-address expiry, or wiring in drip-tools gas refill.
 ---
 
 # Bridge
 
 ## Architecture
 
-The bridge tab (`src/bridge.js`) has three provider flows. Each is independent — a failure in one does not affect the others.
+The bridge tab (`src/bridge.js`) has four provider flows. Each is independent — a failure in one does not affect the others.
 
 | Provider | Server module | Type | Key |
 |---|---|---|---|
 | NEAR Intents | `server/near.js` | Intent-based, deposit address | No key in the env: a vault surrogate when available, otherwise keyless (0.25% fee) |
 | Stargate V2 | `server/stargate.js` | On-chain, same-asset only | None |
+| Relay | `server/relay.js` | Wallet sends a deposit, a solver pays out | None |
 | Aori | `server/aori.js` | EIP-712 intent orders | None |
 
 ## NEAR Intents (1Click API)
@@ -49,6 +50,23 @@ Flow:
 - USDT routes that touch Optimism or Arbitrum revert inside Stargate's contracts (cause unconfirmed); USDC and native routes
   work on all six chains. The health strip probes only Base routes, so test other chains by hand.
 - CCTPV2 is planned as an additional fast stablecoin bridge — see `README.md` notes. When adding: create `server/cctp.js`, add `/api/cctp/quote` and `/api/cctp/status` routes in `server/index.js`, add `cctp` to relevant chain `sources[]` in `chains.js`.
+
+## Relay (relay.link)
+
+- Keyless public API (`https://api.relay.link`, spec at `/documentation/json`). Chains: Base, Optimism, Ethereum, Monad,
+  Arbitrum, Avalanche, BNB Chain, Ink, Unichain (`RELAY_CHAINS`). The only provider here that reaches Ink and Unichain.
+- Flow: `/api/relay/quote` returns the transactions for the wallet: an exact-amount `approve` for ERC-20s, then one
+  `deposit` into Relay's depository. Status: `/api/relay/status?requestId=...` (waiting, pending, success, failure, refund).
+- **`checkRelayQuote` is the safety gate.** A quote reaches the browser only if every transaction is on the origin chain,
+  from the user's wallet, to a contract Relay publishes for that chain (`GET /chains`: `protocol.v2.depository` and
+  `contracts`), for exactly the amount entered, with the user's wallet as recipient. Signature steps and unknown step ids
+  are refused. Do not loosen this to make a new route work: find out why the quote differs.
+- The browser takes a fresh quote when Bridge is pressed, stops if the price moved more than 1%, and dry-runs each
+  transaction on our own RPC (`runSimulation`) before the wallet signs. After an approval it waits for our RPC to see the
+  allowance, or the dry-run would report a revert that is not real.
+- Tokens come from Relay's solver list per chain (the gas coin is the zero address there, `null` in our lists). BNB Chain
+  USDC and USDT are 18 decimals there too.
+- Not used: `usePermit` (signature steps), deposit addresses, app fees, same-chain swaps.
 
 ## Aori
 

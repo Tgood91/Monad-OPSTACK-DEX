@@ -7,6 +7,10 @@ const SC = {
   stargate: ["ethereum", "base", "optimism", "arbitrum", "avalanche", "bsc"],
   aori: ["ethereum", "base", "optimism", "arbitrum", "monad", "bsc"],
 };
+const WITH_RELAY = {
+  ...SC,
+  relay: ["base", "optimism", "ethereum", "monad", "arbitrum", "avalanche", "bsc", "ink", "unichain"],
+};
 const NEAR_TO = ["bsc", "avalanche", "polygon", "scroll", "xlayer", "adi"];
 
 test("From and To lists cover every provider", () => {
@@ -32,4 +36,14 @@ test("the current provider is kept when it still works, otherwise the first that
   assert.equal(pickProvider("aori", ["near", "aori"]), "aori");
   assert.equal(pickProvider("stargate", ["near", "aori"]), "near");
   assert.equal(pickProvider("near", []), null);
+});
+
+test("Relay: listed before Aori, and the only provider for Ink and Unichain", () => {
+  assert.deepEqual(providersFor("base", "monad", WITH_RELAY, NEAR_TO), ["near", "relay", "aori"]);
+  assert.deepEqual(providersFor("base", "ink", WITH_RELAY, NEAR_TO), ["relay"]);
+  assert.deepEqual(providersFor("ink", "unichain", WITH_RELAY, NEAR_TO), ["relay"]);
+  assert.deepEqual(providersFor("avalanche", "monad", WITH_RELAY, NEAR_TO), ["relay"]);
+  assert.ok(fromChainsAll(WITH_RELAY).includes("ink"));
+  assert.equal(pickProvider("near", providersFor("base", "ink", WITH_RELAY, NEAR_TO)), "relay");
+  assert.deepEqual(providersFor("ink", "polygon", WITH_RELAY, NEAR_TO), []); // Relay is not offered to the receive-only chains
 });

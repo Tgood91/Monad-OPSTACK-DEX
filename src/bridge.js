@@ -10,6 +10,7 @@ import {
 } from './utils/web3.js';
 import { ERC20_ABI } from './utils/abis.js';
 import { resilient } from './dex/resilience.js';
+import { runSimulation } from './simulate.js';
 import { mountDeposit } from './bridge-deposit-ui.js';
 import {
   PROVIDER_LABELS, fromChainsAll, toChainsAll, providersFor, pickProvider,
@@ -24,6 +25,9 @@ const BRIDGE_CHAINS = {
   arbitrum: { chainId: 42161, label: 'Arbitrum', native: 'ETH', explorer: 'https://arbiscan.io',             rpcs: ['https://arb1.arbitrum.io/rpc'] },
   avalanche:{ chainId: 43114, label: 'Avalanche',native: 'AVAX',explorer: 'https://snowtrace.io',            rpcs: ['https://api.avax.network/ext/bc/C/rpc'] },
   bsc:      { chainId: 56,    label: 'BNB Chain',native: 'BNB', explorer: 'https://bscscan.com',              rpcs: ['https://bsc-dataseed.binance.org'] },
+  // Reached through Relay only (RPCs and explorers as in src/dex/chains.js)
+  ink:      { chainId: 57073, label: 'Ink',      native: 'ETH', explorer: 'https://explorer.inkonchain.com',  rpcs: ['https://rpc-gel.inkonchain.com'] },
+  unichain: { chainId: 130,   label: 'Unichain', native: 'ETH', explorer: 'https://uniscan.xyz',              rpcs: ['https://unichain.drpc.org', 'https://mainnet.unichain.org'] },
   // HOT Protocol bridge chains, used as ⛽ Get gas destinations (RPCs checked 2026-11-05)
   polygon:  { chainId: 137,   label: 'Polygon',  native: 'POL', explorer: 'https://polygonscan.com',          rpcs: ['https://polygon.drpc.org'] },
   scroll:   { chainId: 534352,label: 'Scroll',   native: 'ETH', explorer: 'https://scrollscan.com',           rpcs: ['https://rpc.scroll.io', 'https://scroll.drpc.org'] },
@@ -39,6 +43,8 @@ const SOURCE_CHAINS = {
   near: ['base', 'optimism', 'ethereum', 'monad'],
   stargate: ['ethereum', 'base', 'optimism', 'arbitrum', 'avalanche', 'bsc'],
   aori: ['ethereum', 'base', 'optimism', 'arbitrum', 'monad', 'bsc'],
+  // Relay (server/relay.js RELAY_CHAINS): the only provider here that reaches Ink and Unichain.
+  relay: ['base', 'optimism', 'ethereum', 'monad', 'arbitrum', 'avalanche', 'bsc', 'ink', 'unichain'],
 };
 
 const $ = id => document.getElementById('b' + id[0].toUpperCase() + id.slice(1));
@@ -65,6 +71,10 @@ async function loadTokens(chainKey) {
   const chainId = BRIDGE_CHAINS[chainKey].chainId;
   if (state.source === 'aori') {
     const { tokens } = await api(`/api/aori/tokens?chainKey=${chainKey}`);
+    return tokens;
+  }
+  if (state.source === 'relay') {
+    const { tokens } = await api(`/api/relay/tokens?chainId=${chainId}`);
     return tokens;
   }
   if (state.source === 'stargate') {
@@ -289,7 +299,7 @@ async function refreshQuote() {
     return;
   }
 
-  const sourceLabel = state.source === 'stargate' ? 'Stargate' : state.source === 'aori' ? 'Aori' : 'NEAR Intents';
+  const sourceLabel = PROVIDER_LABELS[state.source] || 'NEAR Intents';
   box.innerHTML = `<div class="status"><span class="spinner"></span>Quoting via ${sourceLabel}…</div>`;
   detail.innerHTML = '';
   btn.disabled = true;
@@ -301,6 +311,10 @@ async function refreshQuote() {
     }
     if (state.source === 'stargate') {
       await refreshStargateQuote({ btn, box, detail, wallet, amtStr, fi, ti });
+      return;
+    }
+    if (state.source === 'relay') {
+      await refreshRelayQuote({ btn, box, detail, wallet, amtStr, fi, ti });
       return;
     }
     const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
@@ -364,6 +378,37 @@ async function refreshStargateQuote({ btn, box, detail, wallet, amtStr, fi, ti }
   btn.textContent = wallet ? 'Bridge via Stargate' : 'Connect wallet to bridge';
 }
 
+/* ---------------- Relay quoting ---------------- */
+function relayQuoteBody(wallet, fi, ti, amountAtomic) {
+  return JSON.stringify({
+    fromChainId: BRIDGE_CHAINS[state.fromChain].chainId,
+    toChainId: BRIDGE_CHAINS[state.toChain].chainId,
+    fromToken: tokenRef(fi), toToken: tokenRef(ti),
+    amountAtomic, wallet,
+  });
+}
+
+async function refreshRelayQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
+  const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
+  const { quote } = await resilient('bridge:relay', () => api('/api/relay/quote', {
+    method: 'POST', body: relayQuoteBody(wallet, fi, ti, amountAtomic),
+  }));
+  state.quote = { ...quote, fi, ti, amountAtomic, relay: true };
+  const fmt = (v) => Number(ethers.formatUnits(BigInt(v), ti.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 });
+  const out = Number(ethers.formatUnits(BigInt(quote.amountOut), ti.decimals));
+  $('toAmount').value = fmt(quote.amountOut);
+  box.innerHTML = `<div class="status success">1 ${fi.symbol} → ${(out / Number(amtStr)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${ti.symbol}</div>`;
+  detail.innerHTML = `<div class="detail-grid">
+    <span class="k">You receive</span><span class="v">${fmt(quote.amountOut)} ${ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}${quote.amountOutUsd ? ` (~$${Number(quote.amountOutUsd).toFixed(2)})` : ''}</span>
+    <span class="k">Min received</span><span class="v">${fmt(quote.minAmountOut)} ${ti.symbol}</span>
+    ${quote.feeUsd ? `<span class="k">Relay fee</span><span class="v">~$${Number(quote.feeUsd).toFixed(3)}</span>` : ''}
+    <span class="k">Est. time</span><span class="v">~${quote.timeEstimateSec || '?'}s</span>
+    <span class="k">Source</span><span class="v">Relay</span>
+  </div>`;
+  btn.disabled = !wallet;
+  btn.textContent = wallet ? 'Bridge via Relay' : 'Connect wallet to bridge';
+}
+
 /* ---------------- Aori quoting ---------------- */
 async function refreshAoriQuote({ btn, box, detail, wallet, amtStr, fi, ti }) {
   const amountAtomic = ethers.parseUnits(amtStr, fi.decimals).toString();
@@ -406,6 +451,7 @@ async function startBridge() {
   if (!state.quote || !wallet) return;
   if (state.quote.aori) return startAoriBridge(wallet);
   if (state.quote.stargate) return startStargateBridge(wallet);
+  if (state.quote.relay) return startRelayBridge(wallet);
   const q = state.quote;
   const btn = $('bridgeBtn');
   try {
@@ -559,6 +605,111 @@ async function startStargateBridge(wallet) {
     btn.disabled = false;
     btn.textContent = 'Bridge via Stargate';
   }
+}
+
+/* ---------------- Relay bridge flow ---------------- */
+// The user's wallet sends the transactions the server checked (server/relay.js): an exact-amount approval for
+// ERC-20s, then one deposit into Relay's depository. Each one is dry-run on our own RPC first; a revert means the
+// wallet is never asked to sign. A solver then pays out on the destination chain.
+async function startRelayBridge(wallet) {
+  const prev = state.quote;
+  const btn = $('bridgeBtn');
+  const restore = () => { btn.disabled = false; btn.textContent = 'Bridge via Relay'; };
+  try {
+    btn.disabled = true;
+    // Quotes go stale within seconds: take a fresh one for the transactions that will actually be signed.
+    setStatus('<span class="spinner"></span>Getting a fresh Relay quote…');
+    const { quote } = await api('/api/relay/quote', {
+      method: 'POST', body: relayQuoteBody(wallet, prev.fi, prev.ti, prev.amountAtomic),
+    });
+    if (BigInt(quote.minAmountOut) < (BigInt(prev.minAmountOut) * 99n) / 100n) {
+      state.quote = { ...quote, fi: prev.fi, ti: prev.ti, amountAtomic: prev.amountAtomic, relay: true };
+      setStatus('The price moved by more than 1% since the quote. Nothing was sent: check the new amount and press Bridge again.', 'warn');
+      scheduleQuote();
+      return restore();
+    }
+    const chainId = BRIDGE_CHAINS[state.fromChain].chainId;
+    setStatus('<span class="spinner"></span>Switching wallet to ' + BRIDGE_CHAINS[state.fromChain].label + '…');
+    await ensureOnChain(state.fromChain);
+    const signer = await getSigner();
+    const reader = await readProvider(state.fromChain);
+
+    let depositHash = null;
+    for (const tx of quote.steps) {
+      if (tx.chainId !== chainId) throw new Error('Relay returned a transaction for another chain');
+      const what = tx.id === 'approve' ? `approve ${prev.fi.symbol}` : 'bridge via Relay';
+      if (tx.id === 'approve') {
+        // Skip the approval when the allowance already covers the amount.
+        const spender = ethers.getAddress('0x' + tx.data.slice(34, 74));
+        const allowance = await new ethers.Contract(tx.to, ERC20_ABI, reader).allowance(wallet, spender);
+        if (allowance >= BigInt(prev.amountAtomic)) continue;
+      }
+      setStatus(`<span class="spinner"></span>Checking the transaction (${what})…`);
+      const sim = await runSimulation([reader], { to: tx.to, data: tx.data, value: BigInt(tx.value), from: wallet });
+      if (!sim.ok) {
+        setStatus(sim.reverted ? `This would fail on-chain (${sim.reason}). Nothing was sent.` : `Not sent: ${sim.reason}`, sim.reverted || sim.funds ? 'error' : 'warn');
+        return restore();
+      }
+      setStatus(`<span class="spinner"></span>Awaiting signature — ${what}…`);
+      const sent = await signer.sendTransaction({ to: tx.to, data: tx.data, value: BigInt(tx.value) });
+      if (tx.id === 'approve') {
+        setStatus('<span class="spinner"></span>Approval confirming…');
+        await sent.wait();
+        // Our read RPC can lag the wallet's by a block: wait until it sees the allowance, or the next
+        // dry-run would report a revert that is not real.
+        const spender = ethers.getAddress('0x' + tx.data.slice(34, 74));
+        const token = new ethers.Contract(tx.to, ERC20_ABI, reader);
+        for (let i = 0; i < 10 && (await token.allowance(wallet, spender)) < BigInt(prev.amountAtomic); i++) {
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      } else depositHash = sent.hash;
+    }
+
+    state.quote = { ...quote, fi: prev.fi, ti: prev.ti, amountAtomic: prev.amountAtomic, relay: true };
+    const ex = BRIDGE_CHAINS[state.fromChain].explorer;
+    $('statusCard').style.display = 'block';
+    $('depositCard').style.display = 'none';
+    renderSteps(1);
+    $('statusBox').innerHTML = `<div class="status"><span class="spinner"></span>Deposit sent${ex && depositHash ? ` — <a href="${ex}/tx/${depositHash}" target="_blank">view</a>` : ''}. Waiting for Relay to deliver…</div>`;
+    setStatus('');
+    pollRelayStatus(quote.requestId);
+  } catch (e) {
+    setStatus('Relay bridge failed: ' + (e.reason || e.shortMessage || e.message || '').slice(0, 140), 'error');
+    restore();
+  }
+}
+
+function pollRelayStatus(requestId) {
+  clearInterval(state.statusTimer);
+  const q = state.quote;
+  const btn = $('bridgeBtn');
+  const done = () => { clearInterval(state.statusTimer); btn.disabled = false; btn.textContent = 'Bridge via Relay'; };
+  const tick = async () => {
+    try {
+      const s = await api(`/api/relay/status?requestId=${requestId}`);
+      if (s.status === 'success') {
+        renderSteps(3);
+        const ex = BRIDGE_CHAINS[state.toChain].explorer;
+        const link = ex && s.txHashes[0] ? ` — <a href="${ex}/tx/${s.txHashes[0]}" target="_blank">view</a>` : '';
+        $('statusBox').innerHTML = `<div class="status success">Bridged ✓ about ${Number(ethers.formatUnits(BigInt(q.amountOut), q.ti.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${q.ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}${link}</div>`;
+        setStatus('Done ✓', 'success');
+        done();
+        updateBalance();
+      } else if (s.status === 'failure' || s.status === 'refund') {
+        renderSteps(1, true);
+        $('statusBox').innerHTML = `<div class="status error">${s.status === 'refund' ? 'Relay could not deliver and refunded your wallet.' : 'Relay reported a failure. Funds are refunded to your wallet when a deposit cannot be filled.'}${s.details ? ' ' + s.details.replace(/[<>&]/g, '') : ''}</div>`;
+        done();
+      } else {
+        renderSteps(1);
+        $('statusBox').innerHTML = `<div class="status"><span class="spinner"></span>${s.status === 'pending' || s.status === 'submitted' ? 'Relay is delivering…' : 'Waiting for the deposit to confirm…'}</div>`;
+      }
+    } catch (e) {
+      // A status glitch is not a failed bridge: amber, and keep checking.
+      $('statusBox').innerHTML = `<div class="status warn">Status check failed (${e.message.slice(0, 80)}). Your bridge is unaffected; retrying…</div>`;
+    }
+  };
+  tick();
+  state.statusTimer = setInterval(tick, 4000);
 }
 
 /* ---------------- Aori bridge flow ---------------- */

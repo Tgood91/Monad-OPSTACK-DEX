@@ -1,8 +1,9 @@
 // Route-first bridging: the user picks From and To first, and the provider follows.
 // Pure helpers (no DOM, no wallet) so the rules can be unit-tested.
 
-export const PROVIDER_ORDER = ['near', 'stargate', 'aori'];
-export const PROVIDER_LABELS = { near: 'NEAR Intents', stargate: 'Stargate', aori: 'Aori' };
+// Relay sits before Aori: Aori's quote service has been returning errors, so it is the last resort.
+export const PROVIDER_ORDER = ['near', 'stargate', 'relay', 'aori'];
+export const PROVIDER_LABELS = { near: 'NEAR Intents', stargate: 'Stargate', relay: 'Relay', aori: 'Aori' };
 
 const uniq = (list) => [...new Set(list)];
 
