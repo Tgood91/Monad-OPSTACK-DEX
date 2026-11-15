@@ -7,6 +7,7 @@
 // the app used before, still honoured so an existing Render setting keeps working).
 
 const UPSTREAM = "https://api.0x.org/swap/allowance-holder/quote";
+import { zeroxFeeParams } from "./fee.js";
 const CHAINS = new Set([1, 10, 56, 130, 137, 143, 8453, 42161, 43114, 57073]);
 const ADDR = /^0x[0-9a-fA-F]{40}$/;
 // 0x rejects very low placeholder addresses as `taker`; used only when no wallet is connected.
@@ -17,7 +18,7 @@ export function zeroxKey(env = process.env) {
 }
 
 /** Validate query params from the browser; returns the upstream query string or { error, status }. */
-export function zeroxParams(q) {
+export function zeroxParams(q, env = process.env) {
   const chainId = Number(q.chainId);
   if (!CHAINS.has(chainId)) return { error: "chain not supported by 0x", status: 400 };
   if (!ADDR.test(String(q.sellToken)) || !ADDR.test(String(q.buyToken)))
@@ -31,6 +32,9 @@ export function zeroxParams(q) {
     buyToken: q.buyToken,
     sellAmount: String(q.sellAmount),
     taker,
+    // Bushido integrator fee (server/fee.js): FEE_RECIPIENT / FEE_BPS env,
+    // collected in the buy token. Empty object when FEE_BPS=0.
+    ...zeroxFeeParams(q.buyToken, env),
   });
   return { query: p.toString() };
 }

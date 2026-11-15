@@ -7,6 +7,7 @@
 // Docs: https://business.1inch.com/portal/llms.txt
 
 import net from "node:net";
+import { oneinchFeeQuery } from "./fee.js";
 
 const AUTHD_SOCK = process.env.JARVIS_AUTHD_SOCK || "/run/hatch/auth/authd.sock";
 const API = "https://api.1inch.com"; // 1inch Business (docs: business.1inch.com/portal/llms.txt)
@@ -93,8 +94,9 @@ async function inchFetch(path) {
  * Get a quote. Returns { amountOut, raw }.
  */
 export async function oneinchQuote({ chainId, src, dst, amountAtomic }) {
+  // The 1inch partner fee (server/fee.js) must be identical on quote + swap.
   const j = await inchFetch(
-    `/swap/v6.0/${chainId}/quote?src=${src}&dst=${dst}&amount=${amountAtomic}`
+    `/swap/v6.0/${chainId}/quote?src=${src}&dst=${dst}&amount=${amountAtomic}` + oneinchFeeQuery()
   );
   if (!j.dstAmount) throw new Error("no 1inch quote");
   return { amountOut: j.dstAmount, raw: j };
@@ -106,7 +108,7 @@ export async function oneinchQuote({ chainId, src, dst, amountAtomic }) {
 export async function oneinchSwap({ chainId, src, dst, amountAtomic, from, slippageBps }) {
   const j = await inchFetch(
     `/swap/v6.0/${chainId}/swap?src=${src}&dst=${dst}&amount=${amountAtomic}` +
-    `&from=${from}&slippage=${(slippageBps ?? 50) / 100}&disableEstimate=true`
+    `&from=${from}&slippage=${(slippageBps ?? 50) / 100}&disableEstimate=true` + oneinchFeeQuery()
   );
   if (!j.tx?.data) throw new Error("no 1inch swap tx");
   return { to: j.tx.to, data: j.tx.data, value: String(j.tx.value || 0) };

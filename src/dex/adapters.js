@@ -7,6 +7,7 @@
 
 import { ethers } from 'ethers';
 import { CHAINS, NATIVE_SENTINEL, QUOTE_TIMEOUT_MS } from './chains.js';
+import { FEE_RECIPIENT, FEE_BPS, FEE_ENABLED } from './fee.js';
 
 const ZERO = '0x0000000000000000000000000000000000000000';
 
@@ -168,7 +169,9 @@ const KyberSwap = {
     const name = CHAINS[q.chainKey].kyberName;
     const r = await (await fetch(`https://aggregator-api.kyberswap.com/${name}/api/v1/route/build`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...KYBER_HEADERS },
-      body: JSON.stringify({ routeSummary: q.raw, sender: wallet, recipient: wallet, slippageTolerance: slippageBps, deadline: Math.floor(Date.now() / 1000) + 1200 }),
+      body: JSON.stringify({ routeSummary: q.raw, sender: wallet, recipient: wallet, slippageTolerance: slippageBps, deadline: Math.floor(Date.now() / 1000) + 1200,
+        // Bushido integrator fee (src/dex/fee.js): taken from the input token, in bps.
+        ...(FEE_ENABLED ? { chargeFeeBy: 'currency_in', isInBps: true, feeAmount: FEE_BPS, feeReceiver: FEE_RECIPIENT } : {}) }),
     })).json();
     const tx = r?.data;
     if (!tx?.data || !tx?.routerAddress) throw new Error('KyberSwap build failed');
@@ -203,6 +206,7 @@ const Velora = {
     const id = CHAINS[chainKey].chainId;
     const src = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
     let url = `https://api.paraswap.io/prices?network=${id}&srcToken=${src}&destToken=${tokenOut.address}&amount=${amountInWei.toString()}&side=SELL&version=6.2`;
+    if (FEE_ENABLED) url += `&partner=${FEE_RECIPIENT}`; // Bushido partner/referral (src/dex/fee.js)
     if (chainKey === 'unichain') url += `&srcDecimals=${tokenIn.decimals}&destDecimals=${tokenOut.decimals}`;
     const r = await (await fetch(url)).json();
     const pr = r?.priceRoute;
@@ -218,6 +222,8 @@ const Velora = {
         destToken: q.tokenOut.address, srcDecimals: q.tokenIn.decimals, destDecimals: q.tokenOut.decimals,
         srcAmount: q.raw.srcAmount, // required by /transactions ("Missing srcAmount" otherwise)
         priceRoute: q.raw, userAddress: wallet, receiver: wallet, slippage: slippageBps,
+        // Bushido partner fee (src/dex/fee.js): Velora splits this with the protocol.
+        ...(FEE_ENABLED ? { partner: FEE_RECIPIENT, partnerFeeBps: FEE_BPS } : {}),
       }),
     })).json();
     if (!r?.data) throw new Error('Velora build failed' + (r?.error ? ': ' + String(r.error).slice(0, 60) : ''));
