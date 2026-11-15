@@ -1,4 +1,5 @@
 import { waitForAllowance } from './wait-allowance.js';
+import { withBuilderCode } from './attribution.js';
 // Bridge pane — NEAR Intents cross-chain via the keyless 1Click API.
 // Flow: quote (dry) → intent (wet, deposit address) → user deposits from wallet
 // → deposit-submit → status poll until terminal.
@@ -593,7 +594,9 @@ async function startStargateBridge(wallet) {
     });
 
     setStatus('<span class="spinner"></span>Awaiting signature — bridge via Stargate…');
-    const sent = await signer.sendTransaction({ to: tx.to, data: tx.data, value: BigInt(tx.value) });
+    const sent = await signer.sendTransaction(
+      withBuilderCode({ to: tx.to, data: tx.data, value: BigInt(tx.value) }, BRIDGE_CHAINS[state.fromChain].chainId),
+    );
     const ex = BRIDGE_CHAINS[state.fromChain].explorer;
     $('statusCard').style.display = 'block';
     $('depositCard').style.display = 'none';

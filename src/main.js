@@ -1,4 +1,5 @@
 import { waitForAllowance } from './wait-allowance.js';
+import { withBuilderCode } from './attribution.js';
 // Bushido-dApp — main entry.
 // Chains/sources are config-driven (see src/dex/chains.js). Wallet via AppKit.
 
@@ -486,7 +487,8 @@ $('swapBtn').onclick = async () => {
 
     showLoading('Building transaction…');
     const signer = await getSigner();
-    const tx = q._tx || await buildTxFor(q, getAddress(), slippageBps, signer);
+    // Base Builder Code (src/attribution.js): added before the dry-run so the simulated call is the signed call.
+    const tx = withBuilderCode(q._tx || await buildTxFor(q, getAddress(), slippageBps, signer), getChain(chainKey).chainId);
 
     // Simulate before asking for a signature — never send a tx we haven't dry-run
     showLoading('Simulating…');
