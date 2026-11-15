@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { appKit, appKitNetworkFor, chainKeyForChainId } from '../config.js';
 import { getChain } from '../dex/chains.js';
 import { ERC20_ABI } from './abis.js';
+import { withBuilderCode } from '../attribution.js';
 import { currentChainId } from './network.js';
 
 export function getAccount() {
@@ -104,7 +105,10 @@ export async function getAllowance(tokenAddress, owner, spender, chainKey) {
 export async function approveToken(tokenAddress, spender, amountWei) {
   const signer = await getSigner();
   const c = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-  const tx = await c.approve(spender, amountWei);
+  // Sent as a populated transaction so the Base Builder Code suffix can be added (src/attribution.js).
+  const { chainId } = await signer.provider.getNetwork();
+  const call = await c.approve.populateTransaction(spender, amountWei);
+  const tx = await signer.sendTransaction(withBuilderCode({ to: call.to, data: call.data }, chainId));
   return tx.wait();
 }
 

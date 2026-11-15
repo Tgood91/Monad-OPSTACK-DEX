@@ -1,6 +1,7 @@
 // Virtue Compass, gated Swap panel and Operations panel for the Bushido tab.
 import React, { useEffect, useState } from 'react';
 import { CHAINS } from './dex/chains.js';
+import { withBuilderCode } from './attribution.js';
 import { checkSlippage, gateTrade, reportOps } from './bushido-gate.js';
 import { FALLBACK_CHAIN, swapSetup, switchAndConfirm } from './bushido-swap.js';
 import { BUSHIDO_REPOS, txUrl } from './bushido-links.js';
@@ -145,7 +146,7 @@ export function SwapPanel() {
       if (!r.best) throw new Error('No quote available');
       setMsg('Simulating…');
       const signer = await web3.getSigner();
-      const tx = await buildTxFor(r.best.quote, wallet, s.bps, signer);
+      const tx = withBuilderCode(await buildTxFor(r.best.quote, wallet, s.bps, signer), setup.chain.chainId);
       const sim = await web3.simulateTx({ to: tx.to, data: tx.data, value: tx.value, from: wallet });
       simResult = sim;
       const gate = gateTrade({ slippagePct: slip, sim });
