@@ -3,6 +3,13 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: 12 more Avalanche coins in the swap list
+**What:** Avalanche's list in `src/dex/chains.js` grows from 5 to 17: sAVAX, avUSD, WBTC.e, LINK.e, DAI.e, EURC, SolvBTC, USDC.e, USDT.e, FRAX, AUSD and axlUSDC.
+**Why and how they were picked:** candidates came from LFJ's (Trader Joe's) published Avalanche token list (156 coins), ranked by how much value DeFi Llama's pool data shows sitting in Avalanche pools that hold each coin, and cross-checked against SushiSwap's Avalanche list. The 31 with real pool value were then read on Avalanche itself (symbol, decimals) and priced on KyberSwap buying $20 and $200 with USDC. Only coins under 0.5% loss at $20 and 0.25% at $200 were kept, the same rule as the Monad list.
+**Left out, with the reason:** JOE, AAVE.e, XAVA, COQ, QI, BEAM and savUSD (over the $200 limit, 0.3% to 1%); ggAVAX, rsAVAX, HUSKY, HERESY, SHRAP and PRIME (thin, 1% to 56%); SOL, WBTC and YAK (KyberSwap's dollar figures for them were nonsensical, so the loss could not be measured).
+**Verified:** `npm run verify:chains` reads all 17 on Avalanche with no failures; 221 tests pass; the build succeeds.
+**Not verified:** the new coins were priced through KyberSwap only, not through each of the app's other sources; no swap was sent; explorer links were not opened by hand; no browser pass on the picker.
+
 ## Unreleased: NEAR Intents stops using retired token ids (Avalanche, BNB Chain, Polygon)
 **What:** `server/near.js` now drops every entry 1Click marks "(DEPRECATED)" before the token list is used (`isDeprecated`). The Bridge tab's Avalanche list is now exactly AVAX, USDC and USDT with the current Omni ids (`nep141:avax.omdep.near`, `nep141:avax-0xb97e….omdep.near`, `nep141:avax-0x9702….omdep.near`); BNB Chain loses its retired duplicates the same way. A test fixture that still named a retired Avalanche id was updated, and one test was added.
 **Why:** after NEAR's November 2026 upgrade, 1Click's `/v0/tokens` lists each Avalanche, BNB Chain and Polygon coin twice: the retired HOT `nep245` id first, then the Omni `nep141` replacement. Our lookup took the first match, so quotes for those chains were being built on the retired id, and the picker showed each coin twice (once as "AVAX(DEPRECATED)"). Nothing is hard-coded: ids, addresses and decimals still come from the live list. The filter keys on the "(DEPRECATED)" marker, not on the `nep245` prefix, because Monad, Optimism and others still use live `nep245` ids.
