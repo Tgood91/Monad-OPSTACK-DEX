@@ -1,3 +1,4 @@
+import { waitForAllowance } from './wait-allowance.js';
 // Bushido-dApp — main entry.
 // Chains/sources are config-driven (see src/dex/chains.js). Wallet via AppKit.
 
@@ -438,13 +439,18 @@ $('approveBtn').onclick = async () => {
   if (!selectedQuote || !isConnected()) return;
   const q = selectedQuote;
   try {
-    showLoading('Approving…');
+    showLoading(`Approve ${q.tokenIn.symbol} in your wallet…`);
     const signer = await getSigner();
     const tx = q.gasless ? { spender: q.raw.spender } : (q._tx || await buildTxFor(q, getAddress(), slippageBps, signer));
-    const atx = await approveToken(q.tokenIn.address, tx.spender, q.amountInWei);
-    showLoading('Confirming approval…');
-    await atx.wait();
-    showStatus('Approved ✓', 'success');
+    // approveToken resolves once the approval transaction is mined.
+    await approveToken(q.tokenIn.address, tx.spender, q.amountInWei);
+    // Our read RPC can be a block behind the wallet's: wait until it shows the allowance before offering Swap,
+    // or the next dry-run would report a revert that is not real.
+    showLoading('Approval sent. Waiting for the chain to show it…');
+    const owner = getAddress();
+    const seen = await waitForAllowance(() => getAllowance(q.tokenIn.address, owner, tx.spender, chainKey), q.amountInWei);
+    if (seen) showStatus('Approved ✓', 'success');
+    else showStatus('Approval sent, but the chain has not shown it yet. Give it a moment, then try Swap.', 'warn');
     q._tx = null;
     checkApproval();
   } catch (e) {

@@ -3,6 +3,12 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Unreleased: the app now waits properly while a token is being approved
+**What:** a shared wait function, `waitForAllowance` (`src/wait-allowance.js`), used after every token approval: the Swap tab's Approve button and the Stargate and Relay bridge flows. It polls our own RPC until the allowance covers the amount (12 tries, 1.5 seconds apart), retries a failed read quietly, and reports whether the approval showed up. The Approve button now says "Approve USDC in your wallet…", then "Approval sent. Waiting for the chain to show it…", then "Approved ✓". If the chain still has not shown it after about 18 seconds it says so in amber instead of red.
+**Why:** two problems. First, a bug: the Swap tab waited on the approval twice (`approveToken` already waits for the transaction, then the button called `.wait()` on the result, which has no such method), so a successful approval could end with a red "Approval failed". Second, the wallet's RPC and ours can be a block apart, so right after an approval our next read or dry-run could still see no allowance and report a revert that was not real. Relay already had a private loop for this; Stargate and the Swap tab had nothing.
+**Verified:** 4 new tests in `test/wait-allowance.test.js` (already approved, appears after a few polls, a failed read is retried, gives up cleanly); 225 tests pass; the build succeeds.
+**Not verified:** no real approval was sent (no wallet here), so the on-screen messages have not been seen in a wallet browser.
+
 ## Unreleased: 12 more Avalanche coins in the swap list
 **What:** Avalanche's list in `src/dex/chains.js` grows from 5 to 17: sAVAX, avUSD, WBTC.e, LINK.e, DAI.e, EURC, SolvBTC, USDC.e, USDT.e, FRAX, AUSD and axlUSDC.
 **Why and how they were picked:** candidates came from LFJ's (Trader Joe's) published Avalanche token list (156 coins), ranked by how much value DeFi Llama's pool data shows sitting in Avalanche pools that hold each coin, and cross-checked against SushiSwap's Avalanche list. The 31 with real pool value were then read on Avalanche itself (symbol, decimals) and priced on KyberSwap buying $20 and $200 with USDC. Only coins under 0.5% loss at $20 and 0.25% at $200 were kept, the same rule as the Monad list.

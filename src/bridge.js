@@ -1,3 +1,4 @@
+import { waitForAllowance } from './wait-allowance.js';
 // Bridge pane — NEAR Intents cross-chain via the keyless 1Click API.
 // Flow: quote (dry) → intent (wet, deposit address) → user deposits from wallet
 // → deposit-submit → status poll until terminal.
@@ -581,6 +582,7 @@ async function startStargateBridge(wallet) {
         const tx = await token.approve(q.pool, amount);
         setStatus('<span class="spinner"></span>Approval confirming…');
         await tx.wait();
+        await waitForAllowance(() => token.allowance(wallet, q.pool), amount);
       }
     }
 
@@ -659,9 +661,7 @@ async function startRelayBridge(wallet) {
         // dry-run would report a revert that is not real.
         const spender = ethers.getAddress('0x' + tx.data.slice(34, 74));
         const token = new ethers.Contract(tx.to, ERC20_ABI, reader);
-        for (let i = 0; i < 10 && (await token.allowance(wallet, spender)) < BigInt(prev.amountAtomic); i++) {
-          await new Promise(r => setTimeout(r, 1500));
-        }
+        await waitForAllowance(() => token.allowance(wallet, spender), prev.amountAtomic);
       } else depositHash = sent.hash;
     }
 
