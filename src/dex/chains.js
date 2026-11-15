@@ -198,6 +198,20 @@ export const CHAINS = {
       { symbol: 'USDt', address: '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimals: 6 },
       { symbol: 'BTC.b', address: '0x152b9d0FdC40C096757F570A51E494bd4b943E50', decimals: 8 },
       { symbol: 'WETH.e', address: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', decimals: 18 },
+      // Added 2026-11-15 from the LFJ token list, cross-checked with SushiSwap's list and DeFi Llama pool TVL; each read on-chain
+      // and priced on KyberSwap (kept only under 0.5% loss at $20 and 0.25% at $200).
+      { symbol: 'sAVAX', address: '0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE', decimals: 18 },
+      { symbol: 'avUSD', address: '0x24dE8771bC5DdB3362Db529Fc3358F2df3A0E346', decimals: 18 },
+      { symbol: 'WBTC.e', address: '0x50b7545627a5162F82A992c33b87aDc75187B218', decimals: 8 },
+      { symbol: 'LINK.e', address: '0x5947BB275c521040051D82396192181b413227A3', decimals: 18 },
+      { symbol: 'DAI.e', address: '0xd586E7F844cEa2F87f50152665BCbc2C279D8d70', decimals: 18 },
+      { symbol: 'EURC', address: '0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD', decimals: 6 },
+      { symbol: 'SolvBTC', address: '0xbc78D84Ba0c46dFe32cf2895a19939c86b81a777', decimals: 18 },
+      { symbol: 'USDC.e', address: '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664', decimals: 6 },
+      { symbol: 'USDT.e', address: '0xc7198437980c041c805A1EDcbA50c1Ce5db95118', decimals: 6 },
+      { symbol: 'FRAX', address: '0xD24C2Ad096400B6FBcd2ad8B24E7acBc21A1da64', decimals: 18 },
+      { symbol: 'AUSD', address: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', decimals: 6 },
+      { symbol: 'axlUSDC', address: '0xfaB550568C688d5D8A52C7d794cb93Edc26eC0eC', decimals: 6 },
     ],
   },
 };

@@ -29,7 +29,7 @@ const record = (over = {}) => ({
       refundType: "ORIGIN_CHAIN",
       recipientType: "DESTINATION_CHAIN",
       originAsset: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
-      destinationAsset: "nep245:v2_1.omni.hot.tg:43114_11111111111111111111",
+      destinationAsset: "nep141:avax.omdep.near",
       amount: "280000",
       refundTo: WALLET,
       recipient: WALLET,
@@ -221,4 +221,14 @@ test("the server now passes the deadline and refund fee through to the page", ()
   });
   assert.equal(q.deadline, "2026-11-08T22:09:48.925Z");
   assert.equal(q.refundFee, "2400");
+});
+
+test("retired 1Click ids are dropped, live HOT ids are kept", async () => {
+  const { isDeprecated } = await import("../server/near.js");
+  assert.equal(
+    isDeprecated({ symbol: "AVAX(DEPRECATED)", assetId: "nep245:v2_1.omni.hot.tg:43114_11111111111111111111" }),
+    true,
+  );
+  assert.equal(isDeprecated({ symbol: "AVAX", assetId: "nep141:avax.omdep.near" }), false);
+  assert.equal(isDeprecated({ symbol: "MON", assetId: "nep245:v2_1.omni.hot.tg:143_11111111111111111111" }), false);
 });

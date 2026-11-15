@@ -47,18 +47,29 @@ function authdPost(payload) {
       `Connection: close\r\n\r\n` +
       body;
     const sock = net.createConnection(AUTHD_SOCK);
-    const timer = setTimeout(() => { sock.destroy(); reject(new Error("authd timeout")); }, 5000);
+    const timer = setTimeout(() => {
+      sock.destroy();
+      reject(new Error("authd timeout"));
+    }, 5000);
     let raw = "";
     sock.on("connect", () => sock.write(req));
-    sock.on("data", (c) => { raw += c.toString("utf8"); });
+    sock.on("data", (c) => {
+      raw += c.toString("utf8");
+    });
     sock.on("end", () => {
       clearTimeout(timer);
       const idx = raw.indexOf("\r\n\r\n");
       if (idx < 0) return reject(new Error("authd malformed"));
-      try { resolve(JSON.parse(raw.slice(idx + 4))); }
-      catch { reject(new Error("authd bad JSON")); }
+      try {
+        resolve(JSON.parse(raw.slice(idx + 4)));
+      } catch {
+        reject(new Error("authd bad JSON"));
+      }
     });
-    sock.on("error", (e) => { clearTimeout(timer); reject(e); });
+    sock.on("error", (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
   });
 }
 
@@ -96,13 +107,20 @@ async function apiFetch(path, opts = {}) {
   return body;
 }
 
+// 1Click lists retired ids beside their replacements (Avalanche, BNB Chain and Polygon moved from HOT nep245 to
+// Omni nep141), marked "(DEPRECATED)" in the symbol. They come first in the list, so drop them before any lookup.
+// The id prefix alone is not a test: Monad, Optimism and others still use live nep245 HOT ids.
+export function isDeprecated(t) {
+  return /\(DEPRECATED\)/i.test(String(t?.symbol || ""));
+}
+
 export async function getTokenList() {
   if (tokenCache && Date.now() - tokenCacheAt < TOKEN_TTL_MS) return tokenCache;
   const toks = await apiFetch("/v0/tokens");
   if (!Array.isArray(toks)) throw new Error("bad token list");
-  tokenCache = toks;
+  tokenCache = toks.filter((t) => !isDeprecated(t));
   tokenCacheAt = Date.now();
-  return toks;
+  return tokenCache;
 }
 
 /** Tokens available for bridging on a chain. `token` is 'native' or a 0x address. */
