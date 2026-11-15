@@ -163,6 +163,23 @@ export const CHAINS = {
       { symbol: 'BTCB', address: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', decimals: 18 },
       { symbol: 'ETH', address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', decimals: 18 }, // Binance-Peg ETH
       { symbol: 'CAKE', address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', decimals: 18 },
+      // Added 2026-11-15 from the PancakeSwap extended token list (open token list, tokens.pancakeswap.finance).
+      { symbol: 'DAI', address: '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', decimals: 18 }, // Binance-Peg DAI
+      { symbol: 'FDUSD', address: '0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409', decimals: 18 },
+      { symbol: 'LINK', address: '0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD', decimals: 18 },
+      { symbol: 'XRP', address: '0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE', decimals: 18 },
+      { symbol: 'ADA', address: '0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47', decimals: 18 },
+      { symbol: 'DOGE', address: '0xbA2aE424d960c26247Dd6c32edC70B295c744C43', decimals: 8 },
+      { symbol: 'DOT', address: '0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402', decimals: 18 },
+      { symbol: 'UNI', address: '0xBf5140A22578168FD562DCcF235E5D43A02ce9B1', decimals: 18 },
+      { symbol: 'LTC', address: '0x4338665CBB7B2485A8855A139b75D5e34AB0DB94', decimals: 18 },
+      { symbol: 'BCH', address: '0x8fF795a6F4D97E7887C79beA79aba5cc76444aDf', decimals: 18 },
+      { symbol: 'TRX', address: '0xCE7de646e7208a4Ef112cb6ed5038FA6cC6b12e3', decimals: 6 },
+      { symbol: 'ATOM', address: '0x0Eb3a705fc54725037CC9e008bDede697f62F335', decimals: 18 },
+      { symbol: 'AVAX', address: '0x1CE0c2827e2eF14D5C4f29a091d735A204794041', decimals: 18 },
+      { symbol: 'SOL', address: '0x570A5D26f7765Ecb712C0924E4De545B89fD43dF', decimals: 18 },
+      { symbol: 'NEAR', address: '0x1Fa4a73a3F0133f0025378af00236f3aBDEE5D63', decimals: 18 },
+      { symbol: 'FIL', address: '0x0D8Ce2A99Bb6e3B7Db580eD848240e4a0F9aE153', decimals: 18 },
     ],
   },
   avalanche: {
