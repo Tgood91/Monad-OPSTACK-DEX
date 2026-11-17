@@ -26,6 +26,45 @@ export const CHAINS = {
     tokens: [
       { symbol: 'ETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, isNative: true },
       { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+      // Added 2026-11-17. Each was read on Base (symbol, decimals, contract code) and priced through KyberSwap from
+      // ETH: under 0.5% loss at about $20 and 0.25% at about $200. Candidates came from the owner's Uniswap/SushiSwap
+      // list and from the busiest Base pools over 14 days (GeckoTerminal), SushiSwap's Base pools included.
+      { symbol: 'cbBTC', address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals: 8 },
+      { symbol: 'USDT', address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6 },
+      { symbol: 'DAI', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18 },
+      { symbol: 'cbETH', address: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22', decimals: 18 },
+      { symbol: 'AERO', address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', decimals: 18 },
+      { symbol: 'VIRTUAL', address: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', decimals: 18 },
+      { symbol: 'AAVE', address: '0x63706e401c06ac8513145b7687A14804d17f814b', decimals: 18 },
+      { symbol: 'EURC', address: '0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42', decimals: 6 },
+      { symbol: 'USDbC', address: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA', decimals: 6 },
+      { symbol: 'tBTC', address: '0x236aa50979D5f3De3Bd1Eeb40E81137F22ab794b', decimals: 18 },
+      { symbol: 'cbDOGE', address: '0xcbD06E5A2B0C65597161de254AA074E489dEb510', decimals: 8 },
+      { symbol: 'cbHYPE', address: '0xB200000000000000000000451d033a5000cb479e', decimals: 18 },
+      { symbol: 'cbXRP', address: '0xcb585250f852C6c6bf90434AB21A00f02833a4af', decimals: 6 },
+      { symbol: 'cbZEC', address: '0xB2000000000000000000008501b13360000cb2EC', decimals: 8 },
+      { symbol: 'CHIP', address: '0x0C1c1C109FE34733fca54b82d7B46B75CFb71F6e', decimals: 18 },
+      { symbol: 'COOKIE', address: '0xC0041EF357B183448B235a8Ea73Ce4E4eC8c265F', decimals: 18 },
+      { symbol: 'CTR', address: '0x11030f79109269d796fd0FB956D6244e502757f7', decimals: 18 },
+      { symbol: 'DIEM', address: '0xF4d97F2da56e8c3098f3a8D538DB630A2606a024', decimals: 18 },
+      { symbol: 'DRV', address: '0x9d0E8f5b25384C7310CB8C6aE32C8fbeb645d083', decimals: 18 },
+      { symbol: 'ELSA', address: '0x29cC30f9D113B356Ce408667aa6433589CeCBDcA', decimals: 18 },
+      { symbol: 'ICNT', address: '0xE0Cd4cAcDdcBF4f36e845407CE53E87717b6601d', decimals: 18 },
+      { symbol: 'JitoSOL', address: '0x97bE14Dd8f994A5364573BC035D85309E7CB34de', decimals: 9 },
+      { symbol: 'LCAP', address: '0x4dA9A0f397dB1397902070f93a4D6ddBC0E0E6e8', decimals: 18 },
+      { symbol: 'LUSD', address: '0x368181499736d0c0CC614DBB145E2EC1AC86b8c6', decimals: 18 },
+      { symbol: 'MOCA', address: '0x2B11834Ed1FeAEd4b4b3a86A6F571315E25A884D', decimals: 18 },
+      { symbol: 'O', address: '0x182FA643E5f29d5EcA75e7b9CF9336A3fe4620b2', decimals: 18 },
+      { symbol: 'OUSD', address: '0xB2000000000000000000002fEb517dFeC7415344', decimals: 6 },
+      { symbol: 'PENDLE', address: '0xA99F6e6785Da0F5d6fB42495Fe424BCE029Eeb3E', decimals: 18 },
+      { symbol: 'PLAY', address: '0x853a7c99227499DbA9dB8C3A02aA691aFDeBf841', decimals: 18 },
+      { symbol: 'SOSO', address: '0x624e2e7fDc8903165F64891672267AB0FCB98831', decimals: 18 },
+      { symbol: 'SPX', address: '0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C', decimals: 8 },
+      { symbol: 'VVV', address: '0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf', decimals: 18 },
+      { symbol: 'XDP', address: '0x07b3D902783c3C12b077508c3B5c00113d1291D0', decimals: 18 },
+      { symbol: 'ZCHF', address: '0xD4dD9e2F021BB459D5A5f6c24C12fE09c5D45553', decimals: 18 },
+      { symbol: 'ZEN', address: '0xf43eB8De897Fbc7F2502483B2Bef7Bb9EA179229', decimals: 18 },
+      { symbol: 'ZRO', address: '0x6985884C4392D348587B19cb9eAAf157F13271cd', decimals: 18 },
     ],
     // Aerodrome on Base (Velodrome's ve(3,3) fork). Router2 Route struct is
     // 4 fields: (from, to, stable, factory). Keyless on-chain quotes.
@@ -76,6 +115,10 @@ export const CHAINS = {
       // Clanker token created by the project owner. Verified on Monad (MonazolaM, 18 decimals) with a live route;
       // its pool is small (about $2k when added), so large swaps will show a big price impact in the quote.
       { symbol: 'MONAZ', address: '0x261E706FA130825b48b99989732a4eE31fFFeB07', decimals: 18 },
+      // Added 2026-11-17 from Monad's busiest pools over 14 days (GeckoTerminal, PancakeSwap's Monad pools included).
+      // Same checks as above: on Monad's official token list, read on Monad, priced through KyberSwap from MON.
+      { symbol: 'EURW', address: '0x1111B3DED9F1fE1801AD4ebeF8E2788183a24111', decimals: 6 },
+      { symbol: 'USDat', address: '0x0Bb150DFa86EA5d7742F07FEfCD8E8edA81D64eF', decimals: 6 },
     ],
   },
   optimism: {
