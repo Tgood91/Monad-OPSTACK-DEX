@@ -5,6 +5,7 @@
 
 const LLAMA = "https://api.llama.fi";
 const GECKO = "https://api.geckoterminal.com/api/v2";
+const MERKL = "https://api.merkl.xyz/v4";
 
 // The app's chains, by the name each service uses for them. `words` are what a person might type.
 export const INTEL_CHAINS = [
@@ -65,6 +66,8 @@ export function planQuestion(query) {
   const dex = dexWord ? DEX_WORDS[dexWord] : null;
   const chain = named || INTEL_CHAINS[0];
   const base = { chain: chain.key, dex, chainNamed: !!named };
+  if (/\b(merkl|merkle|rewards?|incentives?|apr|apy|yield|farm|farming|earn|alpha|campaigns?)\b/.test(q))
+    return { ...base, kind: "merkl" };
   if (/\b(compare|comparison|versus|vs|which chain|across chains|all chains|every chain|tvl)\b/.test(q) && !dex)
     return { ...base, kind: "chains" };
   if (/\b(tokens?|coins?|trending|most traded)\b/.test(q)) return { ...base, kind: "tokens" };
@@ -325,15 +328,80 @@ export function createIntel({ fetchImpl = globalThis.fetch, now = () => Date.now
     ];
   }
 
+  // Merkl reward campaigns that are live on a chain, biggest daily payout first.
+  async function merkl(c, dex) {
+    const all = await getJson(
+      `${MERKL}/opportunities?chainId=${c.chainId}&status=LIVE&sort=rewards&order=desc&items=100`,
+    );
+    const live = (Array.isArray(all) ? all : []).filter(
+      (o) =>
+        Number(o.dailyRewards) > 0 &&
+        (!dex ||
+          String(o.protocol?.name || o.name)
+            .toLowerCase()
+            .replace(/\s/g, "")
+            .includes(dex)),
+    );
+    const where = dex ? `${dex} on ${c.label}` : c.label;
+    if (!live.length) return [final(`Merkl lists no live reward campaigns for ${where} right now.`)];
+    const rows = live.slice(0, 10);
+    const perDay = live.reduce((a, o) => a + Number(o.dailyRewards), 0);
+    // "Best rate" only among campaigns with real money in them: a tiny pool can show a huge rate that vanishes on deposit.
+    const deep = live.filter((o) => Number(o.tvl) >= 100000).sort((a, b) => Number(b.apr) - Number(a.apr))[0];
+    const top = rows[0];
+    return [
+      thought([
+        `Read Merkl's live reward campaigns for ${where} (its ${live.length} largest by daily payout).`,
+        "Ranked them by rewards paid per day, and looked for the best rate among those holding at least $100K.",
+      ]),
+      table(
+        ["Campaign", "Protocol", "Rewards / day", "Rate (APR)", "Deposited"],
+        rows.map((o) => ({
+          Campaign: o.name,
+          Protocol: o.protocol?.name || "",
+          "Rewards / day": usd(o.dailyRewards),
+          "Rate (APR)": `${Number(o.apr || 0).toFixed(1)}%`,
+          Deposited: usd(o.tvl),
+        })),
+      ),
+      chart(
+        rows.map((o) => ({ name: o.name, value: Math.round(Number(o.dailyRewards)) })),
+        "Campaign",
+        "Rewards per day (USD)",
+      ),
+      final(
+        `### Merkl rewards: ${where}\n` +
+          `These campaigns pay about **${usd(perDay)} a day** in total. The largest is **${top.name}** ` +
+          `(${usd(top.dailyRewards)} a day, ${Number(top.apr || 0).toFixed(1)}% APR on ${usd(top.tvl)} deposited).\n` +
+          (deep
+            ? `Best rate among campaigns holding at least $100K: **${deep.name}** at ${Number(deep.apr).toFixed(1)}% APR.\n`
+            : "") +
+          `The rate falls as more money joins a campaign, and campaigns end: check Merkl before depositing. ` +
+          `Rewards you have earned can be claimed in this app's Rewards tab.`,
+      ),
+      follow([
+        `Top pools on ${c.label}`,
+        `DEX volume on ${c.label}`,
+        `Merkl rewards on ${c.key === "base" ? "Monad" : "Base"}`,
+      ]),
+    ];
+  }
+
   /** Returns { messages, live, sources, asOf } or null when the question is not a live-data one. */
   async function answer(query) {
     const plan = planQuestion(query);
     if (!plan) return null;
     const c = INTEL_CHAINS.find((x) => x.key === plan.chain);
-    const source = plan.kind === "pools" || plan.kind === "tokens" ? "GeckoTerminal" : "DeFi Llama";
+    const source =
+      plan.kind === "merkl"
+        ? "Merkl"
+        : plan.kind === "pools" || plan.kind === "tokens"
+          ? "GeckoTerminal"
+          : "DeFi Llama";
     const out = { live: true, sources: [source], asOf: new Date(now()).toISOString(), plan };
     try {
       if (plan.kind === "chains") out.messages = await chains();
+      else if (plan.kind === "merkl") out.messages = await merkl(c, plan.dex);
       else if (plan.kind === "pools") out.messages = await pools(c, plan.dex);
       else if (plan.kind === "tokens") out.messages = await tokens(c);
       else out.messages = await dexes(c);

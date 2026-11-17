@@ -112,3 +112,29 @@ test("a question that is not about live data returns null so the caller can use 
   const intel = createIntel({ fetchImpl: async () => assert.fail("no fetch expected") });
   assert.equal(await intel.answer("Explain 0xSplits post-swap distribution"), null);
 });
+test("Merkl answer ranks live campaigns by daily rewards and picks the best rate only among deep ones", async () => {
+  const calls = [];
+  const intel = createIntel({
+    fetchImpl: async (url) => {
+      calls.push(url);
+      return reply([
+        { name: "Lend USDC", protocol: { name: "Aave" }, dailyRewards: 4000, apr: 5.5, tvl: 100000000 },
+        { name: "Tiny pool", protocol: { name: "PancakeSwap" }, dailyRewards: 40, apr: 210, tvl: 7600 },
+        { name: "LP MON-USDC", protocol: { name: "Uniswap" }, dailyRewards: 900, apr: 31, tvl: 900000 },
+        { name: "Ended", protocol: { name: "X" }, dailyRewards: 0, apr: 0, tvl: 5 },
+      ]);
+    },
+  });
+  assert.equal(planQuestion("alpha on merkl").kind, "merkl");
+  const a = await intel.answer("Merkl rewards on Monad");
+  assert.deepEqual(a.sources, ["Merkl"]);
+  assert.match(calls[0], /opportunities\?chainId=143&status=LIVE/);
+  const rows = a.messages.find((m) => m.systemMessage.data).systemMessage.data.result.data;
+  assert.deepEqual(
+    rows.map((r) => r.Campaign),
+    ["Lend USDC", "Tiny pool", "LP MON-USDC"],
+  );
+  const text = texts(a.messages, "FINAL_RESPONSE")[0];
+  assert.match(text, /Best rate among campaigns holding at least \$100K: \*\*LP MON-USDC\*\* at 31\.0% APR/);
+  assert.doesNotMatch(text, /210/);
+});

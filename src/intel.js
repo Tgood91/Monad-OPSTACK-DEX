@@ -111,5 +111,6 @@ renderSuggestions([
   'DEX volume on Monad',
   'Top pools on Base',
   'Most traded tokens on Monad',
+  'Merkl rewards on Monad',
   'Compare all chains',
 ]);
