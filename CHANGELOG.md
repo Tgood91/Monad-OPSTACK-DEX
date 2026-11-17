@@ -5,6 +5,19 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## Intel: ride out GeckoTerminal's rate limit
+
+- GeckoTerminal's free API allows about 30 calls a minute per address and was refusing the live server (429), so
+  "Top pools" and "Most traded tokens" questions often showed "Live data could not be read".
+- Now: GeckoTerminal answers are kept 15 minutes (its per-chain DEX list 6 hours; other sources still 5 minutes);
+  a refused read (429, 5xx, timeout) waits 2 seconds and tries once more; identical requests from several visitors
+  share one call; and if it is still refused, the last copy read in the past 24 hours is shown, labelled amber
+  "Saved copy from GeckoTerminal · read HH:MM (the source is busy right now)". The "read" time is now the time the
+  figures were actually read, not the time of the question. With no saved copy it still says plainly it could not read.
+- Checked: unit tests for the retry, the 15-minute cache and the stale copy; a live run from this environment answered
+  "Top pools on Base", "Most traded tokens on Monad" and "Top pools on Monad". Not verified: how often Render's address
+  is refused after this change (to be seen on the live site).
 ## Bushido tab: the Dojo pond is the starter-MON button too
 
 - When a connected wallet can claim free starter MON, the koi pond in the "Your Dojo" card (Bushido tab) becomes the

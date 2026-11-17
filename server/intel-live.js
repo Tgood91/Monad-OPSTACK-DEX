@@ -4,6 +4,8 @@
 // Questions this file does not recognise return null, and the caller serves the older sample answers.
 
 const LLAMA = "https://api.llama.fi";
+import { AsyncLocalStorage } from "node:async_hooks";
+
 const GECKO = "https://api.geckoterminal.com/api/v2";
 const MERKL = "https://api.merkl.xyz/v4";
 
@@ -114,17 +116,76 @@ const chart = (values, xTitle, yTitle) => ({
 });
 
 const CACHE_MS = 5 * 60 * 1000;
+// GeckoTerminal's free API allows about 30 calls a minute from one address, and the server shares its address
+// with everyone it serves, so its answers are kept longer, and its list of DEXes per chain longest.
+const GECKO_CACHE_MS = 15 * 60 * 1000;
+const GECKO_DEXES_CACHE_MS = 6 * 60 * 60 * 1000;
+// After a refused read (429, 5xx, timeout) and one retry, an older copy is still better than nothing: shown with
+// the time it was read, never as current.
+const STALE_MAX_MS = 24 * 60 * 60 * 1000;
+const RETRY_WAIT_MS = 2000;
 
-export function createIntel({ fetchImpl = globalThis.fetch, now = () => Date.now() } = {}) {
+function freshFor(url) {
+  if (!url.startsWith(GECKO)) return CACHE_MS;
+  return /\/dexes\?page=/.test(url) ? GECKO_DEXES_CACHE_MS : GECKO_CACHE_MS;
+}
+
+export function createIntel({
+  fetchImpl = globalThis.fetch,
+  now = () => Date.now(),
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+} = {}) {
   const cache = new Map();
+  const inflight = new Map(); // one request per URL at a time, however many visitors ask
+  const readTimes = new AsyncLocalStorage(); // per answer: when the oldest figure it used was read
+
+  function note(at, stale) {
+    const t = readTimes.getStore();
+    if (!t) return;
+    t.oldest = Math.min(t.oldest, at);
+    if (stale) t.stale = true;
+  }
+  async function fetchOnce(url) {
+    const r = await fetchImpl(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) {
+      const e = new Error(`${new URL(url).hostname} answered ${r.status}`);
+      e.retry = r.status === 429 || r.status >= 500;
+      throw e;
+    }
+    return r.json();
+  }
+  async function fetchFresh(url) {
+    try {
+      return await fetchOnce(url);
+    } catch (e) {
+      if (e.retry === false) throw e;
+      await sleep(RETRY_WAIT_MS); // rate limit or glitch: wait, then one more try
+      return fetchOnce(url);
+    }
+  }
   async function getJson(url) {
     const hit = cache.get(url);
-    if (hit && now() - hit.at < CACHE_MS) return hit.body;
-    const r = await fetchImpl(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15000) });
-    if (!r.ok) throw new Error(`${new URL(url).hostname} answered ${r.status}`);
-    const body = await r.json();
-    cache.set(url, { at: now(), body });
-    return body;
+    if (hit && now() - hit.at < freshFor(url)) {
+      note(hit.at);
+      return hit.body;
+    }
+    let p = inflight.get(url);
+    if (!p) {
+      p = fetchFresh(url).finally(() => inflight.delete(url));
+      inflight.set(url, p);
+    }
+    try {
+      const body = await p;
+      if (!cache.has(url) || cache.get(url).body !== body) cache.set(url, { at: now(), body });
+      note(cache.get(url).at);
+      return body;
+    } catch (e) {
+      if (hit && now() - hit.at < STALE_MAX_MS) {
+        note(hit.at, true);
+        return hit.body;
+      }
+      throw e;
+    }
   }
   const dexTable = (c) =>
     getJson(
@@ -399,6 +460,14 @@ export function createIntel({ fetchImpl = globalThis.fetch, now = () => Date.now
           ? "GeckoTerminal"
           : "DeFi Llama";
     const out = { live: true, sources: [source], asOf: new Date(now()).toISOString(), plan };
+    const t = { oldest: now(), stale: false };
+    await readTimes.run(t, () => fill(out, plan, c, source));
+    out.asOf = new Date(t.oldest).toISOString(); // the time the figures were read, not the time of the question
+    if (t.stale && !out.failed) out.stale = true;
+    return out;
+  }
+
+  async function fill(out, plan, c, source) {
     try {
       if (plan.kind === "chains") out.messages = await chains();
       else if (plan.kind === "merkl") out.messages = await merkl(c, plan.dex);
@@ -413,7 +482,6 @@ export function createIntel({ fetchImpl = globalThis.fetch, now = () => Date.now
         ),
       ];
     }
-    return out;
   }
 
   return { answer };
