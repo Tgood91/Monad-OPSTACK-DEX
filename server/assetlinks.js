@@ -4,7 +4,8 @@
 // vouches for the app: Chrome fetches https://<site>/.well-known/assetlinks.json and
 // checks the app's package name and signing-certificate fingerprint against it.
 // Both come from the environment, because the fingerprint belongs to YOUR signing key:
-//   ANDROID_PACKAGE_NAME   defaults to applicationId in Bushido-dApp-android/app/build.gradle.kts
+//   ANDROID_PACKAGE_NAME   defaults to applicationId in app/build.gradle.kts of
+//                          https://github.com/Tgood91/Bushido-dApp-android
 //   ANDROID_CERT_SHA256    one or more SHA-256 fingerprints, comma separated
 //                          (e.g. your upload key and Google Play's app-signing key)
 // With no fingerprint set it answers an empty list, which is valid and grants nothing.

@@ -277,6 +277,18 @@ provider then silently limited which chains and tokens you could pick. People th
 not "Aori". Provider-specific steps (deposit address, Stargate transaction, Aori signed order) are
 unchanged. Checked in a browser, including the "Get gas" card; a real bridge was not run here.
 
+## Unreleased: the Android app moved to its own repository
+**What:** `Bushido-dApp-android/` is removed from this repository. The Kotlin Android Studio project
+now lives at the root of [Tgood91/Bushido-dApp-android](https://github.com/Tgood91/Bushido-dApp-android), with its own README and CHANGELOG.
+The README, `.gitignore` and the comment in `server/assetlinks.js` point there now.
+`/.well-known/assetlinks.json` (`server/assetlinks.js`, `ANDROID_CERT_SHA256`,
+`ANDROID_PACKAGE_NAME`) stays here, because the site has to serve it; the package ID it defaults
+to is unchanged.
+**Why:** the owner asked for the Android app to live in its own repository.
+**Verified:** `./gradlew test lint assembleDebug` passes in the new repository; `npm test` and
+`format:check` pass here.
+**Not verified:** nothing has run on a phone (see the entry below).
+
 ## Unreleased: Android app rewritten as a Kotlin Android Studio project
 **What:** `Bushido-dApp-android/` is now a real Android Studio project (Gradle Kotlin DSL, Kotlin
 2.1, Android Gradle Plugin 8.9, min SDK 25, target SDK 36) instead of a Bubblewrap / PWABuilder

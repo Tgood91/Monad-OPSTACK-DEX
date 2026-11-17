@@ -5,14 +5,6 @@ dist/
 *.log
 .DS_Store
 
-# Android signing keys: never commit
+# Android signing keys: never commit (the Android app lives in its own repository now)
 *.keystore
 *.jks
-Bushido-dApp-android/*.zip
-Bushido-dApp-android/*.aab
-Bushido-dApp-android/*.apk
-Bushido-dApp-android/keystore.properties
-Bushido-dApp-android/local.properties
-Bushido-dApp-android/.gradle/
-Bushido-dApp-android/.idea/
-Bushido-dApp-android/**/build/

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Bushido-dApp</string>
-    <string name="launcher_name">Bushido</string>
-    <string name="shortcut_swap">Swap</string>
-    <string name="shortcut_bridge">Bridge</string>
-    <!-- Digital Asset Links, app side. The site side is /.well-known/assetlinks.json (server/assetlinks.js). -->
-    <string name="asset_statements" translatable="false">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": { \"namespace\": \"web\", \"site\": \"https://bushido-dapp.onrender.com\" } }]</string>
-</resources>
