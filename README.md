@@ -77,14 +77,15 @@ and decimals.
 MON. `WMON` is also listed as an ordinary token. Picking MON on one side and WMON on the other shows a plain
 explanation (they are the same value); wrapping directly is not built into the swap.
 
-### Base coins (77)
+### Base coins (111)
 
-`ETH`, `USDC`, `cbBTC`, `USDT`, `DAI`, `cbETH`, `AERO`, `VIRTUAL`, `AAVE`, `EURC`, `USDbC`, `tBTC`, `cbDOGE`, `cbHYPE`, `cbXRP`, `cbZEC`, `cbLTC`, `AAPLc`, `AMDc`, `AMZNc`, `AVGOc`, `AX1`, `AXIS`, `CHIP`, `COOKIE`, `crvUSD`, `CTR`, `deSPXA`, `DIEM`, `DOLA`, `DRV`, `EDGE`, `ELSA`, `eUSD`, `FUN`, `HIMSc`, `ICNT`, `INFI`, `jEUR`, `JitoSOL`, `KNC`, `LCAP`, `LMTS`, `LUSD`, `MOCA`, `MORPHO`, `msETH`, `MSFTc`, `msUSD`, `MUc`, `NFLXc`, `NVDAc`, `O`, `OUSD`, `PAXG`, `PENDLE`, `PLAY`, `PROS`, `QUID`, `rETH`, `SKHYc`, `SNDKc`, `SOSO`, `SPX`, `superOETHb`, `tGBP`, `UNI`, `VFY`, `VVV`, `WBTC`, `wstETH`, `XDP`, `XSGD`, `ZCHF`, `ZEN`, `ZORA`, `ZRO`.
+`ETH`, `USDC`, `cbBTC`, `USDT`, `DAI`, `cbETH`, `AERO`, `VIRTUAL`, `AAVE`, `EURC`, `USDbC`, `tBTC`, `cbDOGE`, `cbHYPE`, `cbXRP`, `cbZEC`, `cbLTC`, `cbADA`, `AAPLc`, `AMDc`, `AMZNc`, `AVGOc`, `AX1`, `AXIS`, `ADS`, `AIXBT`, `apxUSD`, `AVNT`, `AWE`, `B3`, `Basecat`, `BEc`, `BNKR`, `CHECK`, `CHIP`, `COOKIE`, `CP`, `crvUSD`, `CTR`, `DEGEN`, `deSPXA`, `DIEM`, `doginme`, `DOLA`, `DRV`, `EDGE`, `ELSA`, `eUSD`, `FAI`, `FLOCK`, `FUN`, `GHST`, `HIMSc`, `HUNT`, `ICNT`, `INFI`, `jEUR`, `JitoSOL`, `KEYCAT`, `KNC`, `KTA`, `LCAP`, `LMTS`, `LUSD`, `MAG7.ssi`, `MAMO`, `MOCA`, `MORPHO`, `msETH`, `MSFTc`, `msUSD`, `MUc`, `NFLXc`, `NOCK`, `NVDAc`, `O`, `OPG`, `OUSD`, `PARTI`, `PAXG`, `PENDLE`, `PLAY`, `POD`, `PROS`, `QUID`, `RECALL`, `REPPO`, `rETH`, `ROLL`, `SAPIEN`, `SKHYc`, `SNDKc`, `SOSO`, `SPCXc`, `SPX`, `superOETHb`, `tGBP`, `TOSHI`, `TRUST`, `UNI`, `VFY`, `VVV`, `WBTC`, `wstETH`, `XDP`, `XSGD`, `YFI`, `ZCHF`, `ZEN`, `ZORA`, `ZRO`.
 
 Apart from `ETH` and `USDC`, each was read on Base and priced through KyberSwap from ETH under the same loss rule.
-Candidates came from the Uniswap, SushiSwap and Superchain token lists and from Base's busiest pools. Coins added on
-2026-11-17 also needed at least $10,000 of pool liquidity on Base (GeckoTerminal). The `…c` coins (`AAPLc`, `NVDAc`,
-`MSFTc` and others) are tokenised stocks; they sit at the same kind of `0xB2000…` address as Coinbase's `cbHYPE` and
+Candidates came from the Uniswap, SushiSwap and Superchain token lists and from Base's busiest pools. On 2026-11-17 the
+first 39 added also needed at least $10,000 of pool liquidity; the next 34 (to reach 111) were taken at the owner's
+request from coins that have a route but fail the loss rule (loss under 2%), so expect more price impact on them. The `…c` coins (`AAPLc`, `NVDAc`,
+`MSFTc`, `SPCXc`, `BEc` and others) are tokenised stocks; they sit at the same kind of `0xB2000…` address as Coinbase's `cbHYPE` and
 `cbZEC`, but their issuer was not confirmed from an official source, and stock tokens are often restricted by country.
 `deSPXA` is a tokenised S&P 500 fund.
 The coin list has a search box once it holds more than 12 entries.

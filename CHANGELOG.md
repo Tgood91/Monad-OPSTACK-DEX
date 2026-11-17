@@ -8,7 +8,7 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
-## Base: 39 more coins (now 77), including tokenised stocks
+## Base: 73 more coins (now 111), including tokenised stocks
 
 - Candidates: 523 Base tokens from the Uniswap and Superchain token lists and GeckoTerminal's busiest Base pools.
   Each was read on Base (symbol, decimals, code) and priced through KyberSwap from ETH (loss under 0.5% at $20 and
@@ -22,6 +22,13 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
   Base issuer could not be confirmed, so a lookalike is possible); and a second token called AERO
   (`0x3f5b…a4Ee`, about $19M of liquidity) that is not the AERO already listed (`0x9401…8631`). Worth checking
   whether Aerodrome has moved to a new token. Coinbase's cbADA and cbMEGA failed the price test.
+- Then, at the owner's request ("don't worry about liquidity, finish 111 tokens"), 34 more from the coins that
+  have a KyberSwap route but miss the loss rule, kept to under 2% loss at $20 and $200 and taken in order of pool
+  liquidity: cbADA, SPCXc and BEc (tokenised stocks), ADS, POD, KTA, MAG7.ssi, FAI, BNKR, HUNT, apxUSD, NOCK, ROLL,
+  TOSHI, FLOCK, SAPIEN, AVNT, YFI, AIXBT, GHST, doginme, MAMO, REPPO, B3, KEYCAT, Basecat, PARTI, AWE, CHECK,
+  DEGEN, TRUST, OPG, RECALL, CP. Expect more price impact on these. Still left out: coins with no route, broken
+  prices (100% loss or large gains, a sign of a trap token), a token named "Claude", and UP (two different tokens
+  share the symbol on Base).
 - Not verified: the tokenised stocks' issuer (they share the address pattern of Coinbase's cbHYPE and cbZEC, but no
   official source was checked) and which countries may hold them; no real swap of a new coin was sent.
 ## Faucet: 0.5 MON to any wallet, once every 4 hours
