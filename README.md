@@ -60,10 +60,10 @@ switch to it for Merkl claims. Bridge chains and which provider covers each are 
 Monad is the wallet library's default network, so a wallet that is already on Monad is not pulled to another chain
 when it connects.
 
-### Monad coins (20)
+### Monad coins (22)
 
 `MON`, `USDC`, `WMON`, `USDT0`, `WETH`, `WBTC`, `AUSD`, `sMON`, `gMON`, `shMON`, `GHO`, `cbBTC`, `LBTC`, `Cake`,
-`avUSD`, `mUSD`, `XAUt0`, `aprMON`, `syrupUSDC`, `MONAZ`.
+`avUSD`, `mUSD`, `XAUt0`, `aprMON`, `syrupUSDC`, `MONAZ`, `EURW`, `USDat`.
 
 Every coin was checked before it was added: the contract was read on Monad (name, symbol, decimals) and had to
 match Monad's [official token list](https://github.com/monad-crypto/token-list); and a live KyberSwap route had to
@@ -75,6 +75,14 @@ and decimals.
 `MON` is the native coin. Its address in the list is the **WMON** contract, used as the placeholder for native
 MON. `WMON` is also listed as an ordinary token. Picking MON on one side and WMON on the other shows a plain
 explanation (they are the same value); wrapping directly is not built into the swap.
+
+### Base coins (38)
+
+`ETH`, `USDC`, `cbBTC`, `USDT`, `DAI`, `cbETH`, `AERO`, `VIRTUAL`, `AAVE`, `EURC`, `USDbC`, `tBTC`, `cbDOGE`, `cbHYPE`, `cbXRP`, `cbZEC`, `CHIP`, `COOKIE`, `CTR`, `DIEM`, `DRV`, `ELSA`, `ICNT`, `JitoSOL`, `LCAP`, `LUSD`, `MOCA`, `O`, `OUSD`, `PENDLE`, `PLAY`, `SOSO`, `SPX`, `VVV`, `XDP`, `ZCHF`, `ZEN`, `ZRO`.
+
+Apart from `ETH` and `USDC`, each was read on Base and priced through KyberSwap from ETH under the same loss rule.
+Candidates came from the Uniswap and SushiSwap token lists and from Base's busiest pools over 14 days.
+The coin list has a search box once it holds more than 12 entries.
 
 ### BNB Chain and Avalanche coins
 

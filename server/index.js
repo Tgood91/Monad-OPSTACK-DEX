@@ -59,6 +59,7 @@ import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
+import { createIntel } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
 // Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
@@ -523,11 +524,16 @@ app.get("/api/bushido/dashboard", async (req, res) => {
   }
 });
 
-// ---- DEX Intelligence (canned research answers; SAMPLE data, not live) ----
+// ---- DEX Intelligence ----
 // POST /api/intel/ask — { query } -> { messages: [...] }
-app.post("/api/intel/ask", (req, res) => {
+// Questions about volume, pools, tokens or chains are answered from live open data (DeFi Llama, GeckoTerminal;
+// see intel-live.js) and marked `live`. Anything else gets the older canned answers, marked `sample`.
+const intel = createIntel();
+app.post("/api/intel/ask", async (req, res) => {
   const query = String(req.body?.query || "").trim().slice(0, 300);
   if (!query) return res.status(400).json({ error: "missing query" });
+  const live = await intel.answer(query).catch(() => null);
+  if (live) return res.json(live);
   res.json({ messages: getDexIntelligenceResponse(query), sample: true });
 });
 

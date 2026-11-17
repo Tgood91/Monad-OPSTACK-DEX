@@ -1,6 +1,6 @@
-// DEX Intelligence tab: asks /api/intel/ask and renders the canned answer
-// (reasoning steps, SQL + result table, bar chart, final answer, follow-ups).
-// The backend's tables and charts are fixed SAMPLE data, so they're labeled.
+// DEX Intelligence tab: asks /api/intel/ask and renders the answer
+// (steps taken, result table, bar chart, final answer, follow-ups).
+// Live answers name their source and the time they were read; the older canned answers are labeled as sample data.
 
 const $ = id => document.getElementById(id);
 
@@ -39,7 +39,7 @@ function renderChart(spec) {
   return `<div class="intel-chart"><div class="intel-chart-title">${esc(y.title || y.field)} by ${esc(x.title || x.field)}</div>${bars}</div>`;
 }
 
-function render(query, messages) {
+function render(query, messages, meta = {}) {
   const out = [];
   let suggestions = [];
   for (const { systemMessage: m } of messages) {
@@ -60,9 +60,18 @@ function render(query, messages) {
   }
   $('intelResult').innerHTML =
     `<div class="intel-q">${esc(query)}</div>
-     <div class="intel-sample">Sample data — illustrative figures, not live on-chain results.</div>` +
+     ${badge(meta)}` +
     out.join('');
   renderSuggestions(suggestions);
+}
+
+// Says where the figures came from. Live answers name the source and time; anything else is marked as sample data.
+function badge(meta) {
+  if (!meta.live) return '<div class="intel-sample">Sample data — illustrative figures, not live on-chain results.</div>';
+  if (meta.failed) return '<div class="intel-sample">Live data could not be read.</div>';
+  const at = new Date(meta.asOf);
+  const when = Number.isNaN(at.getTime()) ? '' : ` · read ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return `<div class="intel-live">Live data from ${esc((meta.sources || []).join(', '))}${when}</div>`;
 }
 
 function renderSuggestions(list) {
@@ -90,7 +99,7 @@ async function ask(query) {
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `API ${r.status}`);
-    render(query, j.messages || []);
+    render(query, j.messages || [], j);
   } catch (e) {
     $('intelResult').innerHTML = `<div class="status error">Failed: ${esc(e.message.slice(0, 120))}</div>`;
   }
@@ -99,7 +108,9 @@ async function ask(query) {
 $('intelAsk').onclick = () => ask();
 $('intelInput').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
 renderSuggestions([
-  'How does 1inch Pathfinder split capital?',
-  'Show Aerodrome ve(3,3) pools by 24h volume',
-  'Explain 0xSplits post-swap distribution',
+  'DEX volume on Monad',
+  'Top pools on Base',
+  'Most traded tokens on Monad',
+  'Merkl rewards on Monad',
+  'Compare all chains',
 ]);

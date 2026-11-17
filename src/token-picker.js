@@ -27,6 +27,19 @@ const CSS_CLASS = 'pick';
  * Open the slide-up list. `items` = [{ value, label, selected?, disabled?, color? }]; `onPick(value)` runs on a tap.
  * Shared by the coin/chain dropdown replacements and the chain menu. `color` draws a small dot (chain colours).
  */
+/** Search a long list: every typed word must appear in the label (any case). */
+export function filterItems(items, query) {
+  const words = String(query || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return items;
+  return items.filter((o) => words.every((w) => String(o.label).toLowerCase().includes(w)));
+}
+
+/** Lists longer than this get a search box. */
+export const SEARCH_FROM = 12;
+
 export function openChoiceSheet(doc, { title, items, onPick }) {
   const wrap = doc.createElement('div');
   wrap.className = 'pickWrap';
@@ -55,25 +68,45 @@ export function openChoiceSheet(doc, { title, items, onPick }) {
   head.appendChild(x);
   const list = doc.createElement('div');
   list.className = 'pickList';
-  for (const o of items) {
-    const b = doc.createElement('button');
-    b.type = 'button';
-    b.className = 'pickItem' + (o.selected ? ' on' : '');
-    if (o.color) {
-      const dot = doc.createElement('span');
-      dot.className = 'pickDot';
-      dot.style.background = o.color;
-      b.appendChild(dot);
+  const draw = (shown) => {
+    list.textContent = '';
+    for (const o of shown) {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.className = 'pickItem' + (o.selected ? ' on' : '');
+      if (o.color) {
+        const dot = doc.createElement('span');
+        dot.className = 'pickDot';
+        dot.style.background = o.color;
+        b.appendChild(dot);
+      }
+      b.appendChild(doc.createTextNode(o.label));
+      b.disabled = !!o.disabled;
+      b.addEventListener('click', () => {
+        close();
+        onPick(o.value);
+      });
+      list.appendChild(b);
     }
-    b.appendChild(doc.createTextNode(o.label));
-    b.disabled = !!o.disabled;
-    b.addEventListener('click', () => {
-      close();
-      onPick(o.value);
-    });
-    list.appendChild(b);
+    if (!shown.length) {
+      const none = doc.createElement('div');
+      none.className = 'pickNone';
+      none.textContent = 'No match';
+      list.appendChild(none);
+    }
+  };
+  draw(items);
+  sheet.appendChild(head);
+  if (items.length > SEARCH_FROM) {
+    const find = doc.createElement('input');
+    find.type = 'search';
+    find.className = 'pickFind';
+    find.placeholder = 'Search';
+    find.setAttribute('aria-label', 'Search the list');
+    find.addEventListener('input', () => draw(filterItems(items, find.value)));
+    sheet.appendChild(find);
   }
-  sheet.append(head, list);
+  sheet.appendChild(list);
   wrap.append(back, sheet);
   doc.body.appendChild(wrap);
 }
