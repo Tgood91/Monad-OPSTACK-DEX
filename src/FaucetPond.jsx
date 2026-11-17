@@ -1,6 +1,6 @@
 // "Free starter MON", with the koi pond itself as the button (Rewards tab).
 // Tap the pond: it connects your wallet if needed, then checks eligibility and claims. A coin drops in while
-// it works and ripples spread when the MON lands. It hides for wallets that already have gas, and is absent
+// it works and ripples spread when the MON lands. A wallet that already has gas sees it greyed out with the reason; it is absent
 // when the faucet is off. The wording and rules live in faucet-button.js (unit-tested).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DojoPond from './DojoPond.jsx';
