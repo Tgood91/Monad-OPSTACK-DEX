@@ -71,6 +71,10 @@ function badge(meta) {
   if (meta.failed) return '<div class="intel-sample">Live data could not be read.</div>';
   const at = new Date(meta.asOf);
   const when = Number.isNaN(at.getTime()) ? '' : ` · read ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  if (meta.stale) {
+    // The source refused just now: these are the last figures we read, labelled with when.
+    return `<div class="intel-sample">Saved copy from ${esc((meta.sources || []).join(', '))}${when} (the source is busy right now)</div>`;
+  }
   return `<div class="intel-live">Live data from ${esc((meta.sources || []).join(', '))}${when}</div>`;
 }
 

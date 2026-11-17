@@ -28,7 +28,7 @@ description: Deploy or redeploy the DEX — build the frontend, configure server
 | `ZEROX_API_KEY` | ✅ for 0x source | Server-side (0x v2 cannot be called from a browser); `VITE_0X_API_KEY` is still read as an old name |
 | `DISABLED_SOURCES` | Optional | Comma-separated sources to switch off, e.g. `zerion,fusion` (see `server/switches.js`) |
 | `FAUCET_PRIVATE_KEY` | Optional | Turns the Monad faucet on. A fresh dedicated wallet holding a few MON only. See [dex-dojo-faucet](../dex-dojo-faucet/SKILL.md) |
-| `FAUCET_DRIP_MON`, `FAUCET_MIN_BALANCE_MON`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Optional | Faucet tuning (defaults 0.05, 0.02, 100, 0.1) |
+| `FAUCET_DRIP_MON`, `FAUCET_COOLDOWN_HOURS`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Optional | Faucet tuning (defaults 0.5, 4, 100, 0.1) |
 | `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Optional | Dojo Pass perk tokens survive restarts only with a secret; multiplier default 3 |
 | `RESEND_API_KEY`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | Optional | Emails high-severity errors |
 | `PORT` | Optional | Default 3001 |

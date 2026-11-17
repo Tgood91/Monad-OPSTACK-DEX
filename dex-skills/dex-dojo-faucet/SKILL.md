@@ -54,12 +54,12 @@ Off unless `FAUCET_PRIVATE_KEY` is set. **This is the one key the server holds.*
 - **Key handling:** a fresh, dedicated wallet holding a few MON; never the owner's main wallet or one that owns contracts or a
   Safe. A Safe cannot be the faucet wallet (it has no private key). Pattern: a Safe as the vault, a small burner as the till,
   topped up by hand. The key goes in the host's Environment tab only (never chat, repo or screenshots).
-- **Who can claim:** a wallet that has never sent a transaction (nonce 0) and holds less than `FAUCET_MIN_BALANCE_MON` (0.02). That
-  alone makes it one claim per wallet. Extra limits: one claim per visitor per day (skipped for private addresses, so it needs the
+- **Who can claim:** any wallet, whatever it holds, once every `FAUCET_COOLDOWN_HOURS` (4). The same wait applies per visitor IP
+  (skipped for private addresses, so it needs the
   right `TRUST_PROXY`: 3 on Render) and a daily cap (`FAUCET_DAILY_CAP`, 100). It stops when its balance falls below the drip plus
   `FAUCET_RESERVE_MON` (0.1) and logs low/empty warnings to the ops log.
 - **No race:** eligibility is checked **inside** the one-at-a-time send queue, so two simultaneous claims cannot both pass.
-- **Amount:** `FAUCET_DRIP_MON` (default 0.05; the live site sets 0.1). Keep it above `FAUCET_MIN_BALANCE_MON`.
+- **Amount:** `FAUCET_DRIP_MON` (default 0.5). The waits are kept in memory, so a restart or deploy clears them.
 - **Routes:** `GET /api/faucet/status?address=0x...` (the address is required: without it the answer is "bad address"; for a
   brand-new wallet it returns `eligible: true`); `POST /api/faucet/claim` with `{ address }`. `/api/health` -> `keys.faucet`
   says whether it is on.

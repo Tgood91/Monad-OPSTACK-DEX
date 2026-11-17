@@ -138,3 +138,44 @@ test("Merkl answer ranks live campaigns by daily rewards and picks the best rate
   assert.match(text, /Best rate among campaigns holding at least \$100K: \*\*LP MON-USDC\*\* at 31\.0% APR/);
   assert.doesNotMatch(text, /210/);
 });
+
+test("GeckoTerminal 429: waits, retries once, then answers", async () => {
+  let n = 0;
+  const waits = [];
+  const body = { data: [], included: [] };
+  const intel = createIntel({
+    fetchImpl: async () => (++n === 1 ? { ok: false, status: 429 } : { ok: true, json: async () => body }),
+    sleep: async (ms) => waits.push(ms),
+  });
+  const a = await intel.answer("top pools on base");
+  assert.equal(a.failed, undefined);
+  assert.equal(n, 2);
+  assert.equal(waits.length, 1);
+});
+test("GeckoTerminal keeps answers 15 minutes; a refusal after that serves the saved copy, marked stale", async () => {
+  let t = Date.parse("2026-11-17T10:00:00Z");
+  let refuse = false;
+  let n = 0;
+  const body = { data: [], included: [] };
+  const intel = createIntel({
+    now: () => t,
+    sleep: async () => {},
+    fetchImpl: async () => (n++, refuse ? { ok: false, status: 429 } : { ok: true, json: async () => body }),
+  });
+  await intel.answer("top pools on base");
+  t += 10 * 60 * 1000;
+  await intel.answer("top pools on base");
+  assert.equal(n, 1); // still fresh at 10 minutes
+  t += 10 * 60 * 1000;
+  refuse = true;
+  const a = await intel.answer("top pools on base");
+  assert.equal(n, 3); // tried and retried
+  assert.equal(a.failed, undefined);
+  assert.equal(a.stale, true);
+  assert.equal(a.asOf, "2026-11-17T10:00:00.000Z"); // labelled with when it was really read
+});
+test("a refusal with nothing saved still says plainly it could not read", async () => {
+  const intel = createIntel({ sleep: async () => {}, fetchImpl: async () => ({ ok: false, status: 429 }) });
+  const a = await intel.answer("top pools on base");
+  assert.equal(a.failed, true);
+});
