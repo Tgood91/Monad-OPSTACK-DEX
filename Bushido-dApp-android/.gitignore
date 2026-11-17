@@ -1,0 +1,16 @@
+# Android Studio / Gradle
+.gradle/
+build/
+.idea/
+*.iml
+local.properties
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing: the keystore and its passwords never go in git
+keystore.properties
+*.keystore
+*.jks
+*.zip

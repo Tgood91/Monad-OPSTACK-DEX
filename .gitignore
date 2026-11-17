@@ -9,3 +9,10 @@ dist/
 *.keystore
 *.jks
 Bushido-dApp-android/*.zip
+Bushido-dApp-android/*.aab
+Bushido-dApp-android/*.apk
+Bushido-dApp-android/keystore.properties
+Bushido-dApp-android/local.properties
+Bushido-dApp-android/.gradle/
+Bushido-dApp-android/.idea/
+Bushido-dApp-android/**/build/

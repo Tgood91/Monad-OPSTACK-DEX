@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shown for the instant before Chrome takes over; it just matches the site's dark background. -->
+    <style name="Theme.Bushido" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bushido_background</item>
+        <item name="android:statusBarColor">@color/bushido_background</item>
+        <item name="android:navigationBarColor">@color/bushido_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

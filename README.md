@@ -466,7 +466,7 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 ├── test/                   # node:test suite
 ├── contracts/              # VirtueFeeRouter.sol
 ├── Bushido-dApp/           # installable mobile app (PWA)
-└── Bushido-dApp-android/   # Android wrapper (TWA)
+└── Bushido-dApp-android/   # Android app (Kotlin, Trusted Web Activity)
 ```
 
 ---
