@@ -22,9 +22,13 @@ test("connected, eligible, funded: a plain claim button", () => {
 test("connected but status not loaded yet: still offers the claim", () => {
   assert.equal(faucetBarView({ ...base, connected: true }).label, "Claim 0.1 MON free");
 });
-test("a wallet that already has gas: hidden, unless they pressed the button, then explained (amber)", () => {
+test("a wallet that already has gas: pond stays, greyed out and explained (amber once pressed)", () => {
   const st = { ...ok, eligible: false, reason: "This wallet already has MON for gas." };
-  assert.equal(faucetBarView({ ...base, connected: true, status: st }).show, false);
+  const idle = faucetBarView({ ...base, connected: true, status: st });
+  assert.equal(idle.show, true);
+  assert.equal(idle.disabled, true);
+  assert.equal(idle.tone, "normal");
+  assert.match(idle.hint, /already has MON/);
   const v = faucetBarView({ ...base, connected: true, status: st, userStarted: true });
   assert.equal(v.show, true);
   assert.equal(v.disabled, true);

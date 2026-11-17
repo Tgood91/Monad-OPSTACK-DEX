@@ -51,10 +51,15 @@ export function faucetBarView(s) {
   const st = s.status;
   if (!st) return { show: true, label: `Claim ${amount} free`, disabled: false, hint: '', tone: 'normal' };
   if (!st.eligible) {
-    // A wallet that already has gas doesn't need this: stay out of the way unless they asked.
-    return s.userStarted
-      ? { show: true, label: 'No claim needed', disabled: true, hint: cap(st.reason), tone: 'warn' }
-      : hide;
+    // A wallet that already has gas can't claim: keep the pond on screen, greyed out, and say why
+    // (amber only once they pressed it).
+    return {
+      show: true,
+      label: 'No claim needed',
+      disabled: true,
+      hint: cap(st.reason),
+      tone: s.userStarted ? 'warn' : 'normal',
+    };
   }
   if (st.available === false)
     return {

@@ -119,6 +119,7 @@ export default function DojoCard({ trader }) {
     try {
       const r = await claimFaucet(trader);
       setMsg(`Starter MON sent ✓ ${r.amountMon} MON · ${r.hash.slice(0, 12)}…`);
+      window.dispatchEvent(new CustomEvent('bushido:faucet-sent', { detail: { address: trader } }));
       await refresh();
     } catch (e) {
       setMsg('No starter MON: ' + String(e.message || e).slice(0, 160));
@@ -174,29 +175,60 @@ export default function DojoCard({ trader }) {
 
       {v.kind === 'ready' && (
         <>
-          {v.faucet && (
-            <div className="rounded border border-sky-400/30 bg-sky-400/5 p-3 mb-3">
-              <div className="text-xs opacity-80 mb-2">{v.faucet.note}</div>
-              <button
-                disabled={busy || !v.faucet.available}
-                onClick={claimStarter}
-                className="w-full rounded border-0 bg-sky-400/90 text-black font-semibold p-2 disabled:opacity-40"
-              >
-                {busy ? 'Working…' : v.faucet.label}
-              </button>
-            </div>
-          )}
           {monWei !== null && isLowGas(monWei) && !v.faucet && (
             <div className="text-xs text-amber-300 mb-3">
               Low on MON for gas ({fmtBal(monWei)} MON). Swaps and Dojo buttons on Monad need a little MON.
             </div>
           )}
-          <DojoPond
-            stageIndex={stage.index}
-            bowed={bowedToday(bowRec)}
-            streak={liveStreak(bowRec)}
-            name={`${stage.name}, ${stage.blurb}`}
-          />
+          {v.faucet ? (
+            // Free starter MON: the pond itself is the button (same idea as the Rewards tab's pond).
+            <div
+              role="button"
+              tabIndex={busy || !v.faucet.available ? -1 : 0}
+              aria-disabled={busy || !v.faucet.available}
+              aria-label={`${v.faucet.label}. Tap the pond.`}
+              data-testid="dojo-faucet-pond"
+              className={busy || !v.faucet.available ? 'cursor-default' : 'cursor-pointer hover:brightness-110'}
+              onClick={() => !busy && v.faucet.available && claimStarter()}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !busy && v.faucet.available) {
+                  e.preventDefault();
+                  claimStarter();
+                }
+              }}
+            >
+              <DojoPond
+                stageIndex={stage.index}
+                bowed={bowedToday(bowRec)}
+                streak={liveStreak(bowRec)}
+                name={`${stage.name}, ${stage.blurb}. Tap it to claim free MON.`}
+              >
+                <span className="absolute left-0 right-0 bottom-2.5 flex justify-center pointer-events-none">
+                  <span
+                    className="px-4 py-2.5 rounded-full font-bold text-sm text-white text-center max-w-[92%] border border-white/40"
+                    style={{
+                      background: v.faucet.available
+                        ? 'linear-gradient(248.86deg,rgba(182,80,158,.58) 10.51%,rgba(23,126,135,.58) 93.41%)'
+                        : 'rgba(42,42,53,.62)',
+                      backdropFilter: 'blur(7px)',
+                      WebkitBackdropFilter: 'blur(7px)',
+                      textShadow: '0 1px 3px rgba(0,0,0,.75)',
+                    }}
+                  >
+                    {busy ? 'Working…' : v.faucet.label}
+                  </span>
+                </span>
+              </DojoPond>
+              <div className="text-xs opacity-80 -mt-1 mb-3 text-center">{v.faucet.note}</div>
+            </div>
+          ) : (
+            <DojoPond
+              stageIndex={stage.index}
+              bowed={bowedToday(bowRec)}
+              streak={liveStreak(bowRec)}
+              name={`${stage.name}, ${stage.blurb}`}
+            />
+          )}
           {v.pet.registered && (
             <div className="mb-3">
               <div className="flex items-baseline justify-between">
