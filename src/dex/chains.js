@@ -139,6 +139,12 @@ export const CHAINS = {
       { symbol: 'VELO', address: '0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db', decimals: 18 },
       { symbol: 'OP', address: '0x4200000000000000000000000000000000000042', decimals: 18 },
       { symbol: 'WBTC', address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', decimals: 8 },
+      // Added 2026-11-17 from the owner's Uniswap/SushiSwap token list: read on Optimism and priced through KyberSwap from
+      // ETH (under 0.5% loss at about $20, 0.25% at about $200).
+      { symbol: 'USDC.e', address: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607', decimals: 6 }, // bridged USDC; its on-chain symbol is plain "USDC"
+      { symbol: 'wstETH', address: '0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb', decimals: 18 },
+      { symbol: 'rETH', address: '0x9Bcef72be871e61ED4fBbc7630889beE758eb81D', decimals: 18 },
+      { symbol: 'USX', address: '0xbfD291DA8A403DAAF7e5E9DC1ec0aCEaCd4848B9', decimals: 18 },
     ],
     // Velodrome original Optimism deployment — verified on-chain 2026-10-07
     velo: {
@@ -228,6 +234,11 @@ export const CHAINS = {
       { symbol: 'AAVE', address: '0xfb6115445Bff7b52FeB98650C87f44907E58f802', decimals: 18 },
       { symbol: 'ASTER', address: '0x000Ae314E2A2172a039B26378814C252734f556A', decimals: 18 },
       { symbol: 'DNA', address: '0xA991F61940095AEA0724ef54077223B048c5CF7b', decimals: 18 },
+      // Second batch from the same list, same checks (2026-11-17).
+      { symbol: 'XVS', address: '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63', decimals: 18 },
+      { symbol: 'RHEA', address: '0x4c067DE26475E1CeFee8b8d1f6E2266b33a2372E', decimals: 18 },
+      { symbol: 'SPACE', address: '0x87acFA3fD7A6e0d48677D070644D76905C2bDC00', decimals: 18 },
+      { symbol: 'UP', address: '0x000008D2175F9AEAdDb2430c26f8A6f73c5A0000', decimals: 18 }, // listed as UNITAS in the token list; UP is its on-chain symbol
     ],
   },
   avalanche: {
@@ -260,6 +271,7 @@ export const CHAINS = {
       { symbol: 'FRAX', address: '0xD24C2Ad096400B6FBcd2ad8B24E7acBc21A1da64', decimals: 18 },
       { symbol: 'AUSD', address: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', decimals: 6 },
       { symbol: 'axlUSDC', address: '0xfaB550568C688d5D8A52C7d794cb93Edc26eC0eC', decimals: 6 },
+      { symbol: 'XAUt0', address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32', decimals: 6 }, // Tether Gold (bridged); from the owner's token list, same checks
     ],
   },
 };
