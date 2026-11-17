@@ -59,6 +59,7 @@ import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
+import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
 // Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
 // cached 5 min. Feeds the Bushido Seykota signal, which needs >= 30 points.
@@ -615,6 +616,34 @@ app.get("/api/merkl/opportunities", async (req, res) => {
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
+});
+
+// ── Token list ──────────────────────────────────────────────────────────────
+// GET /api/tokens?chainId=8453&q=usdc&limit=50
+// Returns the matching tokens from the Bushido token registry (2 216 tokens,
+// sourced from Uniswap + SushiSwap + Aerodrome Base majors).
+// All reads are from an in-memory Map built at first request — no DB needed.
+app.get("/api/tokens", (req, res) => {
+  const chainId = parseInt(req.query.chainId, 10);
+  if (!chainId) return res.status(400).json({ error: "chainId required" });
+  const q     = String(req.query.q || "").slice(0, 80);
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+  res.json(searchTokens(chainId, q, limit));
+});
+
+// GET /api/tokens/address?chainId=8453&address=0x833...
+app.get("/api/tokens/address", (req, res) => {
+  const chainId = parseInt(req.query.chainId, 10);
+  const address = String(req.query.address || "");
+  if (!chainId || !address) return res.status(400).json({ error: "chainId and address required" });
+  const tok = tokenByAddress(chainId, address);
+  if (!tok) return res.status(404).json({ error: "not found" });
+  res.json(tok);
+});
+
+// GET /api/tokens/chains — which chains are covered and how many tokens each
+app.get("/api/tokens/chains", (_req, res) => {
+  res.json(chainSummary());
 });
 
 // ---- serve the built frontend in production ----
