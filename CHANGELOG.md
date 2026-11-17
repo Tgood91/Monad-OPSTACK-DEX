@@ -7,6 +7,30 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## Base: 73 more coins (now 111), including tokenised stocks
+
+- Candidates: 523 Base tokens from the Uniswap and Superchain token lists and GeckoTerminal's busiest Base pools.
+  Each was read on Base (symbol, decimals, code) and priced through KyberSwap from ETH (loss under 0.5% at $20 and
+  0.25% at $200); 45 passed. The owner then ruled out anything under $10,000 of pool liquidity (GeckoTerminal's
+  total reserve across Base pools). `npm run verify:chains -- --chain base` reports no failures.
+- Added: superOETHb, ZORA, wstETH, msETH, MORPHO, msUSD, PAXG, UNI, WBTC, rETH, KNC, DOLA, crvUSD, eUSD, XSGD, jEUR,
+  tGBP, PROS, QUID, VFY, EDGE, LMTS, FUN, AXIS, AX1, INFI, cbLTC, deSPXA (tokenised S&P 500 fund) and 11 tokenised
+  stocks: AAPLc, AMDc, AMZNc, AVGOc, HIMSc, MSFTc, MUc, NFLXc, NVDAc, SKHYc, SNDKc.
+- Left out although they passed the price test: CHAR (about $4,000 of liquidity); DXTR (just over $10,000 of
+  liquidity but about $1.7M a day of volume, a wash-trading pattern); SOL, HYPE and ICP on Base (big names whose
+  Base issuer could not be confirmed, so a lookalike is possible); and a second token called AERO
+  (`0x3f5b…a4Ee`, about $19M of liquidity) that is not the AERO already listed (`0x9401…8631`). Worth checking
+  whether Aerodrome has moved to a new token. Coinbase's cbADA and cbMEGA failed the price test.
+- Then, at the owner's request ("don't worry about liquidity, finish 111 tokens"), 34 more from the coins that
+  have a KyberSwap route but miss the loss rule, kept to under 2% loss at $20 and $200 and taken in order of pool
+  liquidity: cbADA, SPCXc and BEc (tokenised stocks), ADS, POD, KTA, MAG7.ssi, FAI, BNKR, HUNT, apxUSD, NOCK, ROLL,
+  TOSHI, FLOCK, SAPIEN, AVNT, YFI, AIXBT, GHST, doginme, MAMO, REPPO, B3, KEYCAT, Basecat, PARTI, AWE, CHECK,
+  DEGEN, TRUST, OPG, RECALL, CP. Expect more price impact on these. Still left out: coins with no route, broken
+  prices (100% loss or large gains, a sign of a trap token), a token named "Claude", and UP (two different tokens
+  share the symbol on Base).
+- Not verified: the tokenised stocks' issuer (they share the address pattern of Coinbase's cbHYPE and cbZEC, but no
+  official source was checked) and which countries may hold them; no real swap of a new coin was sent.
 ## Faucet: 0.5 MON to any wallet, once every 4 hours
 
 - Owner's call: the faucet now pays **0.5 MON** (was 0.05 by default, 0.1 on the live site) to **any wallet,
