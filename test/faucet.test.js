@@ -53,7 +53,7 @@ function make(over = {}, chainOpts = {}) {
     makeWallet: c.makeWallet,
     log: (e) => logs.push(e),
   });
-  return { f, c, logs, nextDay: () => (t += 86400_000) };
+  return { f, c, logs, nextDay: () => (t += 86400_000), later: (ms) => (t += ms) };
 }
 
 test("off without a key (or with a bad one): says so, sends nothing", async () => {
@@ -65,48 +65,44 @@ test("off without a key (or with a bad one): says so, sends nothing", async () =
   }
 });
 
-test("a wallet with no activity can claim exactly one drip", async () => {
+test("any wallet can claim 0.25 MON, whatever it already holds or has done", async () => {
   const { f, c } = make();
-  const s = await f.status(A(1));
+  c.balances.set(A(1), E("50")); // a well-funded wallet...
+  c.nonces.set(A(1), 40); // ...with plenty of history
+  const s = await f.status(A(1), "8.8.8.8");
   assert.equal(s.enabled, true);
   assert.equal(s.eligible, true);
   assert.equal(s.available, true);
-  assert.equal(s.dripMon, "0.05");
+  assert.equal(s.dripMon, "0.25");
+  assert.equal(s.cooldownHours, 4);
   assert.equal(s.faucet, FAUCET_ADDR);
   const r = await f.claim(A(1), "8.8.8.8");
-  assert.equal(r.amountMon, "0.05");
-  assert.deepEqual(c.sent, [{ to: A(1), value: E("0.05") }]);
+  assert.equal(r.amountMon, "0.25");
+  assert.deepEqual(c.sent, [{ to: A(1), value: E("0.25") }]);
 });
 
-test("one claim per wallet: after the drip it has MON, and spending it needs a transaction", async () => {
-  const { f, c } = make();
+test("one claim per wallet every 4 hours, and the wait is shown", async () => {
+  const { f, c, later } = make();
   await f.claim(A(1), "8.8.8.8");
-  await assert.rejects(f.claim(A(1), "9.9.9.9"), /already has MON/);
-  c.balances.set(A(1), 0n); // spent it all...
-  c.nonces.set(A(1), 3); // ...which took transactions
-  await assert.rejects(f.claim(A(1), "7.7.7.7"), /already has activity/);
-  assert.equal(c.sent.length, 1);
+  await assert.rejects(f.claim(A(1), "9.9.9.9"), /claim again in 4h 0m/);
+  later(3 * 3600_000);
+  const s = await f.status(A(1), "7.7.7.7");
+  assert.equal(s.eligible, false);
+  assert.match(s.reason, /claim again in 1h 0m/);
+  assert.ok(s.nextClaimAt);
+  later(3600_000);
+  await f.claim(A(1), "7.7.7.7"); // 4 hours on: allowed again
+  assert.equal(c.sent.length, 2);
 });
 
-test("wallets with activity or enough MON are refused", async () => {
-  const { f, c } = make();
-  c.nonces.set(A(2), 1);
-  c.balances.set(A(3), E("0.5"));
-  assert.equal((await f.status(A(2))).eligible, false);
-  assert.match((await f.status(A(2))).reason, /activity/);
-  assert.match((await f.status(A(3))).reason, /MON for gas/);
-  await assert.rejects(f.claim(A(2), "1.1.1.1"), /activity/);
-  await assert.rejects(f.claim(A(3), "1.1.1.1"), /MON for gas/);
-  assert.equal(c.sent.length, 0);
-});
-
-test("one claim per visitor per day; private/proxy addresses are not limited by IP", async () => {
-  const { f, nextDay } = make();
+test("one claim per visitor IP every 4 hours; private/proxy addresses are not limited by IP", async () => {
+  const { f, later } = make();
   await f.claim(A(1), "8.8.8.8");
-  await assert.rejects(f.claim(A(2), "8.8.8.8"), /one claim per visitor/i);
+  await assert.rejects(f.claim(A(2), "8.8.8.8"), /claim again/); // a fresh wallet from the same visitor
+  assert.equal((await f.status(A(2), "8.8.8.8")).eligible, false);
   await f.claim(A(3), "8.8.4.4"); // a different visitor is fine
-  nextDay();
-  await f.claim(A(2), "8.8.8.8"); // a new day resets it
+  later(4 * 3600_000);
+  await f.claim(A(2), "8.8.8.8");
   const priv = make();
   await priv.f.claim(A(1), "10.0.0.5");
   await priv.f.claim(A(2), "10.0.0.5"); // behind an unconfigured proxy every visitor looks the same: no IP limit
@@ -158,11 +154,16 @@ test("the private key never appears in any answer or log line", async () => {
 
 test("settings: defaults, custom values, bad values fall back", () => {
   const d = faucetConfig({ FAUCET_PRIVATE_KEY: KEY });
-  assert.deepEqual([d.drip, d.minBalance, d.reserve, d.dailyCap], [E("0.05"), E("0.02"), E("0.1"), 100]);
+  assert.deepEqual([d.drip, d.cooldownMs, d.reserve, d.dailyCap], [E("0.25"), 4 * 3600_000, E("0.1"), 100]);
   const c = faucetConfig({ FAUCET_PRIVATE_KEY: KEY, FAUCET_DRIP_MON: "0.1", FAUCET_DAILY_CAP: "5" });
   assert.deepEqual([c.drip, c.dailyCap], [E("0.1"), 5]);
-  const bad = faucetConfig({ FAUCET_PRIVATE_KEY: KEY, FAUCET_DRIP_MON: "lots", FAUCET_DAILY_CAP: "-3" });
-  assert.deepEqual([bad.drip, bad.dailyCap], [E("0.05"), 100]);
+  const bad = faucetConfig({
+    FAUCET_PRIVATE_KEY: KEY,
+    FAUCET_DRIP_MON: "lots",
+    FAUCET_DAILY_CAP: "-3",
+    FAUCET_COOLDOWN_HOURS: "x",
+  });
+  assert.deepEqual([bad.drip, bad.dailyCap, bad.cooldownMs], [E("0.25"), 100, 4 * 3600_000]);
 });
 
 test("private and proxy addresses are recognised", () => {

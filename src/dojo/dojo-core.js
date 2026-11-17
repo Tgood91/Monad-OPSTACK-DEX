@@ -81,7 +81,7 @@ export function dojoView({ connected, loading, error, data, faucet, nowSec = Mat
   if (loading) return { kind: 'loading', message: 'Reading your Dojo from Monad…' };
   if (error) return { kind: 'error', message: "Can't reach Monad right now. This is usually brief." };
   const w = data.warrior;
-  // Free starter MON, only for a wallet with no activity on Monad (the server decides: see server/faucet.js).
+  // Free MON, once every 4 hours per wallet (the server decides: see server/faucet.js).
   const offer =
     faucet && faucet.enabled && faucet.eligible
       ? {
@@ -91,7 +91,7 @@ export function dojoView({ connected, loading, error, data, faucet, nowSec = Mat
           note:
             faucet.available === false
               ? 'The faucet is empty right now. Please try again later.'
-              : 'New to Monad? This covers the gas for the buttons below.',
+              : 'Free MON for gas, every 4 hours. Tap the pond.',
         }
       : null;
   return {

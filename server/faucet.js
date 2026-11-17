@@ -1,5 +1,5 @@
-// Small Monad faucet (chain 143, mainnet): sends a fixed drip of MON so a brand-new wallet can pay the
-// gas to enter the Dojo or buy a Dojo Pass.
+// Small Monad faucet (chain 143, mainnet): sends a fixed drip of MON (default 0.25) to any wallet, once every
+// 4 hours, whatever that wallet already holds.
 //
 // THIS IS THE ONE PLACE THE SERVER HOLDS A KEY. Keep the blast radius small:
 //   * Use a DEDICATED wallet that holds only a few MON. The key can only spend that wallet's balance.
@@ -7,16 +7,15 @@
 //   * With no key set the faucet is OFF and answers "not configured".
 //   * Remove the key (or set FAUCET_DISABLED=1) to switch it off.
 //
-// Who can claim: a wallet with NO activity on Monad: it has never sent a transaction (nonce 0) and holds
-// less than FAUCET_MIN_BALANCE_MON. That alone makes it one claim per wallet: after the drip the balance
-// is above the minimum, and spending it means sending a transaction, which ends eligibility for good.
-// Extra limits: one claim per visitor IP per day, and a daily cap on total drips (resets on restart; the
-// wallet's own balance is the hard limit either way).
+// Who can claim: any wallet, regardless of its balance or history, once per FAUCET_COOLDOWN_HOURS (default 4).
+// The same wait applies per visitor IP, so one visitor cannot cycle through fresh wallets. There is also a
+// daily cap on total drips. These limits are kept in memory, so a restart (every deploy) clears them; the
+// faucet wallet's own balance is the hard limit either way.
 //
 // Settings (all optional except the key):
 //   FAUCET_PRIVATE_KEY       0x + 64 hex. The faucet wallet. Required to turn it on.
-//   FAUCET_DRIP_MON          default 0.05  (about 2 Dojo actions of gas at ~100 gwei)
-//   FAUCET_MIN_BALANCE_MON   default 0.02  (a wallet holding less than this counts as "no MON")
+//   FAUCET_DRIP_MON          default 0.25
+//   FAUCET_COOLDOWN_HOURS    default 4     wait between claims, per wallet and per visitor IP
 //   FAUCET_DAILY_CAP         default 100   claims per UTC day
 //   FAUCET_RESERVE_MON       default 0.1   the faucet stops when its balance falls below drip + reserve
 
@@ -36,11 +35,12 @@ export function faucetConfig(env = process.env) {
     }
   };
   const cap = Number(env.FAUCET_DAILY_CAP);
+  const hours = Number(env.FAUCET_COOLDOWN_HOURS);
   return {
     enabled: KEY.test(key) && !/^(1|true)$/i.test(String(env.FAUCET_DISABLED || "")),
     key,
-    drip: mon(env.FAUCET_DRIP_MON, "0.05"),
-    minBalance: mon(env.FAUCET_MIN_BALANCE_MON, "0.02"),
+    drip: mon(env.FAUCET_DRIP_MON, "0.25"),
+    cooldownMs: (Number.isFinite(hours) && hours > 0 ? hours : 4) * 3600_000,
     reserve: mon(env.FAUCET_RESERVE_MON, "0.1"),
     dailyCap: Number.isFinite(cap) && cap > 0 ? Math.floor(cap) : 100,
   };
@@ -71,7 +71,8 @@ export function createFaucet({
   const cfg = faucetConfig(env);
   const providers = new Map();
   const pv = (url) => providers.get(url) || providers.set(url, makeProvider(url)).get(url);
-  const ipDay = new Map(); // ip -> yyyy-mm-dd of its last claim
+  const lastByWallet = new Map(); // address -> time of its last claim
+  const lastByIp = new Map(); // visitor ip -> time of its last claim
   let counter = { day: day(now()), n: 0 };
   let queue = Promise.resolve(); // sends go one at a time, so the wallet's nonce never collides
   let address = null;
@@ -94,27 +95,40 @@ export function createFaucet({
     return ethers.getAddress(a);
   };
 
-  async function eligibility(addr) {
-    const [balance, nonce] = await withRpc((p) => Promise.all([p.getBalance(addr), p.getTransactionCount(addr)]));
-    if (nonce > 0) return { eligible: false, reason: "This wallet already has activity on Monad." };
-    if (balance >= cfg.minBalance) return { eligible: false, reason: "This wallet already has MON for gas." };
-    return { eligible: true };
+  function wait(t, map, key) {
+    const last = key ? map.get(key) : undefined;
+    return last === undefined ? 0 : Math.max(0, last + cfg.cooldownMs - t);
+  }
+  function inWords(ms) {
+    const m = Math.max(1, Math.ceil(ms / 60_000));
+    const h = Math.floor(m / 60);
+    return h ? `${h}h ${m % 60}m` : `${m}m`;
+  }
+
+  /** Any wallet may claim once per cooldown (and so may each visitor IP), whatever it holds. */
+  function eligibility(addr, ip, t = now()) {
+    const ms = Math.max(wait(t, lastByWallet, addr), wait(t, lastByIp, isPrivateIp(ip) ? null : ip));
+    if (!ms) return { eligible: true };
+    return { eligible: false, reason: `You can claim again in ${inWords(ms)}.`, nextClaimAt: t + ms };
   }
 
   async function faucetBalance() {
     return withRpc((p) => p.getBalance(address));
   }
 
-  async function status(rawAddress) {
+  async function status(rawAddress, ip) {
     if (!cfg.enabled) return { enabled: false };
     const addr = asAddress(rawAddress);
-    const [elig, bal] = await Promise.all([eligibility(addr), faucetBalance()]);
+    const elig = eligibility(addr, ip);
+    const bal = await faucetBalance();
     return {
       enabled: true,
       faucet: address,
       dripMon: ethers.formatEther(cfg.drip),
       eligible: elig.eligible,
       reason: elig.reason,
+      nextClaimAt: elig.nextClaimAt ? new Date(elig.nextClaimAt).toISOString() : undefined,
+      cooldownHours: cfg.cooldownMs / 3600_000,
       available: bal >= cfg.drip + cfg.reserve && counter.n < cfg.dailyCap,
     };
   }
@@ -126,12 +140,10 @@ export function createFaucet({
       const t = now();
       if (day(t) !== counter.day) counter = { day: day(t), n: 0 };
       const ipKey = isPrivateIp(ip) ? null : ip;
-      if (ipKey && ipDay.get(ipKey) === counter.day)
-        throw new FaucetError(429, "Only one claim per visitor per day. Try again tomorrow.");
+      const elig = eligibility(addr, ip, t);
+      if (!elig.eligible) throw new FaucetError(429, elig.reason);
       if (counter.n >= cfg.dailyCap)
         throw new FaucetError(429, "The faucet has reached its daily limit. Try again tomorrow.");
-      const elig = await eligibility(addr);
-      if (!elig.eligible) throw new FaucetError(409, elig.reason);
       const bal = await faucetBalance();
       if (bal < cfg.drip + cfg.reserve) {
         log({
@@ -148,8 +160,11 @@ export function createFaucet({
         return tx;
       });
       counter.n += 1;
-      if (ipKey) ipDay.set(ipKey, counter.day);
-      if (ipDay.size > 5000) for (const [k, v] of ipDay) if (v !== counter.day) ipDay.delete(k);
+      const done = now();
+      lastByWallet.set(addr, done);
+      if (ipKey) lastByIp.set(ipKey, done);
+      for (const m of [lastByWallet, lastByIp])
+        if (m.size > 5000) for (const [k, v] of m) if (done - v >= cfg.cooldownMs) m.delete(k);
       log({
         severity: "info",
         source: "faucet",
@@ -174,7 +189,7 @@ export function faucetRoutes(faucet) {
   return {
     status: async (req, res) => {
       try {
-        res.json(await faucet.status(String(req.query.address || "")));
+        res.json(await faucet.status(String(req.query.address || ""), req.ip));
       } catch (e) {
         fail(res, e);
       }

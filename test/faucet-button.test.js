@@ -22,18 +22,18 @@ test("connected, eligible, funded: a plain claim button", () => {
 test("connected but status not loaded yet: still offers the claim", () => {
   assert.equal(faucetBarView({ ...base, connected: true }).label, "Claim 0.1 MON free");
 });
-test("a wallet that already has gas: pond stays, greyed out and explained (amber once pressed)", () => {
-  const st = { ...ok, eligible: false, reason: "This wallet already has MON for gas." };
+test("claimed recently: pond stays, greyed out, says when they can claim again (amber once pressed)", () => {
+  const st = { ...ok, eligible: false, reason: "You can claim again in 2h 5m." };
   const idle = faucetBarView({ ...base, connected: true, status: st });
   assert.equal(idle.show, true);
   assert.equal(idle.disabled, true);
   assert.equal(idle.tone, "normal");
-  assert.match(idle.hint, /already has MON/);
+  assert.match(idle.hint, /claim again in 2h 5m/);
   const v = faucetBarView({ ...base, connected: true, status: st, userStarted: true });
   assert.equal(v.show, true);
   assert.equal(v.disabled, true);
   assert.equal(v.tone, "warn");
-  assert.match(v.hint, /already has MON/);
+  assert.match(v.hint, /claim again in 2h 5m/);
 });
 test("faucet empty: disabled with a plain message, amber", () => {
   const v = faucetBarView({ ...base, connected: true, status: { ...ok, available: false } });
@@ -66,11 +66,11 @@ test("claim flow: eligible wallet is checked and then paid", async () => {
 test("claim flow: a wallet that does not need gas is never sent a claim", async () => {
   let claimed = false;
   const r = await runFaucetClaim("0xabc", {
-    loadFaucet: async () => ({ ...ok, eligible: false, reason: "This wallet already has activity on Monad." }),
+    loadFaucet: async () => ({ ...ok, eligible: false, reason: "You can claim again in 3h 0m." }),
     claimFaucet: async () => ((claimed = true), {}),
   });
   assert.equal(r.state, "not-eligible");
-  assert.match(r.reason, /already has activity/);
+  assert.match(r.reason, /claim again/);
   assert.equal(claimed, false);
 });
 test("claim flow: empty faucet is reported, no claim attempted", async () => {

@@ -6,6 +6,22 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## Faucet: 0.25 MON to any wallet, once every 4 hours
+
+- Owner's call: the faucet now pays **0.25 MON** (was 0.05 by default, 0.1 on the live site) to **any wallet,
+  whatever it holds or has done**, once every 4 hours (`FAUCET_COOLDOWN_HOURS`, default 4). The old rule (only
+  wallets with no transactions and under 0.02 MON) is gone, and so is `FAUCET_MIN_BALANCE_MON`.
+- The same 4-hour wait applies per visitor IP, so one visitor cannot claim again by switching to a fresh wallet. The
+  daily cap (100) and the reserve stay. A refused claim says when the next one is allowed ("You can claim again in
+  2h 5m"), and the ponds on the Rewards and Bushido tabs show that, greyed out.
+- Trade-off, plainly: the waits are kept in the server's memory, so every deploy or restart clears them, and someone
+  using many networks can claim more often. The faucet wallet's balance stays the hard limit: at 0.25 per claim,
+  a 0.64 MON wallet covers one claim before it stops at the reserve.
+- The live site sets `FAUCET_DRIP_MON=0.1` in Render, which overrides the new default: it must be changed to 0.25 (or
+  removed) there for the new amount to apply.
+- Tests: faucet rules rewritten for the new behaviour (any balance, 4-hour wait per wallet and per IP, wait shown).
+  Not verified: no real claim was sent from this environment.
 ## Intel: ride out GeckoTerminal's rate limit
 
 - GeckoTerminal's free API allows about 30 calls a minute per address and was refusing the live server (429), so

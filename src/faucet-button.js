@@ -1,7 +1,7 @@
 // The "Connect & claim free MON" button: what it says in every situation, and the claim flow behind it.
 // Pure logic (no DOM, no wallet) so each state is unit-tested; the wiring is in faucet-button-ui.js.
 
-/** First letter up, for server reasons like "this wallet already has MON for gas." */
+/** First letter up, for server reasons like "you can claim again in 2h 5m." */
 const cap = (s) => String(s || '').replace(/^./, (c) => c.toUpperCase());
 
 /**
@@ -43,7 +43,7 @@ export function faucetBarView(s) {
       show: true,
       label: `Connect & claim ${amount} free`,
       disabled: false,
-      hint: 'New to Monad? Free gas to get you started.',
+      hint: 'Free MON for gas, every 4 hours.',
       tone: 'normal',
     };
   }
@@ -51,11 +51,11 @@ export function faucetBarView(s) {
   const st = s.status;
   if (!st) return { show: true, label: `Claim ${amount} free`, disabled: false, hint: '', tone: 'normal' };
   if (!st.eligible) {
-    // A wallet that already has gas can't claim: keep the pond on screen, greyed out, and say why
+    // Claimed within the last few hours: keep the pond on screen, greyed out, with when they can claim again
     // (amber only once they pressed it).
     return {
       show: true,
-      label: 'No claim needed',
+      label: 'Claimed recently',
       disabled: true,
       hint: cap(st.reason),
       tone: s.userStarted ? 'warn' : 'normal',

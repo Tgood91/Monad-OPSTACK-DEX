@@ -271,15 +271,15 @@ This is the one place the server holds a private key, so keep the blast radius s
 4. To switch it off, remove the key or set `FAUCET_DISABLED=1`.
 
 **The pond is the claim button.** At the top of the **Rewards** tab, the koi pond itself is a tappable button: **Connect &
-claim 0.1 MON free**. Tapping it opens the wallet connect, and once the wallet is connected it checks eligibility and
+claim 0.25 MON free**. Tapping it opens the wallet connect, and once the wallet is connected it checks eligibility and
 claims in one go. A coin drops into the pond while it works, ripples spread when the MON lands, and a link shows the
-transaction. The card hides itself for wallets that already have gas (unless you tapped it, when it explains why), and
-shows nothing if the faucet is off. A tap stays armed for 2 minutes, so an unrelated later connect never sends anything
+transaction. A wallet that claimed in the last 4 hours sees the pond greyed out with how long until the next claim; it
+shows nothing if the faucet is off. The pond in the Bushido tab's Dojo card claims the same way. A tap stays armed for 2 minutes, so an unrelated later connect never sends anything
 (`src/FaucetPond.jsx`; wording and rules in `src/faucet-button.js`).
 
-Who can claim: a wallet with **no activity on Monad** (it has never sent a transaction and holds under
-`FAUCET_MIN_BALANCE_MON`). That alone makes it one claim per wallet. Extra limits: one claim per visitor per day,
-and a daily cap. The most the key can ever lose is the faucet wallet's own balance. When the wallet runs low or
+Who can claim: **any wallet, whatever it holds**, once every 4 hours (`FAUCET_COOLDOWN_HOURS`); the same wait applies
+per visitor, so one visitor cannot cycle fresh wallets. There is also a daily cap. These limits live in memory, so a
+restart or deploy clears them. The most the key can ever lose is the faucet wallet's own balance. When the wallet runs low or
 empty, the Operations panel logs it (and emails it if Resend is set). Set `TRUST_PROXY=1` behind a proxy so the
 per-visitor limit can tell visitors apart.
 
@@ -351,7 +351,7 @@ in one.
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | Coinbase swap quotes. |
 | `BUSHIDO_REGISTRY`, `BASE_RPC` | Optional virtue-score registry contract and its RPC. Without it, virtues show a neutral 50% and the Seykota signal stays gated. |
 | `FAUCET_PRIVATE_KEY` | Turns the faucet on. See [Faucet](#monad-faucet-optional). |
-| `FAUCET_DRIP_MON`, `FAUCET_MIN_BALANCE_MON`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.05 MON, 0.02 MON, 100 claims/day, 0.1 MON reserve). |
+| `FAUCET_DRIP_MON`, `FAUCET_COOLDOWN_HOURS`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.25 MON, 4 hours, 100 claims/day, 0.1 MON reserve). |
 | `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Pass-perk token secret and the allowance multiplier (default 3). |
 | `RESEND_API_KEY`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | Emails high-severity errors. Without them errors are still logged and shown. |
 | `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME` | Serve `/.well-known/assetlinks.json` for the [Android app](https://github.com/Tgood91/Bushido-dApp-android). |
