@@ -3,6 +3,17 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+
+## Velora partner fee now actually paid (direct transfer)
+
+- The Velora quote and build calls sent `partner` and `partnerFeeBps` but never `partnerAddress`, which is the field
+  Velora pays out to, so no fee was ever collected on Velora swaps (no fee leg on-chain, Fee Claimer balance 0).
+- Both calls now send `partnerAddress` (the fee wallet in `src/dex/fee.js`); the quote also carries `partnerFeeBps`
+  so the price shown already includes the 0.25% fee; the build call sets `isDirectFeeTransfer: true`, so Velora sends
+  its 85% share (about 0.2125% of the trade) to that wallet inside the swap itself.
+- Checked against Velora's live API on Base (USDC to WETH, $20): the quote returns `partnerFee: 0.25`, the build call
+  is accepted and its calldata contains the fee wallet. Not verified: no real swap was sent from here, so the fee
+  transfer has not yet been seen on-chain.
 ## Unreleased: 9 more coins on Optimism, BNB Chain and Avalanche
 **What:** `src/dex/chains.js` gains `USDC.e`, `wstETH`, `rETH` and `USX` on Optimism; `XVS`, `RHEA`, `SPACE` and `UP` on BNB Chain; `XAUt0` on Avalanche.
 **Why:** this finishes the owner's import file. The first pricing run for Optimism and BNB Chain was stopped partway, leaving 195 candidates unpriced; they have now all been priced. Of those 195, 8 pass the usual rule (read on the chain, then under 0.5% loss at about $20 and 0.25% at about $200 through KyberSwap from the native coin); 138 are too thin and 49 have no route. `XAUt0` on Avalanche had passed in the first run and was left out of the last change.
