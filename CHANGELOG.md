@@ -277,6 +277,40 @@ provider then silently limited which chains and tokens you could pick. People th
 not "Aori". Provider-specific steps (deposit address, Stargate transaction, Aori signed order) are
 unchanged. Checked in a browser, including the "Get gas" card; a real bridge was not run here.
 
+## Unreleased: the Android app moved to its own repository
+**What:** `Bushido-dApp-android/` is removed from this repository. The Kotlin Android Studio project
+now lives at the root of [Tgood91/Bushido-dApp-android](https://github.com/Tgood91/Bushido-dApp-android), with its own README and CHANGELOG.
+The README, `.gitignore` and the comment in `server/assetlinks.js` point there now.
+`/.well-known/assetlinks.json` (`server/assetlinks.js`, `ANDROID_CERT_SHA256`,
+`ANDROID_PACKAGE_NAME`) stays here, because the site has to serve it; the package ID it defaults
+to is unchanged.
+**Why:** the owner asked for the Android app to live in its own repository.
+**Verified:** `./gradlew test lint assembleDebug` passes in the new repository; `npm test` and
+`format:check` pass here.
+**Not verified:** nothing has run on a phone (see the entry below).
+
+## Unreleased: Android app rewritten as a Kotlin Android Studio project
+**What:** `Bushido-dApp-android/` is now a real Android Studio project (Gradle Kotlin DSL, Kotlin
+2.1, Android Gradle Plugin 8.9, min SDK 25, target SDK 36) instead of a Bubblewrap / PWABuilder
+config. `BushidoLauncherActivity` extends `LauncherActivity` from Google's android-browser-helper and
+opens the site as a Trusted Web Activity; `LaunchUrl.kt` is plain Kotlin that accepts only
+`https://bushido-dapp.onrender.com/...` links (shortcuts, tapped links) and adds `source=pwa`,
+with JUnit tests. The manifest carries the TWA settings that `twa-manifest.json` used to (start
+URL, colours, portrait, splash, Custom Tabs fallback, Swap/Bridge shortcuts, `autoVerify` link
+filter, `asset_statements`). Icons are generated from `Bushido-dApp/icons` (adaptive on Android 8+).
+Release signing reads a git-ignored `keystore.properties`; `twa-manifest.json` is gone.
+**Why:** the owner asked for the Android project in pure Kotlin. It stays a Trusted Web Activity,
+not a native rewrite of the DEX, for the reason recorded above: Reown's Android SDK has no email
+or social login, and the TWA keeps those plus instant site updates. The old folder needed Node and
+Bubblewrap to produce an app; this one opens in Android Studio and builds with `./gradlew`.
+**Verified here:** `./gradlew test lint assembleDebug assembleRelease bundleRelease` on JDK 21 with
+SDK platform 36: 4 unit tests pass, lint reports 0 errors (26 advisory warnings: newer library
+versions, legacy 7.1 icon shape), the signed release APK (0.7 MB after R8) and `.aab` build and
+`apksigner verify` accepts them (with a throwaway key, not committed). The merged manifest and
+shortcuts were checked with `aapt2`. `npm test` (238) and `format:check` still pass.
+**Not verified:** nothing ran on a phone or emulator: the Chrome handshake, the hidden address
+bar after `ANDROID_CERT_SHA256` is set, social login inside the app and wallet app links.
+
 ## Unreleased: Prettier and `bun run format`
 **What:** Prettier, a `.prettierrc.json`, and scripts `format`, `format:check` and `format:all`.
 `format` covers the files added in this work; `format:all` formats the whole project.

@@ -48,7 +48,7 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 | **Rewards** | Merkl rewards: see your opportunities and claim, signed by your own wallet. |
 
 It is also an **installable app**: a PWA for phones ([Bushido-dApp/README.md](Bushido-dApp/README.md)) and an
-Android wrapper ([Bushido-dApp-android/README.md](Bushido-dApp-android/README.md)) with social login intact.
+Android app in Kotlin ([Bushido-dApp-android](https://github.com/Tgood91/Bushido-dApp-android), its own repository) with social login intact.
 
 ---
 
@@ -353,7 +353,7 @@ in one.
 | `FAUCET_DRIP_MON`, `FAUCET_MIN_BALANCE_MON`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.05 MON, 0.02 MON, 100 claims/day, 0.1 MON reserve). |
 | `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Pass-perk token secret and the allowance multiplier (default 3). |
 | `RESEND_API_KEY`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | Emails high-severity errors. Without them errors are still logged and shown. |
-| `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME` | Serve `/.well-known/assetlinks.json` for the Android app. |
+| `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME` | Serve `/.well-known/assetlinks.json` for the [Android app](https://github.com/Tgood91/Bushido-dApp-android). |
 
 If the Uniswap/1inch keys are unset, the server falls back to a Secure Vault surrogate socket that only exists on the
 original dev machine. NEAR Intents uses the vault when available and otherwise runs keyless.
@@ -465,8 +465,7 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 │   └── utils/              # wallet helpers, retry, formatting, ABIs
 ├── test/                   # node:test suite
 ├── contracts/              # VirtueFeeRouter.sol
-├── Bushido-dApp/           # installable mobile app (PWA)
-└── Bushido-dApp-android/   # Android wrapper (TWA)
+└── Bushido-dApp/           # installable mobile app (PWA)
 ```
 
 ---
