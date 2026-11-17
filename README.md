@@ -77,12 +77,16 @@ and decimals.
 MON. `WMON` is also listed as an ordinary token. Picking MON on one side and WMON on the other shows a plain
 explanation (they are the same value); wrapping directly is not built into the swap.
 
-### Base coins (38)
+### Base coins (77)
 
-`ETH`, `USDC`, `cbBTC`, `USDT`, `DAI`, `cbETH`, `AERO`, `VIRTUAL`, `AAVE`, `EURC`, `USDbC`, `tBTC`, `cbDOGE`, `cbHYPE`, `cbXRP`, `cbZEC`, `CHIP`, `COOKIE`, `CTR`, `DIEM`, `DRV`, `ELSA`, `ICNT`, `JitoSOL`, `LCAP`, `LUSD`, `MOCA`, `O`, `OUSD`, `PENDLE`, `PLAY`, `SOSO`, `SPX`, `VVV`, `XDP`, `ZCHF`, `ZEN`, `ZRO`.
+`ETH`, `USDC`, `cbBTC`, `USDT`, `DAI`, `cbETH`, `AERO`, `VIRTUAL`, `AAVE`, `EURC`, `USDbC`, `tBTC`, `cbDOGE`, `cbHYPE`, `cbXRP`, `cbZEC`, `cbLTC`, `AAPLc`, `AMDc`, `AMZNc`, `AVGOc`, `AX1`, `AXIS`, `CHIP`, `COOKIE`, `crvUSD`, `CTR`, `deSPXA`, `DIEM`, `DOLA`, `DRV`, `EDGE`, `ELSA`, `eUSD`, `FUN`, `HIMSc`, `ICNT`, `INFI`, `jEUR`, `JitoSOL`, `KNC`, `LCAP`, `LMTS`, `LUSD`, `MOCA`, `MORPHO`, `msETH`, `MSFTc`, `msUSD`, `MUc`, `NFLXc`, `NVDAc`, `O`, `OUSD`, `PAXG`, `PENDLE`, `PLAY`, `PROS`, `QUID`, `rETH`, `SKHYc`, `SNDKc`, `SOSO`, `SPX`, `superOETHb`, `tGBP`, `UNI`, `VFY`, `VVV`, `WBTC`, `wstETH`, `XDP`, `XSGD`, `ZCHF`, `ZEN`, `ZORA`, `ZRO`.
 
 Apart from `ETH` and `USDC`, each was read on Base and priced through KyberSwap from ETH under the same loss rule.
-Candidates came from the Uniswap and SushiSwap token lists and from Base's busiest pools over 14 days.
+Candidates came from the Uniswap, SushiSwap and Superchain token lists and from Base's busiest pools. Coins added on
+2026-11-17 also needed at least $10,000 of pool liquidity on Base (GeckoTerminal). The `…c` coins (`AAPLc`, `NVDAc`,
+`MSFTc` and others) are tokenised stocks; they sit at the same kind of `0xB2000…` address as Coinbase's `cbHYPE` and
+`cbZEC`, but their issuer was not confirmed from an official source, and stock tokens are often restricted by country.
+`deSPXA` is a tokenised S&P 500 fund.
 The coin list has a search box once it holds more than 12 entries.
 
 ### BNB Chain and Avalanche coins
