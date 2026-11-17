@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readOptions, currentLabel, choose } from '../src/token-picker.js';
+import { readOptions, currentLabel, choose, filterItems } from '../src/token-picker.js';
 
 const sel = (opts, selected = 0) => {
   const el = {
@@ -28,4 +28,12 @@ test('choosing sets the value and fires change so the app reacts', () => {
   choose(s, 'b', null);
   assert.equal(s.value, 'b');
   assert.deepEqual(s.events, ['change']);
+});
+
+test('search keeps items that contain every typed word, any case', () => {
+  const items = [{ label: 'USDC' }, { label: 'USDC.e' }, { label: 'WETH' }];
+  assert.deepEqual(filterItems(items, 'usdc').map((x) => x.label), ['USDC', 'USDC.e']);
+  assert.deepEqual(filterItems(items, ' .E ').map((x) => x.label), ['USDC.e']);
+  assert.equal(filterItems(items, '').length, 3);
+  assert.equal(filterItems(items, 'zzz').length, 0);
 });
