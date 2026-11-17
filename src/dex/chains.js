@@ -223,6 +223,11 @@ export const CHAINS = {
       { symbol: 'SOL', address: '0x570A5D26f7765Ecb712C0924E4De545B89fD43dF', decimals: 18 },
       { symbol: 'NEAR', address: '0x1Fa4a73a3F0133f0025378af00236f3aBDEE5D63', decimals: 18 },
       { symbol: 'FIL', address: '0x0D8Ce2A99Bb6e3B7Db580eD848240e4a0F9aE153', decimals: 18 },
+      // Added 2026-11-17 from the owner's Uniswap token list: read on BNB Chain and priced through KyberSwap from BNB
+      // (under 0.5% loss at about $20, 0.25% at about $200). The other BNB Chain candidates were too thin or not priced.
+      { symbol: 'AAVE', address: '0xfb6115445Bff7b52FeB98650C87f44907E58f802', decimals: 18 },
+      { symbol: 'ASTER', address: '0x000Ae314E2A2172a039B26378814C252734f556A', decimals: 18 },
+      { symbol: 'DNA', address: '0xA991F61940095AEA0724ef54077223B048c5CF7b', decimals: 18 },
     ],
   },
   avalanche: {
