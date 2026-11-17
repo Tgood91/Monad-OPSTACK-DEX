@@ -65,7 +65,7 @@ test("off without a key (or with a bad one): says so, sends nothing", async () =
   }
 });
 
-test("any wallet can claim 0.25 MON, whatever it already holds or has done", async () => {
+test("any wallet can claim 0.5 MON, whatever it already holds or has done", async () => {
   const { f, c } = make();
   c.balances.set(A(1), E("50")); // a well-funded wallet...
   c.nonces.set(A(1), 40); // ...with plenty of history
@@ -73,12 +73,12 @@ test("any wallet can claim 0.25 MON, whatever it already holds or has done", asy
   assert.equal(s.enabled, true);
   assert.equal(s.eligible, true);
   assert.equal(s.available, true);
-  assert.equal(s.dripMon, "0.25");
+  assert.equal(s.dripMon, "0.5");
   assert.equal(s.cooldownHours, 4);
   assert.equal(s.faucet, FAUCET_ADDR);
   const r = await f.claim(A(1), "8.8.8.8");
-  assert.equal(r.amountMon, "0.25");
-  assert.deepEqual(c.sent, [{ to: A(1), value: E("0.25") }]);
+  assert.equal(r.amountMon, "0.5");
+  assert.deepEqual(c.sent, [{ to: A(1), value: E("0.5") }]);
 });
 
 test("one claim per wallet every 4 hours, and the wait is shown", async () => {
@@ -154,7 +154,7 @@ test("the private key never appears in any answer or log line", async () => {
 
 test("settings: defaults, custom values, bad values fall back", () => {
   const d = faucetConfig({ FAUCET_PRIVATE_KEY: KEY });
-  assert.deepEqual([d.drip, d.cooldownMs, d.reserve, d.dailyCap], [E("0.25"), 4 * 3600_000, E("0.1"), 100]);
+  assert.deepEqual([d.drip, d.cooldownMs, d.reserve, d.dailyCap], [E("0.5"), 4 * 3600_000, E("0.1"), 100]);
   const c = faucetConfig({ FAUCET_PRIVATE_KEY: KEY, FAUCET_DRIP_MON: "0.1", FAUCET_DAILY_CAP: "5" });
   assert.deepEqual([c.drip, c.dailyCap], [E("0.1"), 5]);
   const bad = faucetConfig({
@@ -163,7 +163,7 @@ test("settings: defaults, custom values, bad values fall back", () => {
     FAUCET_DAILY_CAP: "-3",
     FAUCET_COOLDOWN_HOURS: "x",
   });
-  assert.deepEqual([bad.drip, bad.dailyCap, bad.cooldownMs], [E("0.25"), 100, 4 * 3600_000]);
+  assert.deepEqual([bad.drip, bad.dailyCap, bad.cooldownMs], [E("0.5"), 100, 4 * 3600_000]);
 });
 
 test("private and proxy addresses are recognised", () => {

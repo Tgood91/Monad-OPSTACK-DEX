@@ -59,7 +59,7 @@ Off unless `FAUCET_PRIVATE_KEY` is set. **This is the one key the server holds.*
   right `TRUST_PROXY`: 3 on Render) and a daily cap (`FAUCET_DAILY_CAP`, 100). It stops when its balance falls below the drip plus
   `FAUCET_RESERVE_MON` (0.1) and logs low/empty warnings to the ops log.
 - **No race:** eligibility is checked **inside** the one-at-a-time send queue, so two simultaneous claims cannot both pass.
-- **Amount:** `FAUCET_DRIP_MON` (default 0.25). The waits are kept in memory, so a restart or deploy clears them.
+- **Amount:** `FAUCET_DRIP_MON` (default 0.5). The waits are kept in memory, so a restart or deploy clears them.
 - **Routes:** `GET /api/faucet/status?address=0x...` (the address is required: without it the answer is "bad address"; for a
   brand-new wallet it returns `eligible: true`); `POST /api/faucet/claim` with `{ address }`. `/api/health` -> `keys.faucet`
   says whether it is on.

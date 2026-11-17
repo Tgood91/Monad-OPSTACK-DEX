@@ -1,4 +1,4 @@
-// Small Monad faucet (chain 143, mainnet): sends a fixed drip of MON (default 0.25) to any wallet, once every
+// Small Monad faucet (chain 143, mainnet): sends a fixed drip of MON (default 0.5) to any wallet, once every
 // 4 hours, whatever that wallet already holds.
 //
 // THIS IS THE ONE PLACE THE SERVER HOLDS A KEY. Keep the blast radius small:
@@ -14,7 +14,7 @@
 //
 // Settings (all optional except the key):
 //   FAUCET_PRIVATE_KEY       0x + 64 hex. The faucet wallet. Required to turn it on.
-//   FAUCET_DRIP_MON          default 0.25
+//   FAUCET_DRIP_MON          default 0.5
 //   FAUCET_COOLDOWN_HOURS    default 4     wait between claims, per wallet and per visitor IP
 //   FAUCET_DAILY_CAP         default 100   claims per UTC day
 //   FAUCET_RESERVE_MON       default 0.1   the faucet stops when its balance falls below drip + reserve
@@ -39,7 +39,7 @@ export function faucetConfig(env = process.env) {
   return {
     enabled: KEY.test(key) && !/^(1|true)$/i.test(String(env.FAUCET_DISABLED || "")),
     key,
-    drip: mon(env.FAUCET_DRIP_MON, "0.25"),
+    drip: mon(env.FAUCET_DRIP_MON, "0.5"),
     cooldownMs: (Number.isFinite(hours) && hours > 0 ? hours : 4) * 3600_000,
     reserve: mon(env.FAUCET_RESERVE_MON, "0.1"),
     dailyCap: Number.isFinite(cap) && cap > 0 ? Math.floor(cap) : 100,

@@ -271,7 +271,7 @@ This is the one place the server holds a private key, so keep the blast radius s
 4. To switch it off, remove the key or set `FAUCET_DISABLED=1`.
 
 **The pond is the claim button.** At the top of the **Rewards** tab, the koi pond itself is a tappable button: **Connect &
-claim 0.25 MON free**. Tapping it opens the wallet connect, and once the wallet is connected it checks eligibility and
+claim 0.5 MON free**. Tapping it opens the wallet connect, and once the wallet is connected it checks eligibility and
 claims in one go. A coin drops into the pond while it works, ripples spread when the MON lands, and a link shows the
 transaction. A wallet that claimed in the last 4 hours sees the pond greyed out with how long until the next claim; it
 shows nothing if the faucet is off. The pond in the Bushido tab's Dojo card claims the same way. A tap stays armed for 2 minutes, so an unrelated later connect never sends anything
@@ -351,7 +351,7 @@ in one.
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | Coinbase swap quotes. |
 | `BUSHIDO_REGISTRY`, `BASE_RPC` | Optional virtue-score registry contract and its RPC. Without it, virtues show a neutral 50% and the Seykota signal stays gated. |
 | `FAUCET_PRIVATE_KEY` | Turns the faucet on. See [Faucet](#monad-faucet-optional). |
-| `FAUCET_DRIP_MON`, `FAUCET_COOLDOWN_HOURS`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.25 MON, 4 hours, 100 claims/day, 0.1 MON reserve). |
+| `FAUCET_DRIP_MON`, `FAUCET_COOLDOWN_HOURS`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.5 MON, 4 hours, 100 claims/day, 0.1 MON reserve). |
 | `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Pass-perk token secret and the allowance multiplier (default 3). |
 | `RESEND_API_KEY`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_FROM` | Emails high-severity errors. Without them errors are still logged and shown. |
 | `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME` | Serve `/.well-known/assetlinks.json` for the [Android app](https://github.com/Tgood91/Bushido-dApp-android). |
