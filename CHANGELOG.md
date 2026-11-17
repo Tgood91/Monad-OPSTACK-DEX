@@ -4,6 +4,16 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+
+## Bushido tab: the Dojo pond is the starter-MON button too
+
+- When a connected wallet can claim free starter MON, the koi pond in the "Your Dojo" card (Bushido tab) becomes the
+  claim button, with the same frosted label as the Rewards tab's pond ("Get 0.1 free MON for gas", "Working…" while it
+  runs). It replaces the separate blue button that sat above the pond, so there is one place to tap, and the faucet
+  note shows under the pond. A successful claim now also refreshes the wallet balances, like the Rewards pond does.
+- When the wallet cannot claim (already has gas, or the faucet is off), the pond is just the garden, as before.
+- Not verified: the claim was not exercised with a real wallet, and the card only shows when a wallet is connected,
+  so it was not seen in a browser from this environment (tests and build only).
 ## Velora partner fee now actually paid (direct transfer)
 
 - The Velora quote and build calls sent `partner` and `partnerFeeBps` but never `partnerAddress`, which is the field
