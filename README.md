@@ -33,7 +33,8 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 13. [Project layout](#project-layout)
 14. [Notes and limits](#notes-and-limits)
 15. [Working on this repo](#working-on-this-repo)
-16. [License](#license)
+16. [Fee treasury](#fee-treasury)
+17. [License](#license)
 
 ---
 
@@ -505,6 +506,20 @@ Everything an assistant or a new developer needs is in the repo, so no separate 
   `-- --chain bsc` for one chain. It exits non-zero if anything fails, so run it after any change to the chain table.
 - `test/docs-links.test.js` fails if those docs name a file that no longer exists, so they cannot quietly go stale.
 - `.claude/skills/` holds vendored 1inch skills locked by `skills-lock.json`; leave them alone.
+
+## Fee treasury
+
+Swaps routed through sources that support integrator fees carry a small fee of **25 bps (0.25%)**,
+paid to the project's fee recipient wallet (`0xBA397fAae1D5Fe10C0356f2e585bef34577ab111`, set by
+`FEE_RECIPIENT` / `FEE_BPS` in the server config, capped at 300 bps). The sources wired for it are
+**1inch** and **0x** — both verified collecting on live swaps — plus **Velora** and **KyberSwap**.
+
+Those fees are the project's treasury. They are not burned and no third party takes a cut: they
+accumulate in the treasury wallet and are used to keep Bushido-dApp running and growing — hosting
+and infrastructure, ongoing development, and funding the future liquidity pools.
+
+The fee only applies when the winning quote routes through a fee-supporting source; sources with
+no integrator-fee mechanism collect nothing.
 
 ## License
 
