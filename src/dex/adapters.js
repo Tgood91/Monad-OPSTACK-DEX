@@ -206,7 +206,9 @@ const Velora = {
     const id = CHAINS[chainKey].chainId;
     const src = tokenIn.isNative ? NATIVE_SENTINEL : tokenIn.address;
     let url = `https://api.paraswap.io/prices?network=${id}&srcToken=${src}&destToken=${tokenOut.address}&amount=${amountInWei.toString()}&side=SELL&version=6.2`;
-    if (FEE_ENABLED) url += `&partner=${FEE_RECIPIENT}`; // Bushido partner/referral (src/dex/fee.js)
+    // Bushido partner fee (src/dex/fee.js). `partner` is only a label; Velora pays out to
+    // `partnerAddress`. The fee goes in the quote too so the shown price already includes it.
+    if (FEE_ENABLED) url += `&partner=${FEE_RECIPIENT}&partnerAddress=${FEE_RECIPIENT}&partnerFeeBps=${FEE_BPS}`;
     if (chainKey === 'unichain') url += `&srcDecimals=${tokenIn.decimals}&destDecimals=${tokenOut.decimals}`;
     const r = await (await fetch(url)).json();
     const pr = r?.priceRoute;
@@ -222,8 +224,9 @@ const Velora = {
         destToken: q.tokenOut.address, srcDecimals: q.tokenIn.decimals, destDecimals: q.tokenOut.decimals,
         srcAmount: q.raw.srcAmount, // required by /transactions ("Missing srcAmount" otherwise)
         priceRoute: q.raw, userAddress: wallet, receiver: wallet, slippage: slippageBps,
-        // Bushido partner fee (src/dex/fee.js): Velora splits this with the protocol.
-        ...(FEE_ENABLED ? { partner: FEE_RECIPIENT, partnerFeeBps: FEE_BPS } : {}),
+        // Bushido partner fee (src/dex/fee.js): Velora keeps 15%, and isDirectFeeTransfer sends
+        // the other 85% to partnerAddress inside this swap (no Fee Claimer step).
+        ...(FEE_ENABLED ? { partner: FEE_RECIPIENT, partnerAddress: FEE_RECIPIENT, partnerFeeBps: FEE_BPS, isDirectFeeTransfer: true } : {}),
       }),
     })).json();
     if (!r?.data) throw new Error('Velora build failed' + (r?.error ? ': ' + String(r.error).slice(0, 60) : ''));
