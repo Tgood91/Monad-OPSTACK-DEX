@@ -8,6 +8,23 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## Swap: prefer Velora when it is within 0.20% of the best quote, and always show the fee
+
+- Owner's call (Brief C): the automatic route is Velora whenever its quote is at least the best quote minus
+  `VELORA_PREFER_THRESHOLD_BPS` (20 = 0.20%), because Velora pays the partner fee to the fee wallet inside the swap.
+  Otherwise the best quote, as before. No Velora quote (for example on Monad): the best, no special case. A source the
+  user taps always wins and survives re-quotes for the same pair. Logic in `src/dex/route-pick.js` (one constant),
+  used by `renderQuotes` in `src/main.js`. Quote fetching and every source's parameters are unchanged.
+- Never silent: when Velora is picked but is not the best, an amber line under the route says so, e.g. "Velora route
+  (within 0.2% of best; this quote is 0.04% below it) · includes 0.25% partner fee". The BEST badge stays on the
+  real best quote.
+- The swap screen had no fee disclosure at all, so the quote details now have a "Fee" row: "0.25% Bushido fee, already
+  included in this quote" for Velora, KyberSwap, 0x and 1inch, and "No Bushido fee on this route" for the others.
+- Checked: unit tests for the threshold edge, Velora-best, no Velora, manual pick and a sub-0.01% gap; a run of the
+  built app against live Base quotes (0.05 ETH to USDC) picked Velora 0.04% behind KyberSwap and showed the label;
+  tapping Aerodrome selected it, removed the label and kept it after a re-quote. Not verified: the 0x and 1inch fee
+  shown assumes Render's FEE_BPS is unset (default 25); no real swap was sent.
 ## Base: 73 more coins (now 111), including tokenised stocks
 
 - Candidates: 523 Base tokens from the Uniswap and Superchain token lists and GeckoTerminal's busiest Base pools.
