@@ -15,6 +15,7 @@ installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on 
 import { CHAINS, SOURCE_META, getChain } from './dex/chains.js';
 import { ADAPTERS } from './dex/adapters.js';
 import { quoteAll, buildTxFor } from './dex/engine.js';
+import { pickRoute, preferenceLabel, feeLine } from './dex/route-pick.js';
 import {
   getAddress, isConnected, getChainKey, getSigner, getWalletEthersProvider,
   getReadProvider, getTokenBalance, getAllowance, approveToken, simulateTx,
@@ -263,8 +264,11 @@ function renderQuotes(tIn, tOut, amtStr, partial = false) {
     $('toAmount').value = '';
     return;
   }
-  // The user's tapped source wins if it still has a quote; otherwise the best one.
-  selectedQuote = good.find(r => r.source === userPick)?.quote ?? quotes.best.quote;
+  // The user's tapped source wins if it still has a quote; otherwise the best one, or Velora when it is within
+  // VELORA_PREFER_THRESHOLD_BPS of the best (labelled below; src/dex/route-pick.js).
+  const choice = pickRoute(good, quotes.best, userPick);
+  selectedQuote = choice.pick.quote;
+  const prefNote = preferenceLabel(choice);
   $('toAmount').value = fmtAmount(selectedQuote.amountOut, tOut.decimals);
 
   // Route card: the chosen source on top, "compare" opens every source's quote.
@@ -291,6 +295,7 @@ function renderQuotes(tIn, tOut, amtStr, partial = false) {
   list += '</div>';
   box.innerHTML = `<div class="route-top"><span class="route-name">${mSel.label}${isBestSel ? ' <span class="qbadge">BEST</span>' : ''}</span>
       ${gain !== null && gain > 0 ? `<span class="route-gain">+${gain.toFixed(2)}% vs next</span>` : ''}</div>
+    ${prefNote ? `<div class="route-pref" data-testid="velora-pref">${prefNote}</div>` : ''}
     <div class="route-sub">${partial && quotes.pending ? `<span class="spinner"></span>${good.length} quoted · ${quotes.pending} still checking…` : `${good.length} of ${shown.length} sources quoted`}<button type="button" id="cmpBtn" aria-expanded="${compareOpen}">${compareOpen ? 'hide ⌃' : 'compare ⌄'}</button></div>
     <div class="route-list">${list}</div>`;
   $('routeCard').classList.toggle('open', compareOpen);
@@ -315,6 +320,7 @@ function renderQuotes(tIn, tOut, amtStr, partial = false) {
   detail.innerHTML = `<div class="detail-grid">
     <span class="k">Rate</span><span class="v">1 ${tIn.symbol} ≈ ${rate.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${tOut.symbol}</span>
     <span class="k">Min received</span><span class="v">${fmtAmount(minOut, tOut.decimals)} ${tOut.symbol}</span>
+    <span class="k">Fee</span><span class="v">${feeLine(q.source)}</span>
     <span class="k">Est. gas</span><span class="v">${q.gasless ? 'None (resolvers pay)' : q.gasUsd > 0 ? (q.gasUsd < 0.01 ? '< $0.01' : fmtUsd(q.gasUsd)) : '—'}</span>
   </div>`;
 
