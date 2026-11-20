@@ -58,6 +58,8 @@ import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
+import { macroFeed, blend } from "./macro.js";
+import { createAgentJob } from "./agent-job.js";
 import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
 import { createIntel } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
@@ -122,6 +124,7 @@ function serverKeys() {
     fusion: Boolean(process.env.ONEINCH_API_KEY?.trim()) || vault, // same 1inch key
     zerion: Boolean(process.env.ZERION_API_KEY?.trim()),
     coinbase: cdpConfigured(),
+    agentPayments: agent.enabled,
     zerox: Boolean(zeroxKey()),
     faucet: faucet.enabled,
   };
@@ -544,6 +547,12 @@ app.get("/api/perks/status", perks.routes.status);
 app.post("/api/perks/claim", perks.routes.claim);
 app.get("/api/faucet/status", faucetHandlers.status);
 app.post("/api/faucet/claim", faucetHandlers.claim);
+// ---- Bushido-Trades ERC-8004 agent: paid job (x402, USDC on Base); see server/agent-job.js ----
+const agent = createAgentJob({ getMacro: macroFeed, blend });
+app.get("/api/agent/job", agent.info);
+app.post("/api/agent/job", agent.job);
+app.get("/.well-known/agent-card.json", agent.card);
+app.get("/.well-known/agent-registration.json", agent.card);
 // Android app (Trusted Web Activity) ownership proof; see server/assetlinks.js
 app.get("/.well-known/assetlinks.json", assetLinksHandler());
 app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));

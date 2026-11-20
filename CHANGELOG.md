@@ -3,6 +3,31 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Bushido-Trades: paid ERC-8004 agent endpoint (x402, 0.01 USDC per job on Base)
+
+- New `POST /api/agent/job` (`server/agent-job.js`). One job = the Druckenmiller macro regime blended with the Seykota
+  EMA trend for ETH (`server/macro.js`, unchanged except `blend` is now exported), plus a 0x swap quote on Base in that
+  direction: USDC to WETH for a long, WETH to USDC for a short, nothing for a neutral or conflicted verdict. Body:
+  `{ asset: "ETH", amountUsd: 1-10000 (default 100), taker? }`; with a `taker` the quote includes an unsigned
+  transaction for that wallet to sign. The server never holds funds.
+- Why: the agent is being registered on the ERC-8004 Identity Registry on Base (`0x8004A169…a432`) with this URL as
+  its service endpoint and a price of 0.01 USDC per job, so the URL has to exist and has to charge.
+- Payment is x402 v1 (`exact`, USDC on Base, to `0xBA39…b111`, the existing fee wallet). Unpaid requests get 402 with
+  the requirements. Paid requests: verify, run the job, then settle; a job that fails is never settled, so the caller
+  is not charged, and a settle failure returns 402 with no result. Bad input gets 400 before any payment is touched.
+- Facilitator: Coinbase CDP's x402 facilitator, signed per request with the CDP key the server already uses
+  (`CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`). `X402_FACILITATOR_URL` overrides it. With neither, the endpoint answers
+  503 and charges nothing. `/api/health` shows `keys.agentPayments`. Optional env: `AGENT_PAY_TO`,
+  `AGENT_PRICE_USDC`, `AGENT_PUBLIC_URL`, `AGENT_ID` (adds the registry back-reference to the agent card).
+- `GET /api/agent/job` describes the job; `GET /.well-known/agent-card.json` (and `agent-registration.json`) serves the
+  ERC-8004 registration file.
+- Checked: USDC (`name` "USD Coin", `version` "2", 6 decimals) and WETH (18) read on Base; 14 unit tests with fakes
+  (402 flow, verify/settle order, no charge on failure, long/short/none quotes, CDP vs custom facilitator); the
+  server run locally answered all four routes; the live macro feed returned data (RISK-OFF, ETH CONFIRMED SHORT).
+  Not verified: no real payment was made; the CDP facilitator was never called (no CDP key here, and Render's health
+  shows `coinbase: false`); no real 0x quote was fetched (no 0x key here).
+
+
 
 
 

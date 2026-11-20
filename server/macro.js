@@ -133,7 +133,7 @@ async function getMarket() {
   return { ...market, cached: false };
 }
 
-function blend(trend, regime, gate) {
+export function blend(trend, regime, gate) {
   if (gate === "closed") return "WAIT (virtue gate)";
   if (gate === "unknown") return `${trend} (gate unknown — connect wallet)`;
   const longish = trend === "BUY" || trend === "HOLD_LONG";
