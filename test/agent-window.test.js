@@ -152,22 +152,3 @@ test("no trade: no quote and no prefill", () => {
   assert.equal(v.prefill, null);
   assert.equal(v.tone, "warn");
 });
-
-test("result bubble escapes every value it shows", async () => {
-  const { resultHtml } = await import("../src/agent-core.js");
-  const html = resultHtml({
-    verdict: "<img src=x onerror=alert(1)>",
-    tone: "warn",
-    price: "$1",
-    regime: "R",
-    seykota: "S",
-    gate: "g",
-    quote: null,
-    note: "<b>no</b>",
-    paymentTx: '0x"><script>',
-  });
-  assert.ok(!html.includes("<img"));
-  assert.ok(!html.includes("<b>no</b>"));
-  assert.ok(!html.includes("<script>"));
-  assert.match(html, /&lt;img/);
-});

@@ -7,6 +7,8 @@ import {
   parseJob,
   direction,
   runJob,
+  runSwapJob,
+  findBaseToken,
   bestQuote,
   defaultSources,
   createAgentJob,
@@ -126,11 +128,90 @@ test("registration file carries the endpoint, price and (once set) the agentId",
 });
 
 test("job input is validated", () => {
-  assert.deepEqual(parseJob({}).input, { asset: "ETH", amountUsd: 100, taker: null });
+  assert.deepEqual(parseJob({}).input, { mode: "signal", asset: "ETH", amountUsd: 100, taker: null });
   assert.ok(parseJob({ asset: "BTC" }).error);
   assert.ok(parseJob({ amountUsd: 0 }).error);
   assert.ok(parseJob({ amountUsd: 20000 }).error);
   assert.ok(parseJob({ taker: "0x12" }).error);
+});
+
+test("swap jobs: any two coins from the verified Base list, amount in the coin sold, checked before payment", () => {
+  const ok = parseJob({ sell: "usdc", buy: "AERO", amount: "100", taker: TAKER }).input;
+  assert.equal(ok.mode, "swap");
+  assert.equal(ok.sell.symbol, "USDC");
+  assert.equal(ok.buy.symbol, "AERO");
+  assert.equal(ok.sellAmount, "100000000");
+  assert.equal(parseJob({ sell: USDC_BASE, buy: "eth", amount: "5" }).input.buy.symbol, "ETH");
+  assert.equal(parseJob({ sell: "ETH", buy: "USDC", amount: "0.05" }).input.sellAmount, "50000000000000000");
+  assert.match(parseJob({ sell: "USDC", buy: "NOTACOIN", amount: "1" }).error, /unknown coin "NOTACOIN"/);
+  assert.match(parseJob({ sell: "USDC", buy: "usdc", amount: "1" }).error, /same coin/);
+  assert.match(parseJob({ sell: "USDC", buy: "AERO", amount: "0" }).error, /more than 0/);
+  assert.match(parseJob({ sell: "USDC", buy: "AERO", amount: "-1" }).error, /number/);
+  assert.match(parseJob({ sell: "USDC", buy: "AERO", amount: "1.1234567" }).error, /USDC has 6 decimals/);
+  assert.equal(findBaseToken("cbbtc").symbol, "cbBTC");
+  assert.equal(findBaseToken("0x0000000000000000000000000000000000000001"), null);
+});
+
+test("swap job: quotes the named pair on every source; the read says if the trade goes with or against the signal", async () => {
+  const calls = [];
+  const input = parseJob({ sell: "USDC", buy: "ETH", amount: "250", taker: TAKER }).input;
+  // ETH trending down in a RISK-OFF market: buying ETH goes against the signal.
+  const r = await runSwapJob(input, {
+    getMacro: macro({ seykota: "HOLD_SHORT", regime: "RISK-OFF" }),
+    blend,
+    sources: fakeSources({ "0x": 150, "1inch": 155 }, calls),
+  });
+  assert.equal(r.mode, "swap");
+  assert.deepEqual(
+    calls.map((c) => [c.sellToken, c.buyToken, c.sellAmount, c.sellDecimals, c.buyDecimals]),
+    [
+      [USDC_BASE, WETH_BASE, "250000000", 6, 18],
+      [USDC_BASE, WETH_BASE, "250000000", 6, 18],
+    ],
+  );
+  assert.equal(r.quote.source, "1inch");
+  assert.equal(r.read.about.symbol, "ETH");
+  assert.equal(r.read.side, "buy");
+  assert.equal(r.read.stance, "against");
+  assert.equal(r.read.regime.state, "RISK-OFF");
+  assert.deepEqual(r.request.sell, { symbol: "USDC", address: USDC_BASE, decimals: 6, amount: "250" });
+  // Selling ETH in the same market goes with the signal.
+  const sell = await runSwapJob(parseJob({ sell: "ETH", buy: "USDC", amount: "0.1" }).input, {
+    getMacro: macro({ seykota: "HOLD_SHORT", regime: "RISK-OFF" }),
+    blend,
+    sources: fakeSources({ "0x": 150 }),
+  });
+  assert.equal(sell.read.side, "sell");
+  assert.equal(sell.read.stance, "with");
+  // A coin the agent has no trend for: no stance, the regime is still reported.
+  const other = await runSwapJob(parseJob({ sell: "USDC", buy: "MORPHO", amount: "10" }).input, {
+    getMacro: macro(),
+    blend,
+    sources: fakeSources({ "0x": 7 }),
+  });
+  assert.equal(other.read.about, null);
+  assert.equal(other.read.stance, null);
+  assert.equal(other.read.regime.state, "RISK-ON");
+});
+
+test("paid swap job runs through the same payment flow", async () => {
+  const log = [];
+  const a = agent({ facilitator: facilitator({ log }) });
+  const out = await call(a.job, {
+    body: { sell: "USDC", buy: "AERO", amount: "50", taker: TAKER },
+    headers: { "X-PAYMENT": PAYMENT },
+  });
+  assert.equal(out.code, 200);
+  assert.equal(out.body.mode, "swap");
+  assert.equal(out.body.request.buy.symbol, "AERO");
+  assert.deepEqual(log, ["verify", "settle"]);
+  // A bad coin is refused before any payment is looked at.
+  const bad = await call(a.job, {
+    body: { sell: "USDC", buy: "NOPE", amount: "1" },
+    headers: { "X-PAYMENT": PAYMENT },
+  });
+  assert.equal(bad.code, 400);
+  assert.deepEqual(log, ["verify", "settle"]);
 });
 
 test("direction comes from the blended Seykota x macro verdict", () => {
