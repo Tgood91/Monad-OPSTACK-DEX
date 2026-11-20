@@ -58,7 +58,7 @@ import { oneinchQuote, oneinchSwap, oneinchAuthToken } from "./oneinch.js";
 import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
-import { macroFeed, blend } from "./macro.js";
+import { macroFeed, getMarket, blend } from "./macro.js";
 import { createAgentJob } from "./agent-job.js";
 import { createIntel, unsupportedAnswer } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
@@ -557,7 +557,14 @@ app.get("/api/macro", async (req, res) => {
 });
 
 // ---- Bushido-Trades ERC-8004 agent: paid job (x402, USDC on Base); see server/agent-job.js ----
-const agent = createAgentJob({ getMacro: macroFeed, blend });
+// Hiring pauses (before anyone signs) when the ETH series every job needs cannot be read.
+const marketReady = async () => {
+  const m = await getMarket();
+  return m.factors.some((f) => f.id === "eth" && f.available)
+    ? { ready: true }
+    : { ready: false, reason: "Market data is unavailable right now, so hiring is paused. Nothing is charged." };
+};
+const agent = createAgentJob({ getMacro: macroFeed, blend, marketReady });
 app.get("/api/agent/job", agent.info);
 app.post("/api/agent/job", agent.job);
 app.get("/.well-known/agent-card.json", agent.card);
@@ -688,6 +695,8 @@ if (!process.env.VERCEL) {
 
   app.listen(PORT, () => {
     console.log(`DEX server on :${PORT} | coinbase=${cdpConfigured() ? "keyed" : "NO KEY"}`);
+    // Fill the market-regime cache (GeckoTerminal, Coinbase) in the background so the first visitor does not wait.
+    getMarket().catch(() => {});
   });
 }
 

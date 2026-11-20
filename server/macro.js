@@ -1,32 +1,30 @@
-// Standalone live macro feed — Druckenmiller factors blended with Seykota.
+// Market regime feed: on-chain prices from GeckoTerminal, blended with the Seykota trend.
 //
-// Keyless sources only: Yahoo Finance chart API (rates, dollar, credit,
-// crypto). FRED CSV was tested and times out from this environment, so the
-// Fed balance sheet (WALCL) is NOT fetched — liquidity is proxied by BTC +
-// dollar + rates. If a FRED key is ever added, WALCL becomes the direct
-// liquidity series. No API keys. In-memory 60s cache. One factor failing
-// never kills the feed (that factor is marked unavailable).
+// Replaces the old Yahoo Finance macro factors (rates, dollar, credit, BTC, ETH). Yahoo refuses requests from
+// Render's servers, so on the live site every factor was unavailable and every Agent job failed with
+// "ETH price feed unavailable".
+//
+// Factors: daily USD closes of five Base markets, read from the most liquid pool GeckoTerminal lists for each coin,
+// from the majors out to the riskiest: ETH, BTC (cbBTC), AERO (Base DeFi), VIRTUAL (AI agents), DEGEN (memes).
+// Each votes +1 when its close is above its 26-day EMA and -1 below. Sum >= +3 is RISK-ON, <= -3 RISK-OFF, else
+// NEUTRAL. With fewer than 3 of the 5 markets readable the regime is UNAVAILABLE, never guessed from a partial count.
+// ETH and BTC fall back to Coinbase's public daily candles when GeckoTerminal refuses: the ETH trend is what every
+// Agent job needs. Coin addresses come from the verified Base list (src/dex/chains.js); see server/market-data.js
+// for how GeckoTerminal's rate limit is respected. The computed market is kept 5 minutes.
 
 import { seykotaSignal, getVirtueScores, virtueMeta } from "./bushido.js";
+import { createMarketData } from "./market-data.js";
+import { CHAINS } from "../src/dex/chains.js";
 
-const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36";
-const CACHE_TTL_MS = 60_000;
-
-// Factors: `invert` = above-EMA26 is risk-OFF (yields, dollar).
-// Otherwise above-EMA26 is risk-ON.
-const FACTORS = [
-  { id: "us10y", label: "US 10Y Yield", symbol: "^TNX", invert: true },
-  { id: "us13w", label: "US 13W Bill", symbol: "^IRX", invert: true },
-  { id: "dxy", label: "US Dollar Index", symbol: "DX-Y.NYB", invert: true },
-  { id: "hyg", label: "High-Yield Credit (HYG)", symbol: "HYG", invert: false },
-  { id: "hyg_lqd", label: "Credit Appetite (HYG/LQD)", ratio: ["HYG", "LQD"], invert: false },
-  { id: "btc", label: "Bitcoin", symbol: "BTC-USD", invert: false },
-  { id: "eth", label: "Ethereum", symbol: "ETH-USD", invert: false },
+export const MARKETS = [
+  { id: "eth", symbol: "ETH", label: "Ethereum (ETH)", coinbase: "ETH-USD" },
+  { id: "btc", symbol: "cbBTC", label: "Bitcoin (cbBTC)", coinbase: "BTC-USD" },
+  { id: "aero", symbol: "AERO", label: "Aerodrome (AERO) · Base DeFi" },
+  { id: "virtual", symbol: "VIRTUAL", label: "Virtuals (VIRTUAL) · AI agents" },
+  { id: "degen", symbol: "DEGEN", label: "Degen (DEGEN) · memes" },
 ];
-
-// Risk assets get a blended Seykota × macro verdict. Yields/dollar/ratio
-// feed the regime only — they are not trade signals.
-const BLEND_IDS = ["btc", "eth", "hyg"];
+export const MIN_MARKETS = 3;
+const MARKET_TTL_MS = 5 * 60_000;
 
 function ema(values, period) {
   const k = 2 / (period + 1);
@@ -35,102 +33,51 @@ function ema(values, period) {
   return out;
 }
 
-async function fetchSeries(symbol) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 10_000);
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=3mo&interval=1d`,
-      { headers: { "User-Agent": UA }, signal: ctrl.signal },
-    );
-    if (!res.ok) return null;
-    const j = await res.json();
-    const q = j?.chart?.result?.[0]?.indicators?.quote?.[0];
-    if (!q || !Array.isArray(q.close)) return null;
-    const closes = q.close.filter((c) => typeof c === "number" && Number.isFinite(c));
-    const volumes = Array.isArray(q.volume)
-      ? q.volume.filter((v) => typeof v === "number" && Number.isFinite(v))
-      : [];
-    return closes.length ? { closes, volumes } : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
+const tokenAddress = (symbol) => CHAINS.base.tokens.find((t) => t.symbol === symbol)?.address || null;
+
+/** One market's row: trend vs EMA26, its vote, the Seykota signal (gate bypassed) and a liquidity proxy. */
+export function computeFactor(m, series, source, extra = {}) {
+  const { closes, volumes } = series;
+  // Jin (liquidity proxy): recent volume vs the period average, capped [0, 1].
+  let volumeRatio = null;
+  if (volumes.length >= 5) {
+    const recent = volumes.slice(-5).reduce((a, v) => a + v, 0) / 5;
+    const avg = volumes.reduce((a, v) => a + v, 0) / volumes.length;
+    volumeRatio = avg > 0 ? Math.min(1, recent / avg) : null;
   }
+  const last = closes[closes.length - 1];
+  const prev = closes[closes.length - 2];
+  const e12 = ema(closes, 12);
+  const e26 = ema(closes, 26);
+  const above = last > e26;
+  const sig =
+    closes.length >= 30 ? seykotaSignal(closes, { gi: 1, yu: 1 }) : { signal: "WAIT", detail: "insufficient history" };
+  return {
+    id: m.id,
+    label: m.label,
+    symbol: m.symbol,
+    source,
+    available: true,
+    stale: Boolean(series.stale),
+    last,
+    change1dPct: ((last - prev) / prev) * 100,
+    ema12: e12,
+    ema26: e26,
+    trend: above ? "above EMA26" : "below EMA26",
+    vote: above ? 1 : -1,
+    seykota: sig.signal,
+    seykotaDetail: sig.detail,
+    volumeRatio,
+    ...extra,
+  };
 }
 
-let cache = { at: 0, market: null };
-
-async function getMarket() {
-  if (cache.market && Date.now() - cache.at < CACHE_TTL_MS) return { ...cache.market, cached: true };
-  const symbols = [...new Set(FACTORS.flatMap((f) => f.ratio || [f.symbol]))];
-  const results = await Promise.allSettled(symbols.map((s) => fetchSeries(s)));
-  const bySymbol = {};
-  symbols.forEach((s, i) => {
-    bySymbol[s] = results[i].status === "fulfilled" ? results[i].value : null;
-  });
-
-  const factors = [];
-  for (const f of FACTORS) {
-    let closes = null;
-    let volumes = [];
-    if (f.ratio) {
-      const [a, b] = f.ratio.map((s) => bySymbol[s]);
-      if (a && b) {
-        const n = Math.min(a.closes.length, b.closes.length);
-        closes = a.closes.slice(-n).map((v, i) => v / b.closes[b.closes.length - n + i]);
-        volumes = a.volumes; // ratio factor: use the numerator asset's volume
-      }
-    } else {
-      const s = bySymbol[f.symbol];
-      closes = s?.closes ?? null;
-      volumes = s?.volumes ?? [];
-    }
-    if (!closes || closes.length < 2) {
-      factors.push({ id: f.id, label: f.label, symbol: f.symbol || f.ratio.join("/"), source: "Yahoo Finance", available: false, vote: 0, volumeRatio: null });
-      continue;
-    }
-    // Jin (liquidity proxy): recent volume vs 3mo average, capped [0, 1].
-    let volumeRatio = null;
-    if (volumes.length >= 5) {
-      const recent = volumes.slice(-5).reduce((a, v) => a + v, 0) / 5;
-      const avg = volumes.reduce((a, v) => a + v, 0) / volumes.length;
-      volumeRatio = avg > 0 ? Math.min(1, recent / avg) : null;
-    }
-    const last = closes[closes.length - 1];
-    const prev = closes[closes.length - 2];
-    const e12 = ema(closes, 12);
-    const e26 = ema(closes, 26);
-    const above = last > e26;
-    const vote = f.invert ? (above ? -1 : 1) : (above ? 1 : -1);
-    // Pure trend signal: virtue gate bypassed on purpose — the gate is
-    // applied separately in the blended verdict below.
-    const sig = closes.length >= 30
-      ? seykotaSignal(closes, { gi: 1, yu: 1 })
-      : { signal: "WAIT", detail: "insufficient history" };
-    factors.push({
-      id: f.id,
-      label: f.label,
-      symbol: f.symbol || f.ratio.join("/"),
-      source: "Yahoo Finance",
-      available: true,
-      last,
-      change1dPct: ((last - prev) / prev) * 100,
-      ema12: e12,
-      ema26: e26,
-      trend: above ? "above EMA26" : "below EMA26",
-      vote,
-      seykota: sig.signal,
-      seykotaDetail: sig.detail,
-      volumeRatio,
-    });
-  }
-
-  const score = factors.reduce((s, f) => s + (f.vote || 0), 0);
-  const regime = score >= 3 ? "RISK-ON" : score <= -3 ? "RISK-OFF" : "NEUTRAL";
-  const market = { factors, regime, regimeScore: score, updatedAt: new Date().toISOString() };
-  cache = { at: Date.now(), market };
-  return { ...market, cached: false };
+export function regimeOf(factors) {
+  const avail = factors.filter((f) => f.available);
+  const score = avail.reduce((s, f) => s + f.vote, 0);
+  const regime =
+    avail.length < MIN_MARKETS ? "UNAVAILABLE" : score >= 3 ? "RISK-ON" : score <= -3 ? "RISK-OFF" : "NEUTRAL";
+  return { regime, regimeScore: score, marketsAvailable: avail.length, marketsTotal: factors.length };
 }
 
 export function blend(trend, regime, gate) {
@@ -138,12 +85,17 @@ export function blend(trend, regime, gate) {
   if (gate === "unknown") return `${trend} (gate unknown — connect wallet)`;
   const longish = trend === "BUY" || trend === "HOLD_LONG";
   const shortish = trend === "SELL" || trend === "HOLD_SHORT";
+  if (regime === "UNAVAILABLE") {
+    if (longish) return "LONG (regime unavailable)";
+    if (shortish) return "SHORT (regime unavailable)";
+    return "WAIT";
+  }
   if (longish && regime === "RISK-ON") return "CONFIRMED LONG";
   if (longish && regime === "NEUTRAL") return "LONG (unconfirmed)";
-  if (longish && regime === "RISK-OFF") return "CONFLICT — trend vs macro";
+  if (longish && regime === "RISK-OFF") return "CONFLICT — trend vs regime";
   if (shortish && regime === "RISK-OFF") return "CONFIRMED SHORT";
   if (shortish && regime === "NEUTRAL") return "SHORT (unconfirmed)";
-  if (shortish && regime === "RISK-ON") return "CONFLICT — trend vs macro";
+  if (shortish && regime === "RISK-ON") return "CONFLICT — trend vs regime";
   return "WAIT";
 }
 
@@ -153,21 +105,19 @@ export function blend(trend, regime, gate) {
 // toward the earliest virtue (Gi > Yu > Jin). Scores come from the signal's
 // own measurable properties:
 //   Gi  (Signal Integrity):  EMA trend clarity — |EMA12 − EMA26| / EMA26.
-//   Yu  (Risk Discipline):   trend × regime agreement (1 agree, 0.5 neutral/WAIT, 0 conflict).
-//   Jin (Liquidity Respect): recent volume vs 3mo average (liquidity proxy).
+//   Yu  (Risk Discipline):   trend × regime agreement (1 agree, 0.5 neutral/unknown/WAIT, 0 conflict).
+//   Jin (Liquidity Respect): recent volume vs the period average (liquidity proxy).
 // Rei (slippage) and Makoto (chain clarity) are execution-time virtues —
 // they apply when a trade is recorded, not at signal level, so they are
 // not scored here.
 const VIRTUE_BY_ID = Object.fromEntries(virtueMeta().map((m) => [m.id, m]));
 
 function virtueFor(f, trend, regime) {
-  const sep = f.ema12 != null && f.ema26 != null && f.ema26 !== 0
-    ? Math.abs(f.ema12 - f.ema26) / f.ema26
-    : 0;
+  const sep = f.ema12 != null && f.ema26 != null && f.ema26 !== 0 ? Math.abs(f.ema12 - f.ema26) / f.ema26 : 0;
   const gi = Math.min(1, sep * 20);
   let yu;
   if (trend === "WAIT") yu = 0.5;
-  else if (regime === "NEUTRAL") yu = 0.5;
+  else if (regime === "NEUTRAL" || regime === "UNAVAILABLE") yu = 0.5;
   else if ((trend === "BUY" || trend === "HOLD_LONG") && regime === "RISK-ON") yu = 1;
   else if ((trend === "SELL" || trend === "HOLD_SHORT") && regime === "RISK-OFF") yu = 1;
   else yu = 0;
@@ -186,42 +136,95 @@ function virtueFor(f, trend, regime) {
   };
 }
 
-export async function macroFeed(trader) {
-  const market = await getMarket();
-  let virtueGate = { status: "unknown", gi: null, yu: null };
-  if (trader && /^0x[0-9a-fA-F]{40}$/.test(trader)) {
+/** The feed. `data` and `now` are injectable for tests. */
+export function createMacro({ data = createMarketData(), now = Date.now, virtueScores = getVirtueScores } = {}) {
+  let cache = { at: 0, market: null };
+
+  async function getMarket() {
+    if (cache.market && now() - cache.at < MARKET_TTL_MS) return { ...cache.market, cached: true };
+    const markets = MARKETS.map((m) => ({ ...m, address: tokenAddress(m.symbol) }));
+    let pools = new Map();
     try {
-      const { scores } = await getVirtueScores(trader);
-      const gi = scores.gi ?? null;
-      const yu = scores.yu ?? null;
-      // No registry scores -> the gate stays "unknown" (never decided by an invented number).
-      if (gi != null && yu != null) virtueGate = { status: gi >= 0.6 && yu >= 0.5 ? "open" : "closed", gi, yu };
-    } catch { /* gate stays unknown */ }
+      pools = await data.topPools(markets.filter((m) => m.address).map((m) => m.address));
+    } catch {
+      /* each market falls back below, or is unavailable */
+    }
+    const factors = [];
+    for (const m of markets) {
+      const pool = m.address ? pools.get(m.address.toLowerCase()) : null;
+      let series = null;
+      let source = null;
+      if (pool) {
+        try {
+          const s = await data.geckoDaily(pool, m.address);
+          if (s.closes.length >= 2) [series, source] = [s, "GeckoTerminal"];
+        } catch {
+          /* try the backup */
+        }
+      }
+      if ((!series || series.closes.length < 30) && m.coinbase) {
+        try {
+          const s = await data.coinbaseDaily(m.coinbase);
+          if (s.closes.length >= 30) [series, source] = [s, "Coinbase"];
+        } catch {
+          /* unavailable */
+        }
+      }
+      factors.push(
+        series
+          ? computeFactor(m, series, source, { pool: source === "GeckoTerminal" ? pool : null })
+          : { id: m.id, label: m.label, symbol: m.symbol, source: null, available: false, vote: 0, volumeRatio: null },
+      );
+    }
+    const market = { factors, ...regimeOf(factors), updatedAt: new Date(now()).toISOString() };
+    cache = { at: now(), market };
+    return { ...market, cached: false };
   }
-  const signals = market.factors
-    .filter((f) => BLEND_IDS.includes(f.id) && f.available)
-    .map((f) => {
-      const { scores, virtue } = virtueFor(f, f.seykota, market.regime);
-      return {
-        id: f.id,
-        label: f.label,
-        trend: f.seykota,
-        regime: market.regime,
-        virtueGate: virtueGate.status,
-        blended: blend(f.seykota, market.regime, virtueGate.status),
-        virtueScores: scores,
-        virtue,
-      };
-    });
-  return {
-    ...market,
-    signals,
-    virtueGate,
-    notes: [
-      "Regime = sum of 7 factor votes vs EMA26 (≥ +3 RISK-ON, ≤ −3 RISK-OFF).",
-      "Seykota trend computed with the virtue gate bypassed; the gate is applied separately in the blended verdict.",
-      "Each blended signal carries its single dominant virtue (registry tie-break: highest score wins, ties → earliest Gi > Yu > Jin). Rei/Makoto are execution-time virtues and are not scored at signal level.",
-      "FRED WALCL (Fed balance sheet) not fetched — unreachable from this server. Liquidity proxied by BTC + dollar + rates.",
-    ],
-  };
+
+  async function macroFeed(trader) {
+    const market = await getMarket();
+    let virtueGate = { status: "unknown", gi: null, yu: null };
+    if (trader && /^0x[0-9a-fA-F]{40}$/.test(trader)) {
+      try {
+        const { scores } = await virtueScores(trader);
+        const gi = scores.gi ?? null;
+        const yu = scores.yu ?? null;
+        // No registry scores -> the gate stays "unknown" (never decided by an invented number).
+        if (gi != null && yu != null) virtueGate = { status: gi >= 0.6 && yu >= 0.5 ? "open" : "closed", gi, yu };
+      } catch {
+        /* gate stays unknown */
+      }
+    }
+    const signals = market.factors
+      .filter((f) => f.available)
+      .map((f) => {
+        const { scores, virtue } = virtueFor(f, f.seykota, market.regime);
+        return {
+          id: f.id,
+          label: f.label,
+          trend: f.seykota,
+          regime: market.regime,
+          virtueGate: virtueGate.status,
+          blended: blend(f.seykota, market.regime, virtueGate.status),
+          virtueScores: scores,
+          virtue,
+        };
+      });
+    return {
+      ...market,
+      signals,
+      virtueGate,
+      notes: [
+        `Regime = sum of the votes of ${MARKETS.length} Base markets vs their 26-day EMA (≥ +3 RISK-ON, ≤ −3 RISK-OFF); fewer than ${MIN_MARKETS} readable = UNAVAILABLE.`,
+        "Prices: GeckoTerminal daily candles from each coin's most liquid Base pool; ETH and BTC fall back to Coinbase.",
+        "Seykota trend computed with the virtue gate bypassed; the gate is applied separately in the blended verdict.",
+        "Each blended signal carries its single dominant virtue (registry tie-break: highest score wins, ties → earliest Gi > Yu > Jin). Rei/Makoto are execution-time virtues and are not scored at signal level.",
+      ],
+    };
+  }
+
+  return { getMarket, macroFeed };
 }
+
+// The server's shared instance.
+export const { getMarket, macroFeed } = createMacro();

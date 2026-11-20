@@ -1,6 +1,6 @@
 // Bushido-Trades: the paid ERC-8004 agent endpoint (x402, 0.01 USDC per job on Base).
 //
-// POST /api/agent/job runs one job: the Druckenmiller macro regime blended with the Seykota EMA trend
+// POST /api/agent/job runs one job: the market regime (five Base markets, GeckoTerminal) blended with the Seykota EMA trend
 // (server/macro.js) for ETH, then a swap quote on Base in the direction the signal points (USDC -> WETH for a
 // long, WETH -> USDC for a short). The quote is asked of every source whose key is already on the server
 // (0x, 1inch, Uniswap, Zerion) at once: the best answer wins and every answer is listed. The quote is for the
@@ -39,9 +39,9 @@ export const DEFAULT_PUBLIC_URL = "https://bushido-dapp.onrender.com";
 export const CDP_FACILITATOR = "https://api.cdp.coinbase.com/platform/v2/x402";
 export const AGENT_NAME = "Bushido-Trades";
 export const AGENT_DESCRIPTION =
-  "Bushido-aligned trading agent on Base. Each job reads the Druckenmiller macro regime and the Seykota trend " +
-  "for ETH, then quotes the trade on Base across 0x, 1inch, Uniswap and Zerion and returns the best price, " +
-  "for the caller's own wallet to sign.";
+  "Bushido-aligned trading agent on Base. Each job reads the market regime (five Base markets, from GeckoTerminal) " +
+  "and the Seykota trend for ETH, then quotes the trade on Base across 0x, 1inch, Uniswap and Zerion and returns " +
+  "the best price, for the caller's own wallet to sign.";
 const JOB_PATH = "/api/agent/job";
 const ADDR = /^0x[0-9a-fA-F]{40}$/;
 const ZEROX_QUOTE = "https://api.0x.org/swap/allowance-holder/quote";
@@ -73,7 +73,7 @@ export function paymentRequirements(cfg) {
     network: "base",
     maxAmountRequired: cfg.atomic,
     resource: cfg.resource,
-    description: `${AGENT_NAME}: Seykota x Druckenmiller ETH signal + best Base swap quote`,
+    description: `${AGENT_NAME}: Seykota trend x market regime for ETH + best Base swap quote`,
     mimeType: "application/json",
     payTo: cfg.payTo,
     maxTimeoutSeconds: 300,
@@ -244,8 +244,14 @@ export async function runJob(input, { getMacro, blend, sources }) {
   const dir = direction(verdict);
   const signal = {
     asset: "ETH",
-    seykota: { signal: eth.seykota, detail: eth.seykotaDetail, ema12: eth.ema12, ema26: eth.ema26 },
-    druckenmiller: { regime: macro.regime, regimeScore: macro.regimeScore },
+    seykota: { signal: eth.seykota, detail: eth.seykotaDetail, ema12: eth.ema12, ema26: eth.ema26, source: eth.source },
+    regime: {
+      state: macro.regime,
+      score: macro.regimeScore,
+      markets: macro.marketsAvailable,
+      of: macro.marketsTotal,
+      source: "GeckoTerminal",
+    },
     verdict,
     direction: dir,
     virtueGate: macro.virtueGate?.status === "unknown" ? { status: "not checked" } : macro.virtueGate,
@@ -347,7 +353,15 @@ export function createFacilitator({
 }
 
 /** Express handlers: { info, job, card, enabled, kind }. */
-export function createAgentJob({ env = process.env, facilitator, getMacro, blend, sources, fetchImpl = fetch } = {}) {
+export function createAgentJob({
+  env = process.env,
+  facilitator,
+  getMacro,
+  blend,
+  sources,
+  fetchImpl = fetch,
+  marketReady = async () => ({ ready: true }),
+} = {}) {
   const cfg = agentConfig(env);
   const fac = facilitator === undefined ? createFacilitator({ env, fetchImpl }) : facilitator;
   const quoteSources = sources || defaultSources({ env, fetchImpl });
@@ -360,7 +374,12 @@ export function createAgentJob({ env = process.env, facilitator, getMacro, blend
   async function paymentStatus() {
     if (!fac) return { payments: "off", note: "Payments are not set up on this server." };
     if (Date.now() - statusCache.at < 30_000 && statusCache.value) return statusCache.value;
-    const s = await fac.status().catch(() => ({ ready: false, reason: "Payment check failed." }));
+    // Both must hold: the payment can be collected, and the market data every job needs can be read.
+    const [p, m] = await Promise.all([
+      fac.status().catch(() => ({ ready: false, reason: "Payment check failed." })),
+      marketReady().catch(() => ({ ready: false, reason: "Market data check failed, so hiring is paused." })),
+    ]);
+    const s = !p.ready ? p : m;
     const value = s.ready ? { payments: "enabled" } : { payments: "paused", note: s.reason };
     statusCache = { at: Date.now(), value };
     return value;

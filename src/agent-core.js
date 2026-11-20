@@ -99,8 +99,9 @@ export function greeting(info) {
   const src = (info?.agent?.sources || []).map(sourceName);
   const where = src.length ? ` across ${src.join(', ')}` : '';
   return (
-    `I'm ${info?.agent?.name || 'Bushido-Trades'}. Hire me for ${price} USDC and I'll read the Druckenmiller ` +
-    `macro regime and the Seykota trend for ETH, then quote that trade on Base${where} and give you the best price. ` +
+    `I'm ${info?.agent?.name || 'Bushido-Trades'}. Hire me for ${price} USDC and I'll read the market regime ` +
+    `(five Base markets, from GeckoTerminal) and the Seykota trend for ETH, then quote that trade on Base${where} ` +
+    `and give you the best price. ` +
     `You sign the payment (no gas). It is only collected after I've done the job.`
   );
 }
@@ -118,7 +119,9 @@ export function describeResult(j) {
     verdict: s.verdict || '—',
     direction: s.direction || 'none',
     tone: s.direction === 'long' ? 'success' : s.direction === 'short' ? 'error' : 'warn',
-    regime: s.druckenmiller ? `${s.druckenmiller.regime} (score ${s.druckenmiller.regimeScore})` : '—',
+    regime: s.regime
+      ? `${s.regime.state} (score ${s.regime.score}, ${s.regime.markets} of ${s.regime.of} markets)`
+      : '—',
     seykota: s.seykota ? `${s.seykota.signal}${s.seykota.detail ? ` — ${s.seykota.detail}` : ''}` : '—',
     price: Number.isFinite(s.priceUsd) ? `$${s.priceUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—',
     gate: s.virtueGate?.status || '—',
@@ -191,7 +194,7 @@ export function resultHtml(v) {
   return (
     `<div class="agent-verdict ${v.tone}">${esc(v.verdict)}</div>` +
     row('ETH price', v.price) +
-    row('Druckenmiller regime', v.regime) +
+    row('Market regime', v.regime) +
     row('Seykota trend', v.seykota) +
     row('Virtue gate', v.gate) +
     quote +

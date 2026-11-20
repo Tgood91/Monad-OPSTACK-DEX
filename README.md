@@ -456,7 +456,7 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 │   ├── merkl.js            # Merkl rewards
 │   ├── bushido.js          # virtue scores + Seykota trend signal
 │   ├── assetlinks.js       # Android /.well-known/assetlinks.json
-│   └── stream.js macro.js  # live ticker and macro data
+│   └── stream.js macro.js market-data.js  # live ticker; market regime (GeckoTerminal, Coinbase backup)
 ├── src/
 │   ├── main.js             # swap tab
 │   ├── bridge.js bridge-deposit*.js bridge-route.js bridge-health.js   # bridge tab
