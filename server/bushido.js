@@ -37,7 +37,8 @@ const VIRTUE_META = [
 
 /**
  * Get 7-virtue scores for a trader (0-1 scale for dashboard).
- * Falls back to neutral 0.5 when registry is not deployed.
+ * When the registry is not set or cannot be read, every score is null (source "unavailable"):
+ * the app shows "not available" rather than an invented number.
  */
 export async function getVirtueScores(trader) {
   const scores = {};
@@ -70,8 +71,8 @@ export async function getVirtueScores(trader) {
       // fall through to neutral
     }
   }
-  for (const m of VIRTUE_META) scores[m.id] = 0.5;
-  return { scores, source: "neutral-fallback", registry: null };
+  for (const m of VIRTUE_META) scores[m.id] = null;
+  return { scores, source: "unavailable", registry: null };
 }
 
 export function virtueMeta() {
@@ -122,10 +123,12 @@ export function seykotaSignal(prices, virtueScores) {
   const crossedDown = prevFast >= prevSlow && fast < slow;
   const trendUp = fast > slow;
 
-  // Virtue gate
-  const gi = virtueScores?.gi ?? 0.5;
-  const yu = virtueScores?.yu ?? 0.5;
-  if (gi < 0.6 || yu < 0.5) {
+  // Virtue gate. Applied only when both scores are known; with no scores the signal is
+  // shown as computed and marked `gateChecked: false` (no invented score decides it).
+  const gi = virtueScores?.gi ?? null;
+  const yu = virtueScores?.yu ?? null;
+  const gateChecked = gi != null && yu != null;
+  if (gateChecked && (gi < 0.6 || yu < 0.5)) {
     return {
       signal: "WAIT",
       confidence: 0,
@@ -137,13 +140,14 @@ export function seykotaSignal(prices, virtueScores) {
   const separation = Math.abs(fast - slow) / slow; // trend strength
   const confidence = Math.min(0.95, 0.5 + separation * 10);
 
-  if (crossedUp) return { signal: "BUY", confidence, detail: "EMA12 crossed above EMA26", trend: "up" };
-  if (crossedDown) return { signal: "SELL", confidence, detail: "EMA12 crossed below EMA26", trend: "down" };
+  if (crossedUp) return { signal: "BUY", confidence, detail: "EMA12 crossed above EMA26", trend: "up", gateChecked };
+  if (crossedDown) return { signal: "SELL", confidence, detail: "EMA12 crossed below EMA26", trend: "down", gateChecked };
   return {
     signal: trendUp ? "HOLD_LONG" : "HOLD_SHORT",
     confidence: confidence * 0.7,
     detail: trendUp ? "uptrend intact" : "downtrend intact",
     trend: trendUp ? "up" : "down",
+    gateChecked,
   };
 }
 
@@ -164,5 +168,5 @@ export async function dashboardData(trader, priceFeeds = {}) {
       confidence: sig.confidence,
     };
   });
-  return { virtues: VIRTUE_META.map((m) => ({ ...m, score: scores[m.id] ?? 0.5 })), strategies, source };
+  return { virtues: VIRTUE_META.map((m) => ({ ...m, score: scores[m.id] ?? null })), strategies, source };
 }

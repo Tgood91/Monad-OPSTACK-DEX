@@ -354,7 +354,7 @@ in one.
 | `DISABLED_SOURCES` | Comma-separated sources to turn off, e.g. `zerion,fusion`. Names: `aerodrome, velodrome, uniswap, kyberswap, lifi, velora, coinbase, oneinch, fusion, zerox, zerion`. |
 | `UNISWAP_API_KEY`, `ONEINCH_API_KEY`, `ZERION_API_KEY`, `ZEROX_API_KEY` | Quote source keys (`ONEINCH_API_KEY` also powers Fusion). 0x also accepts the older name `VITE_0X_API_KEY`, but use `ZEROX_API_KEY`: a `VITE_` value is meant for the browser. |
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | Coinbase swap quotes. |
-| `BUSHIDO_REGISTRY`, `BASE_RPC` | Optional virtue-score registry contract and its RPC. Without it, virtues show a neutral 50% and the Seykota signal stays gated. |
+| `BUSHIDO_REGISTRY`, `BASE_RPC` | Optional virtue-score registry contract and its RPC. Without it, virtues show "—" (not available) and the Seykota signal is shown ungated, marked as such. |
 | `FAUCET_PRIVATE_KEY` | Turns the faucet on. See [Faucet](#monad-faucet-optional). |
 | `FAUCET_DRIP_MON`, `FAUCET_COOLDOWN_HOURS`, `FAUCET_DAILY_CAP`, `FAUCET_RESERVE_MON`, `FAUCET_DISABLED` | Faucet tuning (defaults: 0.5 MON, 4 hours, 100 claims/day, 0.1 MON reserve). |
 | `PERKS_SECRET`, `PERK_QUOTE_MULTIPLIER` | Pass-perk token secret and the allowance multiplier (default 3). |
@@ -453,7 +453,6 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 │   ├── fusion-relay.js oneinch-fusion.js  # 1inch Fusion relay
 │   ├── merkl.js            # Merkl rewards
 │   ├── bushido.js          # virtue scores + Seykota trend signal
-│   ├── Dex-intellegence.js # Intel tab answers (sample data)
 │   ├── assetlinks.js       # Android /.well-known/assetlinks.json
 │   └── stream.js macro.js  # live ticker and macro data
 ├── src/

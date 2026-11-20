@@ -3,6 +3,35 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Base is the main chain, made-up data removed, and an Agent tab for paid Bushido-Trades jobs
+
+- Base is the default everywhere the app used to start on Monad: AppKit's `defaultNetwork` (a freshly connected wallet
+  is moved to Base), the Swap tab (0.01 ETH to USDC), the Bushido tab's swap panel fallback, and the Intel tab (Base is
+  the chain used when a question names none; starter questions are about Base). The Dojo, the faucet and the bridge's
+  Base-to-Monad default are unchanged, because their contracts and purpose are on Monad.
+- Made-up data removed, per the owner: the Intel tab's canned "sample" answers (`server/Dex-intellegence.js`, fixed
+  SQL results and charts) are deleted; a question live data cannot answer now gets a plain "I only answer from live
+  data" reply. Virtue scores no longer default to an invented 50% when the registry is not connected: they are `null`,
+  shown as "—" with "virtue registry not connected", and the Seykota and macro virtue gates stay "not checked" /
+  "unknown" instead of being decided by that invented number. The unused thirdweb mockups in the repo root
+  (`custom-wallet-buttons`, `walletConnect`, `walletModalConnect`, with `"...."` client IDs) are deleted. Test doubles
+  in `test/` stay: they never reach users and CI depends on them.
+- `/api/macro` added: `public/macro.html` was live but called a route that did not exist; it now gets the real
+  macro feed from `server/macro.js`.
+- New Agent tab (`src/agent-window.js`, pure helpers in `src/agent-core.js`): runs a paid Bushido-Trades job from the
+  connected wallet. It reads the price from the server, checks USDC on Base from our public RPCs, moves the wallet to
+  Base, and asks for a signature (EIP-3009 `TransferWithAuthorization`, no gas) for exactly the server's price, refusing
+  anything that is not x402 `exact` on Base or is over 1 USDC. The result shows the verdict, regime, Seykota trend,
+  quote and the payment on Basescan. "Open in Swap" hands the trade to the Swap tab, which quotes and dry-runs it
+  before any transaction is signed. While the server has no facilitator, the tab says payments are not on yet and the
+  button stays off.
+- Checked: 269 tests (new: a real EIP-712 signature over the typed data recovers to the payer; requirement checks;
+  result display); build; a 390px-wide browser pass on the built app against a local server: Swap opens on Base with a
+  live ETH to USDC quote, the Agent tab fits with no sideways scroll and shows the payments-off state, "Open in Swap"
+  filled USDC to ETH and got a live quote, the Intel tab gave the plain reply, `/api/macro` and the null virtue scores
+  answered. Not verified: no wallet was connected, no payment was signed or settled, and no paid job has run.
+
+
 ## Bushido-Trades: paid ERC-8004 agent endpoint (x402, 0.01 USDC per job on Base)
 
 - New `POST /api/agent/job` (`server/agent-job.js`). One job = the Druckenmiller macro regime blended with the Seykota

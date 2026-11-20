@@ -1,6 +1,6 @@
 // DEX Intelligence tab: asks /api/intel/ask and renders the answer
 // (steps taken, result table, bar chart, final answer, follow-ups).
-// Live answers name their source and the time they were read; the older canned answers are labeled as sample data.
+// Live answers name their source and the time they were read. Questions live data cannot answer get a plain reply.
 
 const $ = id => document.getElementById(id);
 
@@ -65,9 +65,9 @@ function render(query, messages, meta = {}) {
   renderSuggestions(suggestions);
 }
 
-// Says where the figures came from. Live answers name the source and time; anything else is marked as sample data.
+// Says where the figures came from. Live answers name the source and time; an unsupported question shows no badge.
 function badge(meta) {
-  if (!meta.live) return '<div class="intel-sample">Sample data — illustrative figures, not live on-chain results.</div>';
+  if (meta.unsupported || !meta.live) return '';
   if (meta.failed) return '<div class="intel-sample">Live data could not be read.</div>';
   const at = new Date(meta.asOf);
   const when = Number.isNaN(at.getTime()) ? '' : ` · read ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -112,9 +112,9 @@ async function ask(query) {
 $('intelAsk').onclick = () => ask();
 $('intelInput').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
 renderSuggestions([
-  'DEX volume on Monad',
+  'DEX volume on Base',
   'Top pools on Base',
-  'Most traded tokens on Monad',
-  'Merkl rewards on Monad',
+  'Most traded tokens on Base',
+  'Merkl rewards on Base',
   'Compare all chains',
 ]);

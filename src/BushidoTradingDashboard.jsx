@@ -50,8 +50,6 @@ const BushidoTradingDashboard = ({ trader }) => {
     })();
   }, [trader]);
 
-  const virtueScores = Object.fromEntries(virtues.map(v => [v.id, v.score ?? 0.5]));
-
   if (loading) return <div className="p-6 text-center opacity-60">Loading virtue scores…</div>;
   if (error) return <div className="p-6 text-center text-red-400">Failed to load: {error}</div>;
   if (!trader) return <div className="p-6 text-center opacity-60">Connect a wallet to view virtue scores.</div>;
@@ -64,7 +62,7 @@ const BushidoTradingDashboard = ({ trader }) => {
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Target size={20} /> Bushido Trading Dashboard
         </h2>
-        {source && <span className="text-xs opacity-50">scores: {source}</span>}
+        {source && <span className="text-xs opacity-50">scores: {source === 'unavailable' ? 'not available (virtue registry not connected)' : source}</span>}
       </div>
 
       <DojoCard trader={trader} />
@@ -77,7 +75,7 @@ const BushidoTradingDashboard = ({ trader }) => {
           <div key={v.id} className="rounded-lg border border-white/10 p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="font-semibold">{v.name}</span>
-              <span className="text-sm tabular-nums">{((v.score ?? 0) * 100).toFixed(0)}%</span>
+              <span className="text-sm tabular-nums">{v.score == null ? '—' : `${(v.score * 100).toFixed(0)}%`}</span>
             </div>
             <div className="text-xs opacity-60 mb-2">{v.meaning} · {v.principle}</div>
             <div className="h-1.5 rounded bg-white/10 overflow-hidden">

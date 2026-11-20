@@ -60,8 +60,7 @@ import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
 import { macroFeed, blend } from "./macro.js";
 import { createAgentJob } from "./agent-job.js";
-import { getDexIntelligenceResponse } from "./Dex-intellegence.js";
-import { createIntel } from "./intel-live.js";
+import { createIntel, unsupportedAnswer } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
 // Hourly ETH-USD closes (oldest -> newest) from Coinbase's public candles API,
@@ -488,7 +487,7 @@ app.get("/api/bushido/virtues", async (req, res) => {
     const trader = String(req.query.trader || "");
     if (!/^0x[0-9a-fA-F]{40}$/.test(trader)) return res.status(400).json({ error: "bad trader" });
     const { scores, source } = await getVirtueScores(trader);
-    res.json({ virtues: virtueMeta().map((m) => ({ ...m, score: scores[m.id] ?? 0.5 })), source });
+    res.json({ virtues: virtueMeta().map((m) => ({ ...m, score: scores[m.id] ?? null })), source });
   } catch (e) {
     res.status(502).json({ error: String(e.message).slice(0, 200) });
   }
@@ -530,14 +529,14 @@ app.get("/api/bushido/dashboard", async (req, res) => {
 // ---- DEX Intelligence ----
 // POST /api/intel/ask — { query } -> { messages: [...] }
 // Questions about volume, pools, tokens or chains are answered from live open data (DeFi Llama, GeckoTerminal;
-// see intel-live.js) and marked `live`. Anything else gets the older canned answers, marked `sample`.
+// see intel-live.js) and marked `live`. Anything else gets a plain "can't answer that from live data" reply.
 const intel = createIntel();
 app.post("/api/intel/ask", async (req, res) => {
   const query = String(req.body?.query || "").trim().slice(0, 300);
   if (!query) return res.status(400).json({ error: "missing query" });
   const live = await intel.answer(query).catch(() => null);
   if (live) return res.json(live);
-  res.json({ messages: getDexIntelligenceResponse(query), sample: true });
+  res.json(unsupportedAnswer());
 });
 
 // ---- 1inch Fusion relay: gasless swaps (quoter / relayer / orders), key added server-side ----
@@ -547,6 +546,16 @@ app.get("/api/perks/status", perks.routes.status);
 app.post("/api/perks/claim", perks.routes.claim);
 app.get("/api/faucet/status", faucetHandlers.status);
 app.post("/api/faucet/claim", faucetHandlers.claim);
+// ---- Live macro feed for /macro.html: Druckenmiller factors x Seykota (server/macro.js) ----
+app.get("/api/macro", async (req, res) => {
+  try {
+    const trader = String(req.query.trader || "");
+    res.json(await macroFeed(/^0x[0-9a-fA-F]{40}$/.test(trader) ? trader : null));
+  } catch (e) {
+    res.status(502).json({ error: String(e.message).slice(0, 200) });
+  }
+});
+
 // ---- Bushido-Trades ERC-8004 agent: paid job (x402, USDC on Base); see server/agent-job.js ----
 const agent = createAgentJob({ getMacro: macroFeed, blend });
 app.get("/api/agent/job", agent.info);

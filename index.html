@@ -118,6 +118,14 @@
   .intel-suggest { margin-top: 12px; flex-wrap: wrap; }
   .intel-suggest .src-chip { text-align: left; }
   .intel-q { font-weight: 700; margin-bottom: 6px; }
+  .agent-price { font-size: 13px; color: var(--amber); margin-bottom: 12px; }
+  .agent-amount { width: 100%; margin-bottom: 4px; }
+  .agent-verdict { font-size: 16px; font-weight: 700; margin: 8px 0; }
+  .agent-sub { font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+  .agent-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .agent-row span:last-child { text-align: right; overflow-wrap: anywhere; }
+  .agent-tx { display: block; font-size: 12px; color: var(--accent); margin-top: 10px; }
+  .agent-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
   .intel-sample { font-size: 11px; color: var(--amber); border: 1px solid #f59e0b44; background: #f59e0b11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
   .intel-live { font-size: 11px; color: var(--green, #22c55e); border: 1px solid #22c55e44; background: #22c55e11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
   .intel-thoughts { font-size: 12px; color: var(--muted); padding-left: 18px; margin-bottom: 12px; line-height: 1.6; }
@@ -250,6 +258,7 @@
     <button class="tab-btn" id="tabBridge"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18M5 17V9m14 8V9M3 9c4 5 14 5 18 0"/></svg> <span class="tab-lb">Bridge</span></button>
     <button class="tab-btn" id="tabIntel"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5m0 14h16M8 15l4-4 3 3 5-6"/></svg> <span class="tab-lb">Intel</span></button>
     <button class="tab-btn" id="tabBushido"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M6 6v14m12-14v14M4 10h16"/></svg> <span class="tab-lb">Bushido</span></button>
+    <button class="tab-btn" id="tabAgent"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/></svg> <span class="tab-lb">Agent</span></button>
     <button class="tab-btn" id="tabMerkl"><svg class="tab-ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 22V7"/></svg> <span class="tab-lb">Rewards</span></button>
   </div>
 
@@ -382,7 +391,7 @@
     <div class="card">
       <span class="lbl">Ask about DEX routing, liquidity and settlement</span>
       <div class="intel-ask-row">
-        <input class="amount-input intel-input" id="intelInput" type="text" placeholder="e.g. Top pools on Monad" maxlength="300">
+        <input class="amount-input intel-input" id="intelInput" type="text" placeholder="e.g. Top pools on Base" maxlength="300">
         <button class="btn intel-btn" id="intelAsk">Ask</button>
       </div>
       <div class="src-row intel-suggest" id="intelSuggest"></div>
@@ -393,6 +402,20 @@
   <!-- ============ BUSHIDO PANE (React dashboard) ============ -->
   <div id="bushidoPane" style="display:none;">
     <div class="card bushido-card" id="bushidoRoot"></div>
+  </div>
+
+  <!-- ============ AGENT PANE (Bushido-Trades, paid jobs; src/agent-window.js) ============ -->
+  <div id="agentPane" style="display:none;">
+    <div class="card">
+      <span class="lbl">Bushido-Trades agent: Seykota trend x Druckenmiller macro, with a Base swap quote</span>
+      <div class="agent-price" id="agentPrice">Loading price…</div>
+      <label class="lbl" for="agentAmount">Trade size (USD)</label>
+      <input class="amount-input agent-amount" id="agentAmount" type="number" inputmode="decimal" min="1" max="10000" step="1" value="100">
+      <button class="btn btn-swap" id="agentRun" disabled>Run job</button>
+      <div class="status" id="agentStatus"></div>
+      <div id="agentResult"></div>
+      <div class="agent-foot">Paying is a signature, not a transaction. The payment is only collected after the job has run.</div>
+    </div>
   </div>
 
   <!-- ============ MERKL REWARDS PANE ============ -->

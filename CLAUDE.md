@@ -6,7 +6,7 @@ Read this first. It is the short version of how this project works and what has 
 
 ## What this is
 
-A non-custodial swap aggregator and cross-chain bridge, **Monad-first**, with a game layer (the Dojo: Dojo Pass, warrior,
+A non-custodial swap aggregator and cross-chain bridge, **Base-first** (Base is the main chain; the Dojo stays on Monad), with a game layer (the Dojo: Dojo Pass, warrior,
 garden, free-MON faucet). Vanilla JS front end (Vite 5) with React mounted lazily for the Bushido tab and the faucet pond,
 an Express 5 server that proxies keyed APIs, ethers v6, Reown AppKit for wallets. Live at
 `https://bushido-dapp.onrender.com` (Render, auto-deploys from `main`, about 2 minutes).
