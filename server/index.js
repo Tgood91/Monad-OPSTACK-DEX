@@ -130,7 +130,7 @@ function serverKeys() {
 }
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, coinbase: cdpConfigured(), keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), proxy: proxyInfo(req, app.get("trust proxy")), time: new Date().toISOString() });
+  res.json({ ok: true, coinbase: cdpConfigured(), agent: agent.kind, keys: serverKeys(), disabled: disabledSources(), stream: streamStatus(), proxy: proxyInfo(req, app.get("trust proxy")), time: new Date().toISOString() });
 });
 
 // Bridge source health: cached probe round (1-USDC quotes, read-only).

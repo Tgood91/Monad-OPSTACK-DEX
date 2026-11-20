@@ -51,6 +51,7 @@ test("routes map to their source", () => {
   assert.equal(sourceForPath("/api/zerox/quote"), "zerox");
   assert.equal(sourceForPath("/api/fusion/quoter/v2.0/8453/quote/receive"), "fusion");
   assert.equal(sourceForPath("/api/coinbase/swap-quote"), "coinbase");
+  assert.equal(sourceForPath("/api/agent/job"), "agent"); // DISABLED_SOURCES=agent turns hiring off
   assert.equal(sourceForPath("/api/coinbase/prices"), null); // prices are not a swap source
   assert.equal(sourceForPath("/api/near/quote"), null);
 });

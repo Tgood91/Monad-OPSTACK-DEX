@@ -1,11 +1,12 @@
-// Agent tab: run a paid Bushido-Trades job from the connected wallet.
+// Agent tab: talk to Bushido-Trades and hire it from the connected wallet.
 //
-// 1. Ask the server for the job's payment requirements (GET /api/agent/job).
-// 2. Check the wallet holds the USDC (read from our public Base RPCs, not the wallet's connection).
-// 3. The wallet signs the payment (a signature, no gas). The server runs the job and only then
-//    collects the payment, so a failed job costs nothing.
-// 4. Show the Seykota x Druckenmiller signal and the Base swap quote. "Open in Swap" hands the
-//    trade to the Swap tab, which dry-runs it before asking the wallet to sign anything.
+// 1. The profile and status come from the server (GET /api/agent/job): name, what it does, price, which quote
+//    sources it uses, and whether it is taking jobs right now.
+// 2. Hiring: check the wallet holds the USDC (read from our public Base RPCs, not the wallet's connection), move
+//    the wallet to Base, sign the payment (a signature, no gas), then POST the job. The server runs it and only
+//    then collects the payment, so a failed job costs nothing.
+// 3. The result appears in the conversation. "Open in Swap" hands the trade to the Swap tab, which quotes it
+//    again and dry-runs it before the wallet is asked to sign anything.
 
 import { ethers } from 'ethers';
 import {
@@ -24,71 +25,105 @@ import {
   typedData,
   paymentHeader,
   describeResult,
+  describeStatus,
+  greeting,
   fmtUnits,
+  sourceName,
+  resultHtml,
+  esc,
 } from './agent-core.js';
 
 const $ = (id) => document.getElementById(id);
-const esc = (s) =>
-  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 let info = null; // GET /api/agent/job answer
+let status = describeStatus(null);
 let busy = false;
 let mounted = false;
 
-function setStatus(text, tone = '') {
-  $('agentStatus').className = `status ${tone}`;
-  $('agentStatus').innerHTML = text;
+/* ---------------- conversation ---------------- */
+
+function say(who, html) {
+  const el = document.createElement('div');
+  el.className = `agent-msg ${who === 'me' ? 'me' : ''}`;
+  el.innerHTML = html;
+  $('agentChat').appendChild(el);
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return el;
+}
+
+/* ---------------- profile + status ---------------- */
+
+function renderProfile() {
+  const a = info?.agent;
+  $('agentName').textContent = a?.name || 'Bushido-Trades';
+  $('agentChip').textContent = status.chip;
+  $('agentChip').className = `agent-chip ${status.tone}`;
+  $('agentAbout').textContent = a?.description || '';
+  const price = status.price ? `${status.price} USDC per job · paid on Base` : '';
+  const src = (a?.sources || []).map(sourceName).join(' · ');
+  $('agentMeta').innerHTML =
+    (price ? `<div>${esc(price)}</div>` : '') +
+    (src ? `<div>Quotes from ${esc(src)}</div>` : '') +
+    (a?.agentId != null
+      ? `<div>ERC-8004 agent #${esc(a.agentId)} · <a href="https://basescan.org/token/${esc(a.registry)}?a=${esc(a.agentId)}" target="_blank" rel="noopener">registry ↗</a></div>`
+      : '');
+  $('agentHire').disabled = !status.canHire || busy;
+  $('agentHire').textContent = status.price ? `Hire for ${status.price} USDC` : 'Hire';
+  setHint(
+    status.canHire ? (isConnected() ? '' : 'Connect a wallet to hire the agent.') : status.text,
+    status.canHire ? '' : status.tone,
+  );
+}
+
+function setHint(text, tone = '') {
+  $('agentHint').className = `status ${tone}`;
+  $('agentHint').textContent = text;
 }
 
 async function loadInfo() {
   try {
     const r = await fetch('/api/agent/job');
-    info = await r.json();
-    if (!r.ok) throw new Error(info.error || `API ${r.status}`);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || `API ${r.status}`);
+    info = j;
+    status = describeStatus(info);
   } catch (e) {
     info = null;
-    setStatus(`Could not reach the agent: ${esc(String(e.message).slice(0, 120))}`, 'error');
-    $('agentRun').disabled = true;
-    return;
+    status = { ...describeStatus(null), text: `The agent is not answering: ${String(e.message).slice(0, 100)}` };
   }
-  const req = info.accepts?.[0];
-  const price = req ? fmtUnits(req.maxAmountRequired, 6) : '?';
-  $('agentPrice').textContent = `${price} USDC per job, paid on Base`;
-  if (info.payments !== 'enabled') {
-    setStatus('The agent is not taking payments yet, so jobs cannot run.', 'warn');
-    $('agentRun').disabled = true;
-    return;
-  }
-  $('agentRun').disabled = false;
-  setStatus(isConnected() ? '' : 'Connect a wallet on Base to run a job.');
+  renderProfile();
+  if (!$('agentChat').children.length && info) say('agent', esc(greeting(info)));
 }
 
-async function run() {
+/* ---------------- hiring ---------------- */
+
+async function hire() {
   if (busy) return;
   if (!isConnected()) return openConnect();
   const req = info?.accepts?.[0];
   const bad = checkRequirements(req);
-  if (bad) return setStatus(esc(bad), 'error');
+  if (bad) return setHint(bad, 'error');
   const amountUsd = Number($('agentAmount').value);
   if (!Number.isFinite(amountUsd) || amountUsd < 1 || amountUsd > 10000)
-    return setStatus('Enter a trade size between $1 and $10,000.', 'warn');
+    return setHint('Enter a trade size between $1 and $10,000.', 'warn');
 
   busy = true;
-  $('agentRun').disabled = true;
-  $('agentResult').innerHTML = '';
+  $('agentHire').disabled = true;
+  setHint('');
+  say('me', esc(`Hire: ETH signal and the best Base quote for a $${amountUsd.toLocaleString()} trade.`));
+  const reply = say('agent', '<span class="spinner"></span>Checking your USDC on Base…');
+  const progress = (t) => (reply.innerHTML = `<span class="spinner"></span>${esc(t)}`);
   try {
     const from = getAddress();
-    setStatus('<span class="spinner"></span>Checking your USDC on Base…');
+    const price = fmtUnits(req.maxAmountRequired, 6);
     const bal = await getTokenBalance(req.asset, from, 'base');
     if (bal.raw < BigInt(req.maxAmountRequired))
-      throw new Error(`You need ${fmtUnits(req.maxAmountRequired, 6)} USDC on Base; you have ${fmtUnits(bal.raw, 6)}.`);
+      throw new Error(`You need ${price} USDC on Base to hire me; this wallet has ${fmtUnits(bal.raw, 6)}.`);
 
-    setStatus('<span class="spinner"></span>Switching your wallet to Base…');
+    progress('Moving your wallet to Base…');
     await switchAndConfirm({ chainKey: 'base', label: 'Base', getChainKey: getWalletChainKey, switchNetwork });
 
-    setStatus(
-      `<span class="spinner"></span>Sign the ${fmtUnits(req.maxAmountRequired, 6)} USDC payment in your wallet (no gas)…`,
-    );
+    progress(`Sign the ${price} USDC payment in your wallet. It's a signature, no gas.`);
     const auth = buildAuthorization({
       from,
       req,
@@ -99,7 +134,7 @@ async function run() {
     const signer = await getSigner();
     const signature = await signer.signTypedData(td.domain, td.types, td.message);
 
-    setStatus('<span class="spinner"></span>Running the job…');
+    progress('Reading the macro regime and the ETH trend, then asking every quote source…');
     const r = await fetch('/api/agent/job', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-PAYMENT': paymentHeader(req, auth, signature) },
@@ -107,56 +142,32 @@ async function run() {
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      const charged = r.status === 502 && j.charged === false ? ' You were not charged.' : '';
-      throw new Error(`${j.error || `Agent error ${r.status}`}.${charged}`);
+      const notCharged = j.charged === false || r.status === 402 || r.status === 409 ? ' You were not charged.' : '';
+      throw new Error(`${j.error || `Agent error ${r.status}`}.${notCharged}`);
     }
-    render(describeResult(j));
-    setStatus('Job done ✓', 'success');
+    const v = describeResult(j);
+    reply.innerHTML = resultHtml(v);
+    const open = reply.querySelector('.agent-open');
+    if (open && v.prefill)
+      open.onclick = () => window.dispatchEvent(new CustomEvent('bushido:prefill-swap', { detail: v.prefill }));
   } catch (e) {
     const msg = String(e?.shortMessage || e?.message || e);
-    const refused = /user rejected|denied|ACTION_REJECTED/i.test(msg);
-    setStatus(
-      esc(refused ? 'You declined the signature. Nothing was paid.' : msg.slice(0, 220)),
-      refused ? 'warn' : 'error',
-    );
+    const declined = /user rejected|denied|ACTION_REJECTED/i.test(msg);
+    reply.innerHTML = `<div class="agent-note ${declined ? '' : 'agent-err'}">${esc(
+      declined ? 'You declined the signature. Nothing was paid.' : msg.slice(0, 240),
+    )}</div>`;
   } finally {
     busy = false;
-    $('agentRun').disabled = false;
+    $('agentHire').disabled = !status.canHire;
   }
-}
-
-function row(k, v) {
-  return `<div class="agent-row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
-}
-
-function render(v) {
-  const quote = v.quote
-    ? `<div class="agent-sub">Swap quote on Base (${esc(v.quote.source)})</div>` +
-      row('You sell', v.quote.sell) +
-      row('You get about', v.quote.buy) +
-      (v.quote.min ? row('At least', v.quote.min) : '') +
-      '<button class="btn btn-secondary" id="agentOpenSwap">Open in Swap (dry-run first)</button>'
-    : `<div class="status warn">${esc(v.note || 'No trade suggested right now.')}</div>`;
-  const tx = v.paymentTx
-    ? `<a class="agent-tx" href="https://basescan.org/tx/${encodeURIComponent(v.paymentTx)}" target="_blank" rel="noopener">Payment on Basescan ↗</a>`
-    : '';
-  $('agentResult').innerHTML =
-    `<div class="agent-verdict status ${v.tone}">${esc(v.verdict)}</div>` +
-    row('ETH price', v.price) +
-    row('Druckenmiller regime', v.regime) +
-    row('Seykota trend', v.seykota) +
-    row('Virtue gate', v.gate) +
-    quote +
-    tx;
-  const open = $('agentOpenSwap');
-  if (open && v.prefill)
-    open.onclick = () => window.dispatchEvent(new CustomEvent('bushido:prefill-swap', { detail: v.prefill }));
 }
 
 export function showAgent() {
   if (!mounted) {
     mounted = true;
-    $('agentRun').onclick = run;
+    $('agentHire').onclick = hire;
+    for (const b of document.querySelectorAll('#agentPane [data-usd]'))
+      b.onclick = () => ($('agentAmount').value = b.dataset.usd);
   }
   loadInfo();
 }

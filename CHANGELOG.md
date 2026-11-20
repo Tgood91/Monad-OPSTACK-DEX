@@ -3,6 +3,39 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Agent tab: hire Bushido-Trades with the keys already on Render (no Coinbase key needed)
+
+- Owner's call: use the current infrastructure and only the keys already set on Render. Render has no Coinbase (CDP)
+  key, so the agent's x402 payments are now collected by the server itself (`server/x402-local.js`) when no outside
+  facilitator is set. The payer signs a USDC `transferWithAuthorization` (EIP-3009, no gas); the server submits it on
+  Base from the one wallet key it already holds, the faucet burner (`FAUCET_PRIVATE_KEY`, `0x4342…9BdE`), which only
+  pays the gas. The USDC goes from the payer straight to the fee wallet (`AGENT_PAY_TO`); the burner never holds it
+  and cannot redirect it (the signature fixes `to` and `value`). `X402_SETTLER_KEY` can move this to another burner.
+- Before any job runs, the payment is checked: payTo, amount, time window, the EIP-712 signature (ordinary wallets),
+  the payer's USDC, that the authorization is unused, a dry run of the transfer from the burner (also checks smart
+  wallets), and that the burner has the gas. A job that fails is not collected; a payment sent twice at once gets 409.
+  Sends are queued one at a time (one key, one nonce sequence).
+- The burner has 0.000114 ETH on Base today. One collection is about 87k gas (about $0.002 at today's fees), so that
+  covers about 100 paid jobs. When it runs low, the Agent tab shows "Paused" with the reason and nothing is charged;
+  top it up by hand like the faucet. `DISABLED_SOURCES=agent` switches hiring off; `/api/health` shows `agent: "self"`.
+- The job now asks every keyed quote source on the server at once (0x, 1inch, Uniswap, Zerion; Uniswap and Zerion
+  only when a wallet is given), returns the best and lists every answer. If none answers, the job fails and is not
+  charged.
+- Agent tab redesigned for talking to and hiring the agent: a profile (name, what it does, price, quote sources,
+  status chip, ERC-8004 id once `AGENT_ID` is set), a conversation where each hire and its result appear, quick sizes
+  ($50, $100, $500) and "Hire for 0.01 USDC". The opening message is built from the server's own price and sources.
+- Checked: 287 tests (new: the settler's checks with real EIP-712 signatures, queueing, pending and reverted sends;
+  what the tab signs is accepted by the settler; the best-of-all-sources logic; the 409 guard; result escaping). On
+  Base, read-only (eth_call with a state override, nothing sent): a real signature from a throwaway wallet settles
+  from the burner's address on the real USDC contract, a tampered one reverts, and an empty payer is refused before
+  any job. Against a local server: an unfunded settler shows "paused", a signed payment from an empty wallet gets 402
+  `insufficient_funds`, `DISABLED_SOURCES=agent` gives 503. A 390px browser pass on the production build: profile,
+  greeting, quick sizes and a result bubble, no sideways scroll. Not verified: no real USDC payment has been collected,
+  and no real 0x, 1inch, Uniswap or Zerion quote was fetched (their keys are only on Render).
+- Vite dev mode (`npm run dev`) shows a page error from a dependency (`readable-stream` inside `@reown/appkit-siwx`
+  reads `process.version`), which stops the page's script. Not caused by this change and not in the production build.
+
+
 ## Base is the main chain, made-up data removed, and an Agent tab for paid Bushido-Trades jobs
 
 - Base is the default everywhere the app used to start on Monad: AppKit's `defaultNetwork` (a freshly connected wallet

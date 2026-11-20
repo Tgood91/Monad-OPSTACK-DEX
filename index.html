@@ -118,12 +118,31 @@
   .intel-suggest { margin-top: 12px; flex-wrap: wrap; }
   .intel-suggest .src-chip { text-align: left; }
   .intel-q { font-weight: 700; margin-bottom: 6px; }
-  .agent-price { font-size: 13px; color: var(--amber); margin-bottom: 12px; }
-  .agent-amount { width: 100%; margin-bottom: 4px; }
-  .agent-verdict { font-size: 16px; font-weight: 700; margin: 8px 0; }
+  .agent-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .agent-avatar { width: 44px; height: 44px; border-radius: 12px; background: #1e1836; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px var(--accent); flex: none; }
+  .agent-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .agent-name { font-size: 17px; font-weight: 700; }
+  .agent-chip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .agent-chip.success { color: var(--green); border-color: #22c55e55; background: #22c55e14; }
+  .agent-chip.warn { color: var(--amber); border-color: #f59e0b55; background: #f59e0b14; }
+  .agent-chip.error { color: var(--red); border-color: #f8717155; background: #f8717114; }
+  .agent-about { font-size: 13px; line-height: 1.45; color: var(--text); margin-bottom: 8px; }
+  .agent-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .agent-meta a { color: var(--accent); }
+  .agent-chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .agent-msg { background: #1c1c26; border: 1px solid var(--border); border-radius: 14px 14px 14px 4px; padding: 10px 12px; font-size: 13px; line-height: 1.45; max-width: 100%; align-self: flex-start; overflow-wrap: anywhere; }
+  .agent-msg.me { background: #1e1836; border-color: #7c5cff55; border-radius: 14px 14px 4px 14px; align-self: flex-end; max-width: 85%; }
+  .agent-sizes { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .agent-sizes .agent-amount { flex: 1; min-width: 0; font-size: 20px; }
+  .agent-sizes .src-chip { flex: none; }
+  .agent-verdict { font-size: 16px; font-weight: 700; margin: 2px 0 6px; }
+  .agent-verdict.success { color: var(--green); } .agent-verdict.error { color: var(--red); } .agent-verdict.warn { color: var(--amber); }
   .agent-sub { font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
   .agent-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
   .agent-row span:last-child { text-align: right; overflow-wrap: anywhere; }
+  .agent-dim { color: var(--muted); }
+  .agent-note { color: var(--amber); }
+  .agent-note.agent-err { color: var(--red); }
   .agent-tx { display: block; font-size: 12px; color: var(--accent); margin-top: 10px; }
   .agent-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
   .intel-sample { font-size: 11px; color: var(--amber); border: 1px solid #f59e0b44; background: #f59e0b11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
@@ -404,17 +423,26 @@
     <div class="card bushido-card" id="bushidoRoot"></div>
   </div>
 
-  <!-- ============ AGENT PANE (Bushido-Trades, paid jobs; src/agent-window.js) ============ -->
+  <!-- ============ AGENT PANE (Bushido-Trades: talk to it and hire it; src/agent-window.js) ============ -->
   <div id="agentPane" style="display:none;">
+    <div class="card agent-profile">
+      <div class="agent-head">
+        <div class="agent-avatar" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/></svg></div>
+        <div class="agent-title"><div class="agent-name" id="agentName">Bushido-Trades</div><span class="agent-chip" id="agentChip">…</span></div>
+      </div>
+      <div class="agent-about" id="agentAbout"></div>
+      <div class="agent-meta" id="agentMeta"></div>
+    </div>
     <div class="card">
-      <span class="lbl">Bushido-Trades agent: Seykota trend x Druckenmiller macro, with a Base swap quote</span>
-      <div class="agent-price" id="agentPrice">Loading price…</div>
+      <div class="agent-chat" id="agentChat" aria-live="polite"></div>
       <label class="lbl" for="agentAmount">Trade size (USD)</label>
-      <input class="amount-input agent-amount" id="agentAmount" type="number" inputmode="decimal" min="1" max="10000" step="1" value="100">
-      <button class="btn btn-swap" id="agentRun" disabled>Run job</button>
-      <div class="status" id="agentStatus"></div>
-      <div id="agentResult"></div>
-      <div class="agent-foot">Paying is a signature, not a transaction. The payment is only collected after the job has run.</div>
+      <div class="agent-sizes">
+        <input class="amount-input agent-amount" id="agentAmount" type="number" inputmode="decimal" min="1" max="10000" step="1" value="100">
+        <button class="src-chip" data-usd="50">$50</button><button class="src-chip" data-usd="100">$100</button><button class="src-chip" data-usd="500">$500</button>
+      </div>
+      <button class="btn btn-swap" id="agentHire" disabled>Hire</button>
+      <div class="status" id="agentHint"></div>
+      <div class="agent-foot">Hiring is paid with a signature, not a transaction. The payment is only collected after the job has run; if the job fails you are not charged.</div>
     </div>
   </div>
 

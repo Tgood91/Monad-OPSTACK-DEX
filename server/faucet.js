@@ -1,7 +1,9 @@
 // Small Monad faucet (chain 143, mainnet): sends a fixed drip of MON (default 0.5) to any wallet, once every
 // 4 hours, whatever that wallet already holds.
 //
-// THIS IS THE ONE PLACE THE SERVER HOLDS A KEY. Keep the blast radius small:
+// THIS IS THE ONE KEY THE SERVER HOLDS. It also pays the Base gas to collect Agent-tab payments
+// (server/x402-local.js; the USDC goes from the payer straight to the fee wallet, never through this wallet),
+// so it needs a little ETH on Base as well as MON. Keep the blast radius small:
 //   * Use a DEDICATED wallet that holds only a few MON. The key can only spend that wallet's balance.
 //   * Put FAUCET_PRIVATE_KEY in Render's Environment tab only. Never in the repo or in chat.
 //   * With no key set the faucet is OFF and answers "not configured".
