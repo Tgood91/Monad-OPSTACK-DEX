@@ -100,7 +100,7 @@ export function greeting(info) {
   const where = src.length ? ` across ${src.join(', ')}` : '';
   return (
     `I'm ${info?.agent?.name || 'Bushido-Trades'}. Hire me for ${price} USDC and I'll read the market regime ` +
-    `(five Base markets, from GeckoTerminal) and the Seykota trend for ETH, then quote that trade on Base${where} ` +
+    `(ETH, BTC, AERO, VIRTUAL and DEGEN, from Coinbase data) and the Seykota trend for ETH, then quote that trade on Base${where} ` +
     `and give you the best price. ` +
     `You sign the payment (no gas). It is only collected after I've done the job.`
   );

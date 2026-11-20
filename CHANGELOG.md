@@ -3,34 +3,32 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
-## Agent fix: market regime from GeckoTerminal (Yahoo Finance removed), so jobs can read ETH again
+## Agent fix: market regime from Coinbase data (Yahoo Finance removed), so jobs can read ETH again
 
 - The bug: on the live site every Agent job failed with "ETH price feed unavailable". The macro feed read everything
   (ETH, BTC, rates, the dollar, credit) from Yahoo Finance, and Yahoo refuses requests from Render's servers: a fresh
   read on the live site had 0 of 7 series. It never showed before because `/api/macro` did not exist until #48.
-- Owner's call: drop Yahoo and build the regime from GeckoTerminal (CoinGecko's on-chain DEX data). The regime is now
-  five Base markets from the verified coin list, from the majors out to the riskiest: ETH, BTC (cbBTC), AERO (Base
-  DeFi), VIRTUAL (AI agents), DEGEN (memes). Each reads daily USD candles from its most liquid Base pool and votes
-  +1/-1 against its 26-day EMA; >= +3 RISK-ON, <= -3 RISK-OFF, else NEUTRAL; fewer than 3 readable is UNAVAILABLE
-  (never guessed from a partial count). ETH and BTC fall back to Coinbase's public daily candles, which already work
-  from Render (the Bushido tab uses them), so the ETH trend every job needs has two sources.
-- GeckoTerminal's public API allows about 30 calls a minute per IP and the Intel tab uses it too, so
-  `server/market-data.js` is careful: one call finds every coin's pool (kept a day), one call per coin for candles
-  (kept 30 minutes), calls one at a time with a gap, up to two retries on 429/5xx with Retry-After honoured, and the
-  last good copy (marked stale) when it still refuses. The server fills the cache at start.
+- Owner's call: drop Yahoo and rebuild on Coinbase data. The regime is now five markets traded on Base, from the
+  majors out to the riskiest: ETH, BTC, AERO (Base DeFi), VIRTUAL (AI agents), DEGEN (memes). All five are listed on
+  Coinbase (checked: each product online with daily candles), and Coinbase's public candles already work from Render
+  (the Bushido tab uses them). Each market votes +1/-1 against its 26-day EMA; >= +3 RISK-ON, <= -3 RISK-OFF, else
+  NEUTRAL; fewer than 3 readable is UNAVAILABLE (never guessed from a partial count).
+- Backup: if Coinbase cannot answer for a market, its most liquid Base pool on GeckoTerminal (CoinGecko's on-chain
+  data, also already used live by the Intel tab) is read instead. The pool lookup only runs when a backup is needed,
+  because GeckoTerminal's public API allows about 30 calls a minute per IP.
+- `server/market-data.js`: candles kept 30 minutes, up to two retries on 429/5xx (Retry-After honoured), the last
+  good copy (marked stale) when a source still refuses; GeckoTerminal calls paced one at a time. The server fills the
+  cache at start; the computed market is kept 5 minutes.
 - The Agent tab pauses hiring ("Paused", before anyone signs) when the ETH series cannot be read. Job results say
-  "Market regime: RISK-OFF (score -4, 5 of 5 markets)" and the trend's source. Texts no longer claim a Druckenmiller
-  macro read. `/macro.html` shows each market's source and how many were read, and its tables scroll inside their cards
-  on a phone instead of the whole page.
-- Checked: 296 tests (new: five markets from GeckoTerminal and no Yahoo request, RISK-ON/OFF/NEUTRAL, the Coinbase
-  backup after three refusals, UNAVAILABLE below 3 markets, retry after a 429, the stale copy, the cache lifetimes,
-  hiring paused without market data). Live from this sandbox: the real feed read 5 of 5 markets (RISK-OFF -5) and a job
-  went through its market step to a quote request (ETH $1,599.85, HOLD_SHORT, CONFIRMED SHORT, sell $100 of ETH). A
-  390px pass on `/macro.html` and the Agent tab: no sideways scroll, no page errors. GeckoTerminal from Render was
-  confirmed through the live Intel tab. Not verified: the new feed running on Render itself (after merge), a paid job.
-  This sandbox shares its IP and sometimes gets 429s from GeckoTerminal at a cold start (DEGEN missed once and was
-  read on the next refresh).
-
+  "Market regime: RISK-OFF (score -5, 5 of 5 markets)" and name the data source. Texts no longer claim a
+  Druckenmiller macro read. `/macro.html` shows each market's source and how many were read, and its tables scroll
+  inside their cards on a phone instead of the whole page.
+- Checked: 296 tests (new: five markets from Coinbase with no GeckoTerminal or Yahoo request, RISK-ON/OFF/NEUTRAL,
+  the GeckoTerminal backup after three Coinbase refusals with a single pool lookup, UNAVAILABLE below 3 markets, retry
+  after a 429, the stale copy, cache lifetimes, hiring paused without market data). Live from this sandbox: all five
+  markets from Coinbase in 0.4 s (RISK-OFF -5); a job ran through its market step to a quote request (ETH $1,602,
+  HOLD_SHORT, CONFIRMED SHORT, sell $100 of ETH for USDC). A 390px pass on `/macro.html` and the Agent tab: no
+  sideways scroll, no page errors. Not verified: the feed running on Render itself (after merge), and a paid job.
 
 ## Agent tab: hire Bushido-Trades with the keys already on Render (no Coinbase key needed)
 

@@ -1,6 +1,6 @@
 // Bushido-Trades: the paid ERC-8004 agent endpoint (x402, 0.01 USDC per job on Base).
 //
-// POST /api/agent/job runs one job: the market regime (five Base markets, GeckoTerminal) blended with the Seykota EMA trend
+// POST /api/agent/job runs one job: the market regime (five markets, Coinbase data) blended with the Seykota EMA trend
 // (server/macro.js) for ETH, then a swap quote on Base in the direction the signal points (USDC -> WETH for a
 // long, WETH -> USDC for a short). The quote is asked of every source whose key is already on the server
 // (0x, 1inch, Uniswap, Zerion) at once: the best answer wins and every answer is listed. The quote is for the
@@ -39,9 +39,9 @@ export const DEFAULT_PUBLIC_URL = "https://bushido-dapp.onrender.com";
 export const CDP_FACILITATOR = "https://api.cdp.coinbase.com/platform/v2/x402";
 export const AGENT_NAME = "Bushido-Trades";
 export const AGENT_DESCRIPTION =
-  "Bushido-aligned trading agent on Base. Each job reads the market regime (five Base markets, from GeckoTerminal) " +
-  "and the Seykota trend for ETH, then quotes the trade on Base across 0x, 1inch, Uniswap and Zerion and returns " +
-  "the best price, for the caller's own wallet to sign.";
+  "Bushido-aligned trading agent on Base. Each job reads the market regime (ETH, BTC, AERO, VIRTUAL and DEGEN, " +
+  "from Coinbase data) and the Seykota trend for ETH, then quotes the trade on Base across 0x, 1inch, Uniswap and " +
+  "Zerion and returns the best price, for the caller's own wallet to sign.";
 const JOB_PATH = "/api/agent/job";
 const ADDR = /^0x[0-9a-fA-F]{40}$/;
 const ZEROX_QUOTE = "https://api.0x.org/swap/allowance-holder/quote";
@@ -250,7 +250,7 @@ export async function runJob(input, { getMacro, blend, sources }) {
       score: macro.regimeScore,
       markets: macro.marketsAvailable,
       of: macro.marketsTotal,
-      source: "GeckoTerminal",
+      source: [...new Set((macro.factors || []).filter((f) => f.available).map((f) => f.source))].join(" + ") || null,
     },
     verdict,
     direction: dir,

@@ -1,16 +1,17 @@
-// Market regime feed: on-chain prices from GeckoTerminal, blended with the Seykota trend.
+// Market regime feed: Coinbase daily prices of five markets, blended with the Seykota trend.
 //
 // Replaces the old Yahoo Finance macro factors (rates, dollar, credit, BTC, ETH). Yahoo refuses requests from
 // Render's servers, so on the live site every factor was unavailable and every Agent job failed with
-// "ETH price feed unavailable".
+// "ETH price feed unavailable". Coinbase's public candles do work from Render (the Bushido tab already uses them).
 //
-// Factors: daily USD closes of five Base markets, read from the most liquid pool GeckoTerminal lists for each coin,
-// from the majors out to the riskiest: ETH, BTC (cbBTC), AERO (Base DeFi), VIRTUAL (AI agents), DEGEN (memes).
-// Each votes +1 when its close is above its 26-day EMA and -1 below. Sum >= +3 is RISK-ON, <= -3 RISK-OFF, else
-// NEUTRAL. With fewer than 3 of the 5 markets readable the regime is UNAVAILABLE, never guessed from a partial count.
-// ETH and BTC fall back to Coinbase's public daily candles when GeckoTerminal refuses: the ETH trend is what every
-// Agent job needs. Coin addresses come from the verified Base list (src/dex/chains.js); see server/market-data.js
-// for how GeckoTerminal's rate limit is respected. The computed market is kept 5 minutes.
+// Factors: daily USD closes of five markets traded on Base, from the majors out to the riskiest: ETH, BTC, AERO
+// (Base DeFi), VIRTUAL (AI agents), DEGEN (memes). All five are listed on Coinbase, which is the primary source.
+// If Coinbase cannot be read for a market, its most liquid Base pool on GeckoTerminal (CoinGecko's on-chain data)
+// is the backup; that pool lookup only runs when a backup is needed.
+// Each market votes +1 when its close is above its 26-day EMA and -1 below. Sum >= +3 is RISK-ON, <= -3 RISK-OFF,
+// else NEUTRAL. With fewer than 3 of the 5 markets readable the regime is UNAVAILABLE, never guessed from a partial
+// count. Coin addresses for the backup come from the verified Base list (src/dex/chains.js); server/market-data.js
+// handles caching, retries and GeckoTerminal's rate limit. The computed market is kept 5 minutes.
 
 import { seykotaSignal, getVirtueScores, virtueMeta } from "./bushido.js";
 import { createMarketData } from "./market-data.js";
@@ -19,9 +20,9 @@ import { CHAINS } from "../src/dex/chains.js";
 export const MARKETS = [
   { id: "eth", symbol: "ETH", label: "Ethereum (ETH)", coinbase: "ETH-USD" },
   { id: "btc", symbol: "cbBTC", label: "Bitcoin (cbBTC)", coinbase: "BTC-USD" },
-  { id: "aero", symbol: "AERO", label: "Aerodrome (AERO) · Base DeFi" },
-  { id: "virtual", symbol: "VIRTUAL", label: "Virtuals (VIRTUAL) · AI agents" },
-  { id: "degen", symbol: "DEGEN", label: "Degen (DEGEN) · memes" },
+  { id: "aero", symbol: "AERO", label: "Aerodrome (AERO) · Base DeFi", coinbase: "AERO-USD" },
+  { id: "virtual", symbol: "VIRTUAL", label: "Virtuals (VIRTUAL) · AI agents", coinbase: "VIRTUAL-USD" },
+  { id: "degen", symbol: "DEGEN", label: "Degen (DEGEN) · memes", coinbase: "DEGEN-USD" },
 ];
 export const MIN_MARKETS = 3;
 const MARKET_TTL_MS = 5 * 60_000;
@@ -143,31 +144,39 @@ export function createMacro({ data = createMarketData(), now = Date.now, virtueS
   async function getMarket() {
     if (cache.market && now() - cache.at < MARKET_TTL_MS) return { ...cache.market, cached: true };
     const markets = MARKETS.map((m) => ({ ...m, address: tokenAddress(m.symbol) }));
-    let pools = new Map();
-    try {
-      pools = await data.topPools(markets.filter((m) => m.address).map((m) => m.address));
-    } catch {
-      /* each market falls back below, or is unavailable */
-    }
-    const factors = [];
-    for (const m of markets) {
-      const pool = m.address ? pools.get(m.address.toLowerCase()) : null;
-      let series = null;
-      let source = null;
-      if (pool) {
+    // GeckoTerminal pools are only looked up if some market needs the backup (one call for all of them).
+    let pools = null;
+    const poolFor = async (m) => {
+      if (!m.address) return null;
+      if (pools === null) {
         try {
-          const s = await data.geckoDaily(pool, m.address);
-          if (s.closes.length >= 2) [series, source] = [s, "GeckoTerminal"];
+          pools = await data.topPools(markets.filter((x) => x.address).map((x) => x.address));
         } catch {
-          /* try the backup */
+          pools = new Map();
         }
       }
-      if ((!series || series.closes.length < 30) && m.coinbase) {
-        try {
-          const s = await data.coinbaseDaily(m.coinbase);
-          if (s.closes.length >= 30) [series, source] = [s, "Coinbase"];
-        } catch {
-          /* unavailable */
+      return pools.get(m.address.toLowerCase()) || null;
+    };
+    const factors = [];
+    for (const m of markets) {
+      let series = null;
+      let source = null;
+      let pool = null;
+      try {
+        const s = await data.coinbaseDaily(m.coinbase);
+        if (s.closes.length >= 30) [series, source] = [s, "Coinbase"];
+      } catch {
+        /* try the backup */
+      }
+      if (!series) {
+        pool = await poolFor(m);
+        if (pool) {
+          try {
+            const s = await data.geckoDaily(pool, m.address);
+            if (s.closes.length >= 2) [series, source] = [s, "GeckoTerminal"];
+          } catch {
+            /* unavailable */
+          }
         }
       }
       factors.push(
@@ -216,7 +225,7 @@ export function createMacro({ data = createMarketData(), now = Date.now, virtueS
       virtueGate,
       notes: [
         `Regime = sum of the votes of ${MARKETS.length} Base markets vs their 26-day EMA (≥ +3 RISK-ON, ≤ −3 RISK-OFF); fewer than ${MIN_MARKETS} readable = UNAVAILABLE.`,
-        "Prices: GeckoTerminal daily candles from each coin's most liquid Base pool; ETH and BTC fall back to Coinbase.",
+        "Prices: Coinbase daily candles; a market Coinbase cannot answer falls back to its most liquid Base pool on GeckoTerminal.",
         "Seykota trend computed with the virtue gate bypassed; the gate is applied separately in the blended verdict.",
         "Each blended signal carries its single dominant virtue (registry tie-break: highest score wins, ties → earliest Gi > Yu > Jin). Rei/Makoto are execution-time virtues and are not scored at signal level.",
       ],

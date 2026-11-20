@@ -1,14 +1,14 @@
-// Market data for the regime feed (server/macro.js): daily USD prices from GeckoTerminal, with Coinbase as the
-// backup for ETH and BTC. Both are keyless.
+// Market data for the regime feed (server/macro.js): daily USD prices from Coinbase's public candles, with
+// GeckoTerminal (CoinGecko's on-chain DEX data) as the backup. Both are keyless.
 //
-// GeckoTerminal (CoinGecko's on-chain DEX data) allows about 30 calls a minute per IP, and the Intel tab uses it
-// too, so this client is careful with it:
-//   * one call finds the top pool of every coin at once (tokens/multi?include=top_pools), kept for a day;
-//   * one call per coin for its daily candles, kept for 30 minutes (they are daily candles);
-//   * calls go one at a time with a small gap; a 429, a 5xx or a timeout gets up to two retries, waiting longer
-//     each time (and at least what a Retry-After header asks, up to 5 seconds);
-//   * if it still refuses, the last good copy is used (marked stale); with no copy, the call fails.
-// Coinbase's public candles are not as tightly limited; they get the same cache and retries.
+// Coinbase is the primary source; it works from Render and its public limits are generous. Each answer is kept
+// 30 minutes (they are daily candles); a 429, a 5xx or a timeout gets up to two retries, waiting longer each time
+// (and at least what a Retry-After header asks, up to 5 seconds); if it still refuses, the last good copy is used
+// (marked stale).
+//
+// GeckoTerminal is only asked when Coinbase cannot answer for a market. It allows about 30 calls a minute per IP
+// and the Intel tab uses it too, so: one call finds every coin's top pool at once (tokens/multi?include=top_pools,
+// kept a day), one call per coin for its daily candles (kept 30 minutes), and its calls go one at a time with a gap.
 
 export const GECKO = "https://api.geckoterminal.com/api/v2";
 export const COINBASE = "https://api.exchange.coinbase.com";

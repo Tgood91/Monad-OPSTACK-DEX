@@ -29,7 +29,7 @@ function macro({ seykota = "BUY", regime = "RISK-ON", gate = "unknown", last = 3
     marketsAvailable: 5,
     marketsTotal: 5,
     factors: [
-      { id: "eth", available: true, source: "GeckoTerminal", seykota, seykotaDetail: "x", ema12: 1, ema26: 1, last },
+      { id: "eth", available: true, source: "Coinbase", seykota, seykotaDetail: "x", ema12: 1, ema26: 1, last },
     ],
   });
 }
@@ -243,8 +243,8 @@ test("job result names the regime, its source and how many markets were read", a
     { asset: "ETH", amountUsd: 50, taker: null },
     { getMacro: macro(), blend, sources: SOURCES() },
   );
-  assert.deepEqual(r.signal.regime, { state: "RISK-ON", score: 4, markets: 5, of: 5, source: "GeckoTerminal" });
-  assert.equal(r.signal.seykota.source, "GeckoTerminal");
+  assert.deepEqual(r.signal.regime, { state: "RISK-ON", score: 4, markets: 5, of: 5, source: "Coinbase" });
+  assert.equal(r.signal.seykota.source, "Coinbase");
 });
 
 test("info: payments enabled, or paused with the reason when the gas wallet is empty", async () => {
