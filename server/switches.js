@@ -17,6 +17,7 @@ export const KNOWN_SOURCES = [
   "fusion",
   "zerox",
   "zerion",
+  "agent", // the paid Bushido-Trades agent (/api/agent/*): turns hiring off without touching the key
 ];
 
 // Server routes that belong to one source.
@@ -27,6 +28,7 @@ const ROUTES = [
   [/^\/api\/zerox\//, "zerox"],
   [/^\/api\/zerion\//, "zerion"],
   [/^\/api\/coinbase\/swap-quote/, "coinbase"],
+  [/^\/api\/agent\//, "agent"],
 ];
 
 export function disabledSources(env = process.env) {

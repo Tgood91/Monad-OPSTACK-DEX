@@ -1,7 +1,7 @@
 // Intel tab, live answers. Reads open, keyless data (DeFi Llama for DEX volume and TVL, GeckoTerminal for
 // pools) and shapes it into the same message list the tab already draws. Nothing here is invented: every
 // number comes from one of those two services, and a failed read says so instead of falling back to a guess.
-// Questions this file does not recognise return null, and the caller serves the older sample answers.
+// Questions this file does not recognise return null, and the caller answers with unsupportedAnswer() (no invented data).
 
 const LLAMA = "https://api.llama.fi";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -11,8 +11,8 @@ const MERKL = "https://api.merkl.xyz/v4";
 
 // The app's chains, by the name each service uses for them. `words` are what a person might type.
 export const INTEL_CHAINS = [
-  { key: "monad", label: "Monad", llama: "Monad", gecko: "monad", chainId: 143, words: ["monad", "mon"] },
   { key: "base", label: "Base", llama: "Base", gecko: "base", chainId: 8453, words: ["base"] },
+  { key: "monad", label: "Monad", llama: "Monad", gecko: "monad", chainId: 143, words: ["monad", "mon"] },
   {
     key: "optimism",
     label: "Optimism",
@@ -280,7 +280,7 @@ export function createIntel({
           `**${lead.c.label}** had the most DEX trading over the last 7 days (${usd(lead.d7)}).` +
           (missed.length ? `\nCould not read DEX volume for: ${missed.join(", ")}.` : ""),
       ),
-      follow(["DEX volume on Monad", "Top pools on Base", "Most traded tokens on Monad"]),
+      follow(["DEX volume on Base", "Top pools on Base", "Most traded tokens on Base"]),
     ];
   }
 
@@ -485,4 +485,26 @@ export function createIntel({
   }
 
   return { answer };
+}
+
+/** Reply for a question live data cannot answer. It says so plainly instead of showing invented figures. */
+export function unsupportedAnswer() {
+  return {
+    live: false,
+    unsupported: true,
+    messages: [
+      {
+        systemMessage: {
+          text: {
+            textType: "FINAL_RESPONSE",
+            parts: [
+              "I only answer from live data, and this question is not one I can read live. " +
+                "Ask about DEX volume, top pools, most traded tokens or Merkl rewards on a chain, or compare all chains.",
+            ],
+          },
+        },
+      },
+      { systemMessage: { text: { parts: ["DEX volume on Base", "Top pools on Base", "Compare all chains"] } } },
+    ],
+  };
 }

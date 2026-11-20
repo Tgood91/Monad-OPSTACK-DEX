@@ -1,7 +1,7 @@
 // Intel tab live answers: what a question is taken to mean, and how the answer is built from the two services.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planQuestion, usd, createIntel } from "../server/intel-live.js";
+import { planQuestion, usd, createIntel, unsupportedAnswer } from "../server/intel-live.js";
 
 test("plans: chain, DEX and kind are read from the question", () => {
   assert.deepEqual(planQuestion("DEX volume on Base"), { chain: "base", dex: null, chainNamed: true, kind: "dexes" });
@@ -13,7 +13,7 @@ test("plans: chain, DEX and kind are read from the question", () => {
     chainNamed: true,
     kind: "pools",
   });
-  assert.equal(planQuestion("PancakeSwap pools").chain, "monad"); // no chain named: Monad first
+  assert.equal(planQuestion("PancakeSwap pools").chain, "base"); // no chain named: Base first (the main chain)
   assert.equal(planQuestion("most traded tokens on BNB chain").kind, "tokens");
   assert.equal(planQuestion("compare all chains").kind, "chains");
   assert.equal(planQuestion("Monad").kind, "dexes");
@@ -108,9 +108,14 @@ test("a failed read says so and shows no figures", async () => {
   assert.equal(a.messages.length, 1);
   assert.match(texts(a.messages, "FINAL_RESPONSE")[0], /Could not read DeFi Llama/);
 });
-test("a question that is not about live data returns null so the caller can use the sample answers", async () => {
+test("a question that is not about live data returns null; the reply says so instead of inventing figures", async () => {
   const intel = createIntel({ fetchImpl: async () => assert.fail("no fetch expected") });
   assert.equal(await intel.answer("Explain 0xSplits post-swap distribution"), null);
+  const u = unsupportedAnswer();
+  assert.equal(u.live, false);
+  assert.equal(u.unsupported, true);
+  assert.match(texts(u.messages, "FINAL_RESPONSE")[0], /only answer from live data/);
+  assert.ok(!u.messages.some((m) => m.systemMessage.data || m.systemMessage.chart));
 });
 test("Merkl answer ranks live campaigns by daily rewards and picks the best rate only among deep ones", async () => {
   const calls = [];

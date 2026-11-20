@@ -24,12 +24,12 @@ test("Monad: MON to USDC, with the right words and a sensible starting amount", 
   assert.equal(swapSetup("base").defaultAmount, "0.001");
 });
 
-test("the panel follows the wallet's chain when the app supports it, otherwise starts on Monad", () => {
+test("the panel follows the wallet's chain when the app supports it, otherwise starts on Base", () => {
   assert.equal(pickChain("base"), "base");
   assert.equal(pickChain("monad"), "monad");
   assert.equal(pickChain(null), FALLBACK_CHAIN);
-  assert.equal(pickChain(undefined), "monad");
-  assert.equal(pickChain("ethereum"), "monad"); // a chain the app has no swap setup for
+  assert.equal(pickChain(undefined), "base");
+  assert.equal(pickChain("ethereum"), "base"); // a chain the app has no swap setup for
 });
 
 const noSleep = async () => {};

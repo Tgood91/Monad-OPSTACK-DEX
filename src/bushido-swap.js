@@ -2,10 +2,10 @@
 // The panel used to be hard-wired to ETH -> USDC on Base, which pulled the wallet back to Base every time.
 import { CHAINS } from './dex/chains.js';
 
-export const FALLBACK_CHAIN = 'monad';
+export const FALLBACK_CHAIN = 'base';
 
 // A sensible first amount of each chain's native coin (about a dollar or less, so a first test costs little).
-const DEFAULT_AMOUNT = { monad: '1', bsc: '0.01', avalanche: '0.1' };
+const DEFAULT_AMOUNT = { base: '0.001', monad: '1', bsc: '0.01', avalanche: '0.1' };
 
 /** Native coin -> USDC on the chosen chain, the sources to ask, and the words to show. */
 export function swapSetup(chainKey) {
@@ -26,7 +26,7 @@ export function swapSetup(chainKey) {
   };
 }
 
-/** Follow the wallet if it is on a chain the app supports, otherwise start on Monad. */
+/** Follow the wallet if it is on a chain the app supports, otherwise start on Base (the main chain). */
 export function pickChain(walletChainKey, supported = Object.keys(CHAINS)) {
   return walletChainKey && supported.includes(walletChainKey) ? walletChainKey : FALLBACK_CHAIN;
 }

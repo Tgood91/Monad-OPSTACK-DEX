@@ -133,7 +133,7 @@ async function getMarket() {
   return { ...market, cached: false };
 }
 
-function blend(trend, regime, gate) {
+export function blend(trend, regime, gate) {
   if (gate === "closed") return "WAIT (virtue gate)";
   if (gate === "unknown") return `${trend} (gate unknown — connect wallet)`;
   const longish = trend === "BUY" || trend === "HOLD_LONG";
@@ -192,9 +192,10 @@ export async function macroFeed(trader) {
   if (trader && /^0x[0-9a-fA-F]{40}$/.test(trader)) {
     try {
       const { scores } = await getVirtueScores(trader);
-      const gi = scores.gi ?? 0.5;
-      const yu = scores.yu ?? 0.5;
-      virtueGate = { status: gi >= 0.6 && yu >= 0.5 ? "open" : "closed", gi, yu };
+      const gi = scores.gi ?? null;
+      const yu = scores.yu ?? null;
+      // No registry scores -> the gate stays "unknown" (never decided by an invented number).
+      if (gi != null && yu != null) virtueGate = { status: gi >= 0.6 && yu >= 0.5 ? "open" : "closed", gi, yu };
     } catch { /* gate stays unknown */ }
   }
   const signals = market.factors

@@ -6,7 +6,7 @@ Read this first. It is the short version of how this project works and what has 
 
 ## What this is
 
-A non-custodial swap aggregator and cross-chain bridge, **Monad-first**, with a game layer (the Dojo: Dojo Pass, warrior,
+A non-custodial swap aggregator and cross-chain bridge, **Base-first** (Base is the main chain; the Dojo stays on Monad), with a game layer (the Dojo: Dojo Pass, warrior,
 garden, free-MON faucet). Vanilla JS front end (Vite 5) with React mounted lazily for the Bushido tab and the faucet pond,
 an Express 5 server that proxies keyed APIs, ethers v6, Reown AppKit for wallets. Live at
 `https://bushido-dapp.onrender.com` (Render, auto-deploys from `main`, about 2 minutes).
@@ -45,6 +45,8 @@ npm run verify:chains                   # read-only check of src/dex/chains.js a
 - **The faucet key is the one key the server holds.** It must be a fresh, dedicated wallet holding only a few MON
   (`FAUCET_PRIVATE_KEY`). Never use the owner's main wallet or any wallet that owns contracts or a Safe. A Safe cannot be
   the faucet wallet (no private key). Pattern: Safe as vault, small burner as the till, topped up by hand.
+  The same burner pays the Base gas to collect Agent-tab payments (`server/x402-local.js`; about 87k gas each), so
+  it also needs a little ETH on Base. The USDC goes from the payer straight to the fee wallet, never through it.
 - **Simulate before signing.** Every swap and Dojo action is dry-run first; a revert means no signature request.
 - **Reads never depend on the wallet's own connection.** Some wallet in-app browsers (Zerion's) refuse `eth_call` and
   balance reads. Use our public RPCs first, the wallet second (`src/simulate.js`, balances in `src/main.js`).

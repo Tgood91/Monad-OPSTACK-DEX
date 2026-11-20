@@ -3,6 +3,93 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Agent tab: hire Bushido-Trades with the keys already on Render (no Coinbase key needed)
+
+- Owner's call: use the current infrastructure and only the keys already set on Render. Render has no Coinbase (CDP)
+  key, so the agent's x402 payments are now collected by the server itself (`server/x402-local.js`) when no outside
+  facilitator is set. The payer signs a USDC `transferWithAuthorization` (EIP-3009, no gas); the server submits it on
+  Base from the one wallet key it already holds, the faucet burner (`FAUCET_PRIVATE_KEY`, `0x4342…9BdE`), which only
+  pays the gas. The USDC goes from the payer straight to the fee wallet (`AGENT_PAY_TO`); the burner never holds it
+  and cannot redirect it (the signature fixes `to` and `value`). `X402_SETTLER_KEY` can move this to another burner.
+- Before any job runs, the payment is checked: payTo, amount, time window, the EIP-712 signature (ordinary wallets),
+  the payer's USDC, that the authorization is unused, a dry run of the transfer from the burner (also checks smart
+  wallets), and that the burner has the gas. A job that fails is not collected; a payment sent twice at once gets 409.
+  Sends are queued one at a time (one key, one nonce sequence).
+- The burner has 0.000114 ETH on Base today. One collection is about 87k gas (about $0.002 at today's fees), so that
+  covers about 100 paid jobs. When it runs low, the Agent tab shows "Paused" with the reason and nothing is charged;
+  top it up by hand like the faucet. `DISABLED_SOURCES=agent` switches hiring off; `/api/health` shows `agent: "self"`.
+- The job now asks every keyed quote source on the server at once (0x, 1inch, Uniswap, Zerion; Uniswap and Zerion
+  only when a wallet is given), returns the best and lists every answer. If none answers, the job fails and is not
+  charged.
+- Agent tab redesigned for talking to and hiring the agent: a profile (name, what it does, price, quote sources,
+  status chip, ERC-8004 id once `AGENT_ID` is set), a conversation where each hire and its result appear, quick sizes
+  ($50, $100, $500) and "Hire for 0.01 USDC". The opening message is built from the server's own price and sources.
+- Checked: 287 tests (new: the settler's checks with real EIP-712 signatures, queueing, pending and reverted sends;
+  what the tab signs is accepted by the settler; the best-of-all-sources logic; the 409 guard; result escaping). On
+  Base, read-only (eth_call with a state override, nothing sent): a real signature from a throwaway wallet settles
+  from the burner's address on the real USDC contract, a tampered one reverts, and an empty payer is refused before
+  any job. Against a local server: an unfunded settler shows "paused", a signed payment from an empty wallet gets 402
+  `insufficient_funds`, `DISABLED_SOURCES=agent` gives 503. A 390px browser pass on the production build: profile,
+  greeting, quick sizes and a result bubble, no sideways scroll. Not verified: no real USDC payment has been collected,
+  and no real 0x, 1inch, Uniswap or Zerion quote was fetched (their keys are only on Render).
+- Vite dev mode (`npm run dev`) shows a page error from a dependency (`readable-stream` inside `@reown/appkit-siwx`
+  reads `process.version`), which stops the page's script. Not caused by this change and not in the production build.
+
+
+## Base is the main chain, made-up data removed, and an Agent tab for paid Bushido-Trades jobs
+
+- Base is the default everywhere the app used to start on Monad: AppKit's `defaultNetwork` (a freshly connected wallet
+  is moved to Base), the Swap tab (0.01 ETH to USDC), the Bushido tab's swap panel fallback, and the Intel tab (Base is
+  the chain used when a question names none; starter questions are about Base). The Dojo, the faucet and the bridge's
+  Base-to-Monad default are unchanged, because their contracts and purpose are on Monad.
+- Made-up data removed, per the owner: the Intel tab's canned "sample" answers (`server/Dex-intellegence.js`, fixed
+  SQL results and charts) are deleted; a question live data cannot answer now gets a plain "I only answer from live
+  data" reply. Virtue scores no longer default to an invented 50% when the registry is not connected: they are `null`,
+  shown as "—" with "virtue registry not connected", and the Seykota and macro virtue gates stay "not checked" /
+  "unknown" instead of being decided by that invented number. The unused thirdweb mockups in the repo root
+  (`custom-wallet-buttons`, `walletConnect`, `walletModalConnect`, with `"...."` client IDs) are deleted. Test doubles
+  in `test/` stay: they never reach users and CI depends on them.
+- `/api/macro` added: `public/macro.html` was live but called a route that did not exist; it now gets the real
+  macro feed from `server/macro.js`.
+- New Agent tab (`src/agent-window.js`, pure helpers in `src/agent-core.js`): runs a paid Bushido-Trades job from the
+  connected wallet. It reads the price from the server, checks USDC on Base from our public RPCs, moves the wallet to
+  Base, and asks for a signature (EIP-3009 `TransferWithAuthorization`, no gas) for exactly the server's price, refusing
+  anything that is not x402 `exact` on Base or is over 1 USDC. The result shows the verdict, regime, Seykota trend,
+  quote and the payment on Basescan. "Open in Swap" hands the trade to the Swap tab, which quotes and dry-runs it
+  before any transaction is signed. While the server has no facilitator, the tab says payments are not on yet and the
+  button stays off.
+- Checked: 269 tests (new: a real EIP-712 signature over the typed data recovers to the payer; requirement checks;
+  result display); build; a 390px-wide browser pass on the built app against a local server: Swap opens on Base with a
+  live ETH to USDC quote, the Agent tab fits with no sideways scroll and shows the payments-off state, "Open in Swap"
+  filled USDC to ETH and got a live quote, the Intel tab gave the plain reply, `/api/macro` and the null virtue scores
+  answered. Not verified: no wallet was connected, no payment was signed or settled, and no paid job has run.
+
+
+## Bushido-Trades: paid ERC-8004 agent endpoint (x402, 0.01 USDC per job on Base)
+
+- New `POST /api/agent/job` (`server/agent-job.js`). One job = the Druckenmiller macro regime blended with the Seykota
+  EMA trend for ETH (`server/macro.js`, unchanged except `blend` is now exported), plus a 0x swap quote on Base in that
+  direction: USDC to WETH for a long, WETH to USDC for a short, nothing for a neutral or conflicted verdict. Body:
+  `{ asset: "ETH", amountUsd: 1-10000 (default 100), taker? }`; with a `taker` the quote includes an unsigned
+  transaction for that wallet to sign. The server never holds funds.
+- Why: the agent is being registered on the ERC-8004 Identity Registry on Base (`0x8004A169…a432`) with this URL as
+  its service endpoint and a price of 0.01 USDC per job, so the URL has to exist and has to charge.
+- Payment is x402 v1 (`exact`, USDC on Base, to `0xBA39…b111`, the existing fee wallet). Unpaid requests get 402 with
+  the requirements. Paid requests: verify, run the job, then settle; a job that fails is never settled, so the caller
+  is not charged, and a settle failure returns 402 with no result. Bad input gets 400 before any payment is touched.
+- Facilitator: Coinbase CDP's x402 facilitator, signed per request with the CDP key the server already uses
+  (`CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`). `X402_FACILITATOR_URL` overrides it. With neither, the endpoint answers
+  503 and charges nothing. `/api/health` shows `keys.agentPayments`. Optional env: `AGENT_PAY_TO`,
+  `AGENT_PRICE_USDC`, `AGENT_PUBLIC_URL`, `AGENT_ID` (adds the registry back-reference to the agent card).
+- `GET /api/agent/job` describes the job; `GET /.well-known/agent-card.json` (and `agent-registration.json`) serves the
+  ERC-8004 registration file.
+- Checked: USDC (`name` "USD Coin", `version` "2", 6 decimals) and WETH (18) read on Base; 14 unit tests with fakes
+  (402 flow, verify/settle order, no charge on failure, long/short/none quotes, CDP vs custom facilitator); the
+  server run locally answered all four routes; the live macro feed returned data (RISK-OFF, ETH CONFIRMED SHORT).
+  Not verified: no real payment was made; the CDP facilitator was never called (no CDP key here, and Render's health
+  shows `coinbase: false`); no real 0x quote was fetched (no 0x key here).
+
+
 
 
 

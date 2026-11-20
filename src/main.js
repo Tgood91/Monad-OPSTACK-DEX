@@ -26,7 +26,7 @@ import { showStatus, showLoading, clearStatus, fmtAmount, fmtUsd, setButtonLoadi
 import { ERC20_ABI } from './utils/abis.js';
 
 /* ---------------- state ---------------- */
-let chainKey = 'monad'; // default: Monad, 1 MON -> USDC (set in init below)
+let chainKey = 'base'; // default: Base (the main chain), 0.01 ETH -> USDC (set in init below)
 // Every source starts on (users can toggle chips off). This used to be a hand-written list
 // that left out aerodrome, coinbase and fusion, so those were never queried by default.
 let enabledSources = new Set(Object.values(CHAINS).flatMap((c) => c.sources));
@@ -534,12 +534,12 @@ window.addEventListener('online', () => scheduleQuote());
 renderChains();
 renderSources();
 renderTokens();
-$('fromAmount').value = '1'; // default pair on Monad is MON -> USDC
+$('fromAmount').value = '0.01'; // default pair on Base is ETH -> USDC
 updateWalletUI();
 scheduleQuote();
 
 /* ---------------- tabs: Swap | Bridge ---------------- */
-const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'], merkl: ['tabMerkl', 'merklPane'] };
+const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'], agent: ['tabAgent', 'agentPane'], merkl: ['tabMerkl', 'merklPane'] };
 for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchTab(name);
 async function switchTab(which) {
   for (const [name, [tab, pane]] of Object.entries(TABS)) {
@@ -548,6 +548,8 @@ async function switchTab(which) {
   }
   // React + the dashboard load only when the Bushido tab is first opened.
   if (which === 'bushido') (await import('./bushido-mount.jsx')).showBushido();
+  // The Agent tab (paid Bushido-Trades jobs) loads only when first opened.
+  if (which === 'agent') (await import('./agent-window.js')).showAgent();
   // Merkl module loads only when the Rewards tab is first opened.
   if (which === 'merkl') {
     (await import('./merkl.js')).showMerkl();
@@ -557,6 +559,24 @@ async function switchTab(which) {
 
 // Our own coin/chain list instead of native dropdowns (those never open in some wallet in-app browsers).
 enhanceAllSelects();
+
+// The Agent tab's "Open in Swap": put its trade into the Swap tab, which quotes and dry-runs it before any signature.
+window.addEventListener('bushido:prefill-swap', async (e) => {
+  const { chainKey: ck, from, to, amount } = e.detail || {};
+  if (!CHAINS[ck]) return;
+  await switchTab('swap');
+  await switchChainUI(ck);
+  const toks = getChain(ck).tokens;
+  const fi = toks.findIndex((t) => t.symbol === from);
+  const ti = toks.findIndex((t) => t.symbol === to);
+  if (fi < 0 || ti < 0) return;
+  $('fromToken').value = String(fi);
+  $('toToken').value = String(ti);
+  $('fromAmount').value = amount;
+  $('fromToken').dispatchEvent(new Event('change'));
+  $('toToken').dispatchEvent(new Event('change'));
+  $('fromAmount').dispatchEvent(new Event('input'));
+});
 
 // Refresh balances shortly after a faucet claim lands (the pond on the Rewards tab fires this event).
 window.addEventListener('bushido:faucet-sent', () => setTimeout(updateBalances, 4000));
