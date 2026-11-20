@@ -27,6 +27,9 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
   before payment). A 390px pass on a local server: greeting, a misspelt coin, a plan enabling Hire, `coins aer`, a
   quick command, a rendered result; no sideways scroll, no page errors. Not verified: a real paid swap job, and real
   quotes for other pairs (the quote keys are only on Render).
+- README brought up to date: Base-first (Base is the default chain and wallet network), the Agent tab and its
+  terminal, the agent and market-regime endpoints, Intel answering from live data instead of sample figures, and the
+  new files in the project layout.
 
 
 ## Agent fix: market regime from Coinbase data (Yahoo Finance removed), so jobs can read ETH again
