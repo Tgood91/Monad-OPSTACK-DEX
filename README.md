@@ -1,7 +1,8 @@
 # Bushido-dApp
 
-A non-custodial **swap aggregator and cross-chain bridge**, built around **Monad**, with a small game layer
-(the **Dojo**: a Dojo Pass and a warrior pet) and a virtue-gated trading panel.
+A non-custodial **swap aggregator and cross-chain bridge**, **Base-first**, with a small game layer on Monad
+(the **Dojo**: a Dojo Pass and a warrior pet), a virtue-gated trading panel, and **Bushido-Trades**, a trading agent
+you can hire for 0.01 USDC a job.
 
 Connect a wallet, pick two coins, and the app asks every enabled liquidity source for a live quote in parallel.
 The best price wins, and you can pick any other quote by hand. Need to move funds between chains? The Bridge
@@ -9,7 +10,8 @@ tab compares four providers and checks the bridge deposit address against the pr
 you pay it.
 
 **Your wallet signs every transaction. The app never holds your funds or your keys.** The one exception is the
-optional Monad faucet, which holds a small dedicated key and is described in [Faucet](#monad-faucet-optional).
+optional Monad faucet, which holds a small dedicated key and is described in [Faucet](#monad-faucet-optional). The same
+burner pays the Base gas to collect Agent payments; the USDC goes from the payer straight to the fee wallet.
 
 > Formerly **Multi-Chain DEX**. See [Upgrading from Multi-Chain DEX](#upgrading-from-multi-chain-dex).
 > A running history of every change, and the reasoning behind it, is in [CHANGELOG.md](CHANGELOG.md).
@@ -42,10 +44,11 @@ optional Monad faucet, which holds a small dedicated key and is described in [Fa
 
 | Tab | What it does |
 |---|---|
-| **Swap** | Same-chain swaps on 7 chains. Quotes from up to 10 sources, ranked by output. The app opens on **Monad** with 1 MON → USDC prefilled. |
+| **Swap** | Same-chain swaps on 7 chains. Quotes from up to 10 sources, ranked by output. The app opens on **Base** with 0.01 ETH → USDC prefilled. |
 | **Bridge** | Cross-chain transfers through NEAR Intents, Stargate V2, Relay and Aori, with a live **health strip** that shows which routes are working. Also **⛽ Get gas**: turn USDC on one chain into native gas (MON, ETH) on another. |
-| **Intel** | Ask about DEX routing and get a structured answer (query, table, chart). The figures are fixed **sample data**, and the UI says so. |
+| **Intel** | Ask about DEX routing and get a structured answer (query, table, chart) from live data (DeFi Llama, GeckoTerminal). A question it can't answer gets a plain "can't answer that", never made-up figures. |
 | **Bushido** | Your **Dojo** card (pass, warrior, garden), the 7 virtue scores, the Seykota trend signal and a **gated swap panel** that works on any chain. |
+| **Agent** | A terminal for **Bushido-Trades** (ERC-8004 agent on Base). Type what you want your money in: `swap 100 USDC to AERO`, `put $50 into ETH`, `sell 0.1 ETH`. The agent turns that into a plan; `hire` pays **0.01 USDC** (x402: a signature, no gas, collected only if the job succeeds). It returns the best quote across 0x, 1inch, Uniswap and Zerion, plus the market regime (ETH, BTC, AERO, VIRTUAL, DEGEN from Coinbase) and whether the trade goes with or against the coin's trend. `open` sends it to the Swap tab, which dry-runs it before you sign. |
 | **Rewards** | Merkl rewards: see your opportunities and claim, signed by your own wallet. |
 
 It is also an **installable app**: a PWA for phones ([Bushido-dApp/README.md](Bushido-dApp/README.md)) and an
@@ -55,11 +58,10 @@ Android app in Kotlin ([Bushido-dApp-android](https://github.com/Tgood91/Bushido
 
 ## Chains and coins
 
-Swap chains: **Monad (default)**, Base, Optimism, Ink, Unichain, **BNB Chain** and **Avalanche**. Ethereum is also configured so the wallet can
+Swap chains: **Base (default)**, Monad, Optimism, Ink, Unichain, **BNB Chain** and **Avalanche**. Ethereum is also configured so the wallet can
 switch to it for Merkl claims. Bridge chains and which provider covers each are in [CHAINS.md](CHAINS.md).
 
-Monad is the wallet library's default network, so a wallet that is already on Monad is not pulled to another chain
-when it connects.
+Base is the wallet library's default network. The Dojo, the faucet and the bridge's default stay on Monad.
 
 ### Monad coins (22)
 
@@ -429,6 +431,8 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 | Rewards | `GET /api/merkl/rewards`, `GET /api/merkl/claim-data`, `GET /api/merkl/opportunities` |
 | Bushido | `GET /api/bushido/virtues`, `GET /api/bushido/strategies`, `POST /api/bushido/signal`, `GET /api/bushido/dashboard` |
 | Intel | `POST /api/intel/ask` |
+| Agent | `GET /api/agent/job` (profile, price, status), `POST /api/agent/job` (x402-paid job: `{ sell, buy, amount, taker }` or `{ asset: "ETH", amountUsd }`), `GET /.well-known/agent-card.json`, `GET /.well-known/agent-registration.json` |
+| Market regime | `GET /api/macro` (five markets from Coinbase, GeckoTerminal as backup; used by the Agent and `/macro.html`) |
 | Dojo | `GET /api/perks/status`, `POST /api/perks/claim`, `GET /api/faucet/status`, `POST /api/faucet/claim` |
 | Operations | `GET /api/ops/log`, `POST /api/ops/log` |
 
@@ -438,7 +442,7 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 
 ```
 .
-├── index.html              # UI shell + styles (Swap | Bridge | Intel | Bushido | Rewards)
+├── index.html              # UI shell + styles (Swap | Bridge | Intel | Bushido | Agent | Rewards)
 ├── vite.config.js          # build config, dev /api proxy
 ├── CHANGELOG.md            # what changed in each PR, and why
 ├── CHAINS.md               # chain IDs and which bridge covers which chain
@@ -456,7 +460,8 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 │   ├── merkl.js            # Merkl rewards
 │   ├── bushido.js          # virtue scores + Seykota trend signal
 │   ├── assetlinks.js       # Android /.well-known/assetlinks.json
-│   └── stream.js macro.js market-data.js  # live ticker; market regime (GeckoTerminal, Coinbase backup)
+│   ├── agent-job.js x402-local.js  # Bushido-Trades jobs; x402 payments settled with the burner
+│   └── stream.js macro.js market-data.js  # live ticker; market regime (Coinbase, GeckoTerminal backup)
 ├── src/
 │   ├── main.js             # swap tab
 │   ├── bridge.js bridge-deposit*.js bridge-route.js bridge-health.js   # bridge tab
@@ -467,7 +472,8 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 │   ├── simulate.js         # dry-run logic
 │   ├── token-picker.js     # own coin/chain picker
 │   ├── perks-client.js siwx-share.js   # pass perks, one sign-in for every EVM chain
-│   ├── config.js           # wallet (AppKit) setup, default network = Monad
+│   ├── agent-window.js agent-terminal.js agent-core.js   # Agent tab: terminal, command reading, x402 signing
+│   ├── config.js           # wallet (AppKit) setup, default network = Base
 │   ├── dex/                # chains.js (chains, coins, sources), adapters, engine, Fusion
 │   └── utils/              # wallet helpers, retry, formatting, ABIs
 ├── test/                   # node:test suite

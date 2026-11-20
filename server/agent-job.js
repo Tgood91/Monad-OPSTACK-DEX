@@ -29,6 +29,7 @@ import { oneinchQuote } from "./oneinch.js";
 import { uniswapQuote, uniswapConfigured } from "./uniswap.js";
 import { zerionQuote } from "./zerion.js";
 import { settlerKey, createBaseChain, createLocalFacilitator, BASE_RPCS } from "./x402-local.js";
+import { CHAINS } from "../src/dex/chains.js";
 
 export const BASE_CHAIN_ID = 8453;
 export const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -39,9 +40,9 @@ export const DEFAULT_PUBLIC_URL = "https://bushido-dapp.onrender.com";
 export const CDP_FACILITATOR = "https://api.cdp.coinbase.com/platform/v2/x402";
 export const AGENT_NAME = "Bushido-Trades";
 export const AGENT_DESCRIPTION =
-  "Bushido-aligned trading agent on Base. Each job reads the market regime (ETH, BTC, AERO, VIRTUAL and DEGEN, " +
-  "from Coinbase data) and the Seykota trend for ETH, then quotes the trade on Base across 0x, 1inch, Uniswap and " +
-  "Zerion and returns the best price, for the caller's own wallet to sign.";
+  "Bushido-aligned trading agent on Base. Tell it which coin to swap into: each job quotes the trade on Base " +
+  "across 0x, 1inch, Uniswap and Zerion and returns the best price, with the market read (the regime from ETH, " +
+  "BTC, AERO, VIRTUAL and DEGEN on Coinbase data, and the Seykota trend), for the caller's own wallet to sign.";
 const JOB_PATH = "/api/agent/job";
 const ADDR = /^0x[0-9a-fA-F]{40}$/;
 const ZEROX_QUOTE = "https://api.0x.org/swap/allowance-holder/quote";
@@ -73,7 +74,7 @@ export function paymentRequirements(cfg) {
     network: "base",
     maxAmountRequired: cfg.atomic,
     resource: cfg.resource,
-    description: `${AGENT_NAME}: Seykota trend x market regime for ETH + best Base swap quote`,
+    description: `${AGENT_NAME}: best Base swap quote across 0x, 1inch, Uniswap and Zerion, with the market read`,
     mimeType: "application/json",
     payTo: cfg.payTo,
     maxTimeoutSeconds: 300,
@@ -112,15 +113,45 @@ export function registrationFile(cfg) {
 }
 
 /** Validate the job body. Returns { input } or { error }. Checked BEFORE any payment is touched. */
+/** A coin from the verified Base list (src/dex/chains.js), by symbol (any case) or address. */
+export function findBaseToken(q) {
+  const s = String(q ?? "").trim();
+  if (!s) return null;
+  const tokens = CHAINS.base.tokens;
+  if (ADDR.test(s)) return tokens.find((t) => t.address.toLowerCase() === s.toLowerCase()) || null;
+  return tokens.find((t) => t.symbol.toLowerCase() === s.toLowerCase()) || null;
+}
+
+/**
+ * Validate the job body. Returns { input } or { error }. Checked BEFORE any payment is touched.
+ * Two kinds of job:
+ *   swap:   { sell, buy, amount, taker? }   any two coins from the verified Base list; amount in the coin sold
+ *   signal: { asset: "ETH", amountUsd, taker? }   the agent picks the direction from the ETH signal
+ */
 export function parseJob(body = {}) {
+  const taker = body.taker == null || body.taker === "" ? null : String(body.taker);
+  if (taker && !ADDR.test(taker)) return { error: "bad taker address" };
+  if (body.sell != null || body.buy != null) {
+    const sell = findBaseToken(body.sell);
+    const buy = findBaseToken(body.buy);
+    const what = (x) => String(x ?? "").slice(0, 24);
+    if (!sell) return { error: `unknown coin "${what(body.sell)}": use a symbol or address from the Base list` };
+    if (!buy) return { error: `unknown coin "${what(body.buy)}": use a symbol or address from the Base list` };
+    if (sell.address.toLowerCase() === buy.address.toLowerCase()) return { error: "sell and buy are the same coin" };
+    const amount = String(body.amount ?? "").trim();
+    if (!/^\d{1,15}(\.\d{1,18})?$/.test(amount)) return { error: "amount must be a number in the coin you sell" };
+    const frac = amount.split(".")[1] || "";
+    if (frac.length > sell.decimals) return { error: `${sell.symbol} has ${sell.decimals} decimals` };
+    const sellAmount = ethers.parseUnits(amount, sell.decimals);
+    if (sellAmount <= 0n) return { error: "amount must be more than 0" };
+    return { input: { mode: "swap", sell, buy, amount, sellAmount: sellAmount.toString(), taker } };
+  }
   const asset = String(body.asset || "ETH").toUpperCase();
   if (asset !== "ETH") return { error: "only asset ETH is supported" };
   const amountUsd = body.amountUsd == null ? 100 : Number(body.amountUsd);
   if (!Number.isFinite(amountUsd) || amountUsd < 1 || amountUsd > 10_000)
     return { error: "amountUsd must be between 1 and 10000" };
-  const taker = body.taker == null || body.taker === "" ? null : String(body.taker);
-  if (taker && !ADDR.test(taker)) return { error: "bad taker address" };
-  return { input: { asset, amountUsd, taker } };
+  return { input: { mode: "signal", asset, amountUsd, taker } };
 }
 
 /** Long, short or none, from the blended Seykota x macro verdict. */
@@ -148,7 +179,8 @@ export function sourcesConfigured(env = process.env) {
  * { buyAmount (atomic string), minBuyAmount?, transaction?, allowanceTarget? } or throws.
  */
 export function defaultSources({ env = process.env, fetchImpl = fetch } = {}) {
-  const dec = (t) => TOKENS[t].decimals;
+  // Decimals come with the trade (any coin from the Base list); USDC/WETH are known for the ETH-signal job.
+  const dec = (t, side) => t[`${side}Decimals`] ?? TOKENS[t[`${side}Token`]]?.decimals ?? 18;
   return {
     "0x": async (t) => {
       const p = zeroxParams({ chainId: String(BASE_CHAIN_ID), ...t, taker: t.taker || "" }, env);
@@ -195,12 +227,12 @@ export function defaultSources({ env = process.env, fetchImpl = fetch } = {}) {
         chainId: BASE_CHAIN_ID,
         tokenIn: t.sellToken,
         tokenOut: t.buyToken,
-        amountHuman: ethers.formatUnits(t.sellAmount, dec(t.sellToken)),
+        amountHuman: ethers.formatUnits(t.sellAmount, dec(t, "sell")),
         taker: t.taker,
         slippageBps: 50,
       });
       // Zerion answers in token units ("0.0123"); same conversion as src/dex/adapters.js.
-      const units = (x) => ethers.parseUnits(Number(x).toFixed(dec(t.buyToken)), dec(t.buyToken)).toString();
+      const units = (x) => ethers.parseUnits(Number(x).toFixed(dec(t, "buy")), dec(t, "buy")).toString();
       return {
         buyAmount: units(q.amountOut),
         minBuyAmount: q.minAmountOut ? units(q.minAmountOut) : null,
@@ -245,13 +277,7 @@ export async function runJob(input, { getMacro, blend, sources }) {
   const signal = {
     asset: "ETH",
     seykota: { signal: eth.seykota, detail: eth.seykotaDetail, ema12: eth.ema12, ema26: eth.ema26, source: eth.source },
-    regime: {
-      state: macro.regime,
-      score: macro.regimeScore,
-      markets: macro.marketsAvailable,
-      of: macro.marketsTotal,
-      source: [...new Set((macro.factors || []).filter((f) => f.available).map((f) => f.source))].join(" + ") || null,
-    },
+    regime: regimeSummary(macro),
     verdict,
     direction: dir,
     virtueGate: macro.virtueGate?.status === "unknown" ? { status: "not checked" } : macro.virtueGate,
@@ -262,11 +288,19 @@ export async function runJob(input, { getMacro, blend, sources }) {
 
   const trade =
     dir === "long"
-      ? { sellToken: USDC_BASE, buyToken: WETH_BASE, sellAmount: String(Math.round(input.amountUsd * 1e6)) }
+      ? {
+          sellToken: USDC_BASE,
+          buyToken: WETH_BASE,
+          sellAmount: String(Math.round(input.amountUsd * 1e6)),
+          sellDecimals: 6,
+          buyDecimals: 18,
+        }
       : {
           sellToken: WETH_BASE,
           buyToken: USDC_BASE,
           sellAmount: (BigInt(Math.round((input.amountUsd / eth.last) * 1e9)) * 10n ** 9n).toString(),
+          sellDecimals: 18,
+          buyDecimals: 6,
         };
   const { best, answers } = await bestQuote({ ...trade, taker: input.taker }, sources);
   if (!best) throw new Error("no quote from any source");
@@ -276,6 +310,97 @@ export async function runJob(input, { getMacro, blend, sources }) {
       source: best.source,
       chainId: BASE_CHAIN_ID,
       side: dir === "long" ? "buy ETH with USDC" : "sell ETH for USDC",
+      sellToken: trade.sellToken,
+      buyToken: trade.buyToken,
+      sellAmount: trade.sellAmount,
+      buyAmount: best.buyAmount,
+      minBuyAmount: best.minBuyAmount ?? null,
+      allowanceTarget: best.allowanceTarget ?? null,
+      // Unsigned transaction for the taker's own wallet, when the best source gives one directly.
+      transaction: input.taker ? (best.transaction ?? null) : null,
+      sources: answers.map((a) =>
+        a.error ? { source: a.source, error: a.error } : { source: a.source, buyAmount: a.buyAmount },
+      ),
+    },
+  };
+}
+
+/** The regime as a job reports it: state, score, how many markets were read and from where. */
+export function regimeSummary(macro) {
+  return {
+    state: macro.regime,
+    score: macro.regimeScore,
+    markets: macro.marketsAvailable,
+    of: macro.marketsTotal,
+    source: [...new Set((macro.factors || []).filter((f) => f.available).map((f) => f.source))].join(" + ") || null,
+  };
+}
+
+// Coins the agent has a trend for: the regime's own markets (server/macro.js), by symbol in the Base list.
+const MARKET_OF = {
+  ETH: "eth",
+  cbBTC: "btc",
+  WBTC: "btc",
+  tBTC: "btc",
+  AERO: "aero",
+  VIRTUAL: "virtual",
+  DEGEN: "degen",
+};
+
+/**
+ * A swap job: the caller names the coins. The quote is asked of every keyed source; the market read says whether
+ * the trend and regime favour this trade, for the coin bought (or else the coin sold) when the agent tracks it.
+ */
+export async function runSwapJob(input, { getMacro, blend, sources }) {
+  const macro = await getMacro(input.taker);
+  const gate = macro.virtueGate?.status === "unknown" ? "open" : macro.virtueGate?.status;
+  const readOf = (tok) => {
+    const id = MARKET_OF[tok.symbol];
+    const f = id && (macro.factors || []).find((x) => x.id === id && x.available);
+    if (!f) return null;
+    const verdict = blend(f.seykota, macro.regime, gate);
+    return {
+      symbol: tok.symbol,
+      trend: f.seykota,
+      detail: f.seykotaDetail,
+      verdict,
+      direction: direction(verdict),
+      priceUsd: f.last,
+      source: f.source,
+    };
+  };
+  const buyRead = readOf(input.buy);
+  const sellRead = buyRead ? null : readOf(input.sell);
+  // Buying what the signal favours, or selling what it does not, is "with" the signal.
+  let stance = null;
+  if (buyRead) stance = buyRead.direction === "long" ? "with" : buyRead.direction === "short" ? "against" : "unclear";
+  else if (sellRead)
+    stance = sellRead.direction === "short" ? "with" : sellRead.direction === "long" ? "against" : "unclear";
+
+  const trade = {
+    sellToken: input.sell.address,
+    buyToken: input.buy.address,
+    sellAmount: input.sellAmount,
+    sellDecimals: input.sell.decimals,
+    buyDecimals: input.buy.decimals,
+  };
+  const { best, answers } = await bestQuote({ ...trade, taker: input.taker }, sources);
+  if (!best) throw new Error("no quote from any source");
+  const coin = (t) => ({ symbol: t.symbol, address: t.address, decimals: t.decimals });
+  return {
+    mode: "swap",
+    request: { sell: { ...coin(input.sell), amount: input.amount }, buy: coin(input.buy) },
+    read: {
+      regime: regimeSummary(macro),
+      about: buyRead || sellRead,
+      side: buyRead ? "buy" : sellRead ? "sell" : null,
+      stance,
+      virtueGate: macro.virtueGate?.status === "unknown" ? { status: "not checked" } : macro.virtueGate,
+      updatedAt: macro.updatedAt,
+    },
+    quote: {
+      source: best.source,
+      chainId: BASE_CHAIN_ID,
       sellToken: trade.sellToken,
       buyToken: trade.buyToken,
       sellAmount: trade.sellAmount,
@@ -402,7 +527,15 @@ export function createAgentJob({
           sources: Object.keys(configured).filter((k) => configured[k]),
         },
         method: "POST",
-        body: { asset: "ETH", amountUsd: "1-10000 (default 100)", taker: "0x… (optional; adds a signable tx)" },
+        body: {
+          swap: {
+            sell: "a coin from the Base list, symbol or address (e.g. USDC)",
+            buy: "a coin from the Base list (e.g. AERO)",
+            amount: "how much of the sold coin (e.g. 100)",
+            taker: "0x… (optional; adds a signable tx and Uniswap/Zerion quotes)",
+          },
+          signal: { asset: "ETH", amountUsd: "1-10000 (default 100)", taker: "0x… (optional)" },
+        },
         ...(await paymentStatus()),
         accepts: [reqs],
       });
@@ -434,7 +567,8 @@ export function createAgentJob({
 
         let result;
         try {
-          result = await runJob(parsed.input, { getMacro, blend, sources: quoteSources });
+          const run = parsed.input.mode === "swap" ? runSwapJob : runJob;
+          result = await run(parsed.input, { getMacro, blend, sources: quoteSources });
         } catch (e) {
           // Not collected -> the payer is not charged.
           return res.status(502).json({ error: String(e.message).slice(0, 200), charged: false });

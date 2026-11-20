@@ -129,21 +129,22 @@
   .agent-about { font-size: 13px; line-height: 1.45; color: var(--text); margin-bottom: 8px; }
   .agent-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
   .agent-meta a { color: var(--accent); }
-  .agent-chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-  .agent-msg { background: #1c1c26; border: 1px solid var(--border); border-radius: 14px 14px 14px 4px; padding: 10px 12px; font-size: 13px; line-height: 1.45; max-width: 100%; align-self: flex-start; overflow-wrap: anywhere; }
-  .agent-msg.me { background: #1e1836; border-color: #7c5cff55; border-radius: 14px 14px 4px 14px; align-self: flex-end; max-width: 85%; }
-  .agent-sizes { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
-  .agent-sizes .agent-amount { flex: 1; min-width: 0; font-size: 20px; }
-  .agent-sizes .src-chip { flex: none; }
-  .agent-verdict { font-size: 16px; font-weight: 700; margin: 2px 0 6px; }
-  .agent-verdict.success { color: var(--green); } .agent-verdict.error { color: var(--red); } .agent-verdict.warn { color: var(--amber); }
-  .agent-sub { font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
-  .agent-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .agent-row span:last-child { text-align: right; overflow-wrap: anywhere; }
-  .agent-dim { color: var(--muted); }
-  .agent-note { color: var(--amber); }
-  .agent-note.agent-err { color: var(--red); }
-  .agent-tx { display: block; font-size: 12px; color: var(--accent); margin-top: 10px; }
+  .agent-term { background: #07070b; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; height: 300px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5; margin-bottom: 8px; }
+  .term-line { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+  .term-line.in { color: #a78bfa; margin-top: 6px; }
+  .term-line.ok { color: var(--green); }
+  .term-line.warn { color: var(--amber); }
+  .term-line.err { color: var(--red); }
+  .term-line.dim, .term-line.work { color: var(--muted); }
+  .term-line.cmd { color: #e8e8ec; }
+  .term-line a { color: var(--accent); }
+  .agent-cmd-row { display: flex; align-items: center; gap: 8px; background: #07070b; border: 1px solid var(--border); border-radius: 12px; padding: 6px 6px 6px 12px; }
+  .agent-cmd-row:focus-within { border-color: var(--accent); }
+  .agent-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #a78bfa; font-weight: 700; }
+  .agent-cmd { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 16px; padding: 6px 0; }
+  .agent-run { flex: none; background: #1e1836; color: #fff; border: 1px solid #7c5cff55; border-radius: 9px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+  .agent-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+  .agent-chips .src-chip { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; }
   .agent-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
   .intel-sample { font-size: 11px; color: var(--amber); border: 1px solid #f59e0b44; background: #f59e0b11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
   .intel-live { font-size: 11px; color: var(--green, #22c55e); border: 1px solid #22c55e44; background: #22c55e11; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; }
@@ -434,15 +435,24 @@
       <div class="agent-meta" id="agentMeta"></div>
     </div>
     <div class="card">
-      <div class="agent-chat" id="agentChat" aria-live="polite"></div>
-      <label class="lbl" for="agentAmount">Trade size (USD)</label>
-      <div class="agent-sizes">
-        <input class="amount-input agent-amount" id="agentAmount" type="number" inputmode="decimal" min="1" max="10000" step="1" value="100">
-        <button class="src-chip" data-usd="50">$50</button><button class="src-chip" data-usd="100">$100</button><button class="src-chip" data-usd="500">$500</button>
+      <span class="lbl">Terminal: tell the agent which coin you want your money in</span>
+      <div class="agent-term" id="agentTerm" role="log" aria-live="polite"></div>
+      <form class="agent-cmd-row" id="agentCmdForm" autocomplete="off">
+        <span class="agent-prompt" aria-hidden="true">&gt;</span>
+        <input class="agent-cmd" id="agentCmd" type="text" placeholder="swap 100 USDC to AERO" aria-label="Command for the agent" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="120">
+        <button class="agent-run" type="submit">Run</button>
+      </form>
+      <div class="agent-chips">
+        <button class="src-chip" type="button" data-cmd="swap 100 USDC to ETH">swap 100 USDC to ETH</button>
+        <button class="src-chip" type="button" data-cmd="put $50 into AERO">put $50 into AERO</button>
+        <button class="src-chip" type="button" data-cmd="sell 0.05 ETH">sell 0.05 ETH</button>
+        <button class="src-chip" type="button" data-cmd="signal $100">signal $100</button>
+        <button class="src-chip" type="button" data-cmd="coins">coins</button>
+        <button class="src-chip" type="button" data-cmd="help">help</button>
       </div>
-      <button class="btn btn-swap" id="agentHire" disabled>Hire</button>
+      <button class="btn btn-swap" id="agentHire" disabled>Hire (tell me a swap first)</button>
       <div class="status" id="agentHint"></div>
-      <div class="agent-foot">Hiring is paid with a signature, not a transaction. The payment is only collected after the job has run; if the job fails you are not charged.</div>
+      <div class="agent-foot">Hiring is paid with a signature, not a transaction. The payment is only collected after the job has run; if the job fails you are not charged. The agent only quotes: every swap goes through the Swap tab, with a dry run before you sign.</div>
     </div>
   </div>
 

@@ -3,6 +3,35 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Agent terminal: tell Bushido-Trades which coin you want your money in
+
+- Owner's ask: a terminal where users tell the agent what coins to swap their money into. The Agent tab's chat is now
+  a terminal (`src/agent-window.js`; reading and printing in `src/agent-terminal.js`, unit-tested). People type
+  `swap 100 USDC to AERO`, `put $50 into ETH`, `buy VIRTUAL with 0.05 ETH`, `sell 0.1 ETH` (into USDC) or
+  `signal $100` (the older ETH-signal job), plus `help`, `coins [search]`, `status`, `open`, `cancel`, `clear`.
+  Quick-command buttons cover the common ones for phones.
+- Coins are read against the verified Base list (`src/dex/chains.js`, 111 coins) on both sides, with a few common
+  names (bitcoin -> cbBTC, dollars -> USDC). Nothing is guessed: an unknown coin gets "Did you mean AERO?", a missing
+  amount gets "How much USDC?", "buy 100 AERO" (an amount to receive) is explained, dollars on a non-dollar coin are
+  refused, and amounts are checked against the coin's decimals.
+- A request becomes a plan first; only `hire` (or the Hire button) asks for the 0.01 USDC payment, with the same
+  x402 flow as before (signature, no gas, collected only after the job runs). `open` hands the result to the Swap
+  tab, which quotes it again and dry-runs it before any signature.
+- Server: `POST /api/agent/job` also takes `{ sell, buy, amount, taker }` for any two coins on the Base list (checked
+  before payment). The job asks every keyed source for that pair and returns the best and every answer, plus the
+  market read: the regime, and when the agent tracks the coin (ETH, BTC, AERO, VIRTUAL, DEGEN) whether the trade goes
+  with or against its trend. The `{ asset: "ETH", amountUsd }` job is unchanged. Terminal output is written as text,
+  never HTML.
+- Checked: 306 tests (new: the phrasings, amounts and refusals above against the real coin list; swap jobs on any
+  pair with per-coin decimals; the with/against read; a paid swap job through the payment flow; a bad coin refused
+  before payment). A 390px pass on a local server: greeting, a misspelt coin, a plan enabling Hire, `coins aer`, a
+  quick command, a rendered result; no sideways scroll, no page errors. Not verified: a real paid swap job, and real
+  quotes for other pairs (the quote keys are only on Render).
+- README brought up to date: Base-first (Base is the default chain and wallet network), the Agent tab and its
+  terminal, the agent and market-regime endpoints, Intel answering from live data instead of sample figures, and the
+  new files in the project layout.
+
+
 ## Agent fix: market regime from Coinbase data (Yahoo Finance removed), so jobs can read ETH again
 
 - The bug: on the live site every Agent job failed with "ETH price feed unavailable". The macro feed read everything

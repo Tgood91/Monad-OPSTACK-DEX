@@ -99,10 +99,10 @@ export function greeting(info) {
   const src = (info?.agent?.sources || []).map(sourceName);
   const where = src.length ? ` across ${src.join(', ')}` : '';
   return (
-    `I'm ${info?.agent?.name || 'Bushido-Trades'}. Hire me for ${price} USDC and I'll read the market regime ` +
-    `(ETH, BTC, AERO, VIRTUAL and DEGEN, from Coinbase data) and the Seykota trend for ETH, then quote that trade on Base${where} ` +
-    `and give you the best price. ` +
-    `You sign the payment (no gas). It is only collected after I've done the job.`
+    `I'm ${info?.agent?.name || 'Bushido-Trades'}. Tell me which coin you want your money in, like ` +
+    `"swap 100 USDC to AERO", and I'll quote it on Base${where}, give you the best price, and tell you how the ` +
+    `market looks (the regime from ETH, BTC, AERO, VIRTUAL and DEGEN on Coinbase data, and the Seykota trend). ` +
+    `Each job is ${price} USDC: you sign the payment (no gas), and it is only collected after I've done the job.`
   );
 }
 
@@ -162,42 +162,6 @@ export function describeResult(j) {
   return out;
 }
 
-/** HTML-escape text for the result bubble. */
+/** HTML-escape text (the profile card's links). */
 export const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
-const row = (k, v) => `<div class="agent-row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
-
-/** The agent's reply bubble for a finished job (every value escaped). */
-export function resultHtml(v) {
-  const sources = v.quote?.sources?.length
-    ? `<div class="agent-sub">Every source asked</div>` +
-      v.quote.sources
-        .map(
-          (s) =>
-            `<div class="agent-row ${s.ok ? '' : 'agent-dim'}"><span>${esc(s.name)}</span><span>${esc(s.text)}</span></div>`,
-        )
-        .join('')
-    : '';
-  const quote = v.quote
-    ? `<div class="agent-sub">Best quote on Base: ${esc(v.quote.source)}</div>` +
-      row('You sell', v.quote.sell) +
-      row('You get about', v.quote.buy) +
-      (v.quote.min ? row('At least', v.quote.min) : '') +
-      sources +
-      '<button class="btn btn-secondary agent-open">Open in Swap (dry-run first)</button>'
-    : `<div class="agent-note">${esc(v.note || 'No trade suggested right now.')}</div>`;
-  const tx = v.paymentTx
-    ? `<a class="agent-tx" href="https://basescan.org/tx/${encodeURIComponent(v.paymentTx)}" target="_blank" rel="noopener">` +
-      `Payment on Basescan${v.paymentPending ? ' (confirming)' : ''} ↗</a>`
-    : '';
-  return (
-    `<div class="agent-verdict ${v.tone}">${esc(v.verdict)}</div>` +
-    row('ETH price', v.price) +
-    row('Market regime', v.regime) +
-    row('Seykota trend', v.seykota) +
-    row('Virtue gate', v.gate) +
-    quote +
-    tx
-  );
-}
