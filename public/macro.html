@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Macro Feed — BUSHIDO · Druckenmiller × Seykota</title>
+<title>Market Regime — BUSHIDO · Seykota × on-chain regime</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --bg: #070d1a; --card: #101a2e; --border: #1e2d4a; --accent: #d4a574; --text: #e8e8ec; --muted: #8fa3c0; --green: #22c55e; --red: #f87171; --gold: #fbbf24; }
@@ -15,6 +15,7 @@
   .regime { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
   .regime.RISK-ON { color: var(--green); } .regime.RISK-OFF { color: var(--red); } .regime.NEUTRAL { color: var(--gold); }
   .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   th { text-align: left; color: var(--muted); font-size: 11px; padding: 6px 4px; border-bottom: 1px solid var(--border); }
   td { padding: 8px 4px; border-bottom: 1px solid #16263f; }
@@ -28,20 +29,20 @@
 <body>
 <div class="container">
   <h1>MACRO FEED <span style="font-size:18px;">八德</span></h1>
-  <div class="sub">Druckenmiller factors × Seykota trend · keyless sources (Yahoo Finance) · <a href="/">← back to DEX</a></div>
+  <div class="sub">Market regime from five markets (ETH, BTC, AERO, VIRTUAL, DEGEN) × Seykota trend · Coinbase daily prices, GeckoTerminal as the backup · <a href="/">← back to DEX</a></div>
 
   <div class="card"><div class="regime" id="regime">—</div><div class="meta" id="regimeMeta"></div></div>
 
   <div class="card">
     <h2 style="font-size:15px;">Factors</h2>
-    <table><thead><tr><th>Factor</th><th>Last</th><th>1d</th><th>vs EMA26</th><th>Vote</th><th>Seykota</th></tr></thead>
-    <tbody id="factors"></tbody></table>
+    <div class="table-wrap"><table><thead><tr><th>Factor</th><th>Last</th><th>1d</th><th>vs EMA26</th><th>Vote</th><th>Seykota</th></tr></thead>
+    <tbody id="factors"></tbody></table></div>
   </div>
 
   <div class="card">
     <h2 style="font-size:15px;">Blended signals</h2>
-    <table><thead><tr><th>Asset</th><th>Trend</th><th>Regime</th><th>Virtue gate</th><th>Blended</th><th>Virtue</th></tr></thead>
-    <tbody id="signals"></tbody></table>
+    <div class="table-wrap"><table><thead><tr><th>Asset</th><th>Trend</th><th>Regime</th><th>Virtue gate</th><th>Blended</th><th>Virtue</th></tr></thead>
+    <tbody id="signals"></tbody></table></div>
     <div class="note" id="gateNote"></div>
   </div>
 
@@ -58,13 +59,13 @@ async function load() {
     const r = document.getElementById('regime');
     r.textContent = d.regime + '  (' + (d.regimeScore >= 0 ? '+' : '') + d.regimeScore + ')';
     r.className = 'regime ' + d.regime;
-    document.getElementById('regimeMeta').textContent = 'Score = sum of 7 factor votes vs EMA26 (≥ +3 RISK-ON, ≤ −3 RISK-OFF)' + (d.cached ? ' · cached' : '');
+    document.getElementById('regimeMeta').textContent = `Score = sum of ${d.marketsTotal} market votes vs EMA26 (≥ +3 RISK-ON, ≤ −3 RISK-OFF) · ${d.marketsAvailable} of ${d.marketsTotal} markets read` + (d.cached ? ' · cached' : '');
     document.getElementById('factors').innerHTML = d.factors.map(f => {
       if (!f.available) return `<tr><td>${f.label}</td><td colspan="5" class="err">unavailable</td></tr>`;
       const chg = f.change1dPct >= 0 ? '+' + f.change1dPct.toFixed(2) : f.change1dPct.toFixed(2);
       const chgCls = f.change1dPct >= 0 ? 'up' : 'down';
       const vote = f.vote > 0 ? '+1 risk-on' : '−1 risk-off';
-      return `<tr><td>${f.label}</td><td>${f.last.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td class="${chgCls}">${chg}%</td><td>${f.trend}</td><td>${vote}</td><td class="sig">${f.seykota}</td></tr>`;
+      return `<tr><td>${f.label}<div class="meta">${f.source}${f.stale ? ' (last good copy)' : ''}</div></td><td>${f.last.toLocaleString(undefined, { maximumSignificantDigits: 6 })}</td><td class="${chgCls}">${chg}%</td><td>${f.trend}</td><td>${vote}</td><td class="sig">${f.seykota}</td></tr>`;
     }).join('');
     document.getElementById('signals').innerHTML = d.signals.map(s =>
       `<tr><td>${s.label}</td><td class="sig">${s.trend}</td><td>${s.regime}</td><td>${s.virtueGate}</td><td class="sig">${s.blended}</td><td title="Gi ${s.virtueScores.gi.toFixed(2)} · Yu ${s.virtueScores.yu.toFixed(2)} · Jin ${s.virtueScores.jin == null ? '—' : s.virtueScores.jin.toFixed(2)}">${s.virtue.name} — ${s.virtue.meaning}</td></tr>`

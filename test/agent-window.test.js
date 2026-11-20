@@ -105,7 +105,7 @@ test("a short result shows the best quote, every source best first, and prefills
       verdict: "CONFIRMED SHORT",
       direction: "short",
       priceUsd: 1605,
-      druckenmiller: { regime: "RISK-OFF", regimeScore: -5 },
+      regime: { state: "RISK-OFF", score: -4, markets: 5, of: 5, source: "GeckoTerminal" },
       seykota: { signal: "HOLD_SHORT", detail: "downtrend intact" },
       virtueGate: { status: "not checked" },
     },
@@ -126,6 +126,7 @@ test("a short result shows the best quote, every source best first, and prefills
     payment: { transaction: "0xabc" },
   });
   assert.equal(v.tone, "error");
+  assert.equal(v.regime, "RISK-OFF (score -4, 5 of 5 markets)");
   assert.equal(v.quote.source, "1inch");
   assert.equal(v.quote.sell, "0.062 ETH");
   assert.equal(v.quote.buy, "99.5 USDC");
