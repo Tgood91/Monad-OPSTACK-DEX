@@ -541,7 +541,12 @@ scheduleQuote();
 /* ---------------- tabs: Swap | Bridge ---------------- */
 const TABS = { swap: ['tabSwap', 'swapPane'], bridge: ['tabBridge', 'bridgePane'], intel: ['tabIntel', 'intelPane'], bushido: ['tabBushido', 'bushidoPane'], agent: ['tabAgent', 'agentPane'], merkl: ['tabMerkl', 'merklPane'] };
 for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchTab(name);
+// Links straight to a tab: #agent, #swap, #bridge, #intel, #bushido, #rewards (the Merkl tab).
+const HASH_TABS = { rewards: 'merkl', merkl: 'merkl', swap: 'swap', bridge: 'bridge', intel: 'intel', bushido: 'bushido', agent: 'agent' };
+const tabFromHash = () => HASH_TABS[location.hash.slice(1).toLowerCase()] || null;
 async function switchTab(which) {
+  const hash = which === 'merkl' ? '#rewards' : `#${which}`;
+  if (location.hash !== hash) history.replaceState(null, '', hash); // the address bar always links to the open tab
   for (const [name, [tab, pane]] of Object.entries(TABS)) {
     $(tab).classList.toggle('active', name === which);
     $(pane).style.display = name === which ? '' : 'none';
@@ -556,6 +561,9 @@ async function switchTab(which) {
     (await import('./faucet-pond-mount.jsx')).showFaucetPond(); // the pond-as-button for free starter MON
   }
 }
+
+if (tabFromHash()) switchTab(tabFromHash());
+window.addEventListener('hashchange', () => tabFromHash() && switchTab(tabFromHash()));
 
 // Our own coin/chain list instead of native dropdowns (those never open in some wallet in-app browsers).
 enhanceAllSelects();
