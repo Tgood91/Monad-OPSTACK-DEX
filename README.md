@@ -51,6 +51,9 @@ burner pays the Base gas to collect Agent payments; the USDC goes from the payer
 | **Agent** | A terminal for **Bushido-Trades** (ERC-8004 agent on Base). Type what you want your money in: `swap 100 USDC to AERO`, `put $50 into ETH`, `sell 0.1 ETH`. The agent turns that into a plan; `hire` pays **0.01 USDC** (x402: a signature, no gas, collected only if the job succeeds). It returns the best quote across 0x, 1inch, Uniswap and Zerion, plus the market regime (ETH, BTC, AERO, VIRTUAL, DEGEN from Coinbase) and whether the trade goes with or against the coin's trend. `open` sends it to the Swap tab, which dry-runs it before you sign. |
 | **Rewards** | Merkl rewards: see your opportunities and claim, signed by your own wallet. |
 
+Each tab has its own link: `https://bushido-dapp.onrender.com/#agent` opens the Agent tab (also `#swap`, `#bridge`,
+`#intel`, `#bushido`, `#rewards`).
+
 It is also an **installable app**: a PWA for phones ([Bushido-dApp/README.md](Bushido-dApp/README.md)) and an
 Android app in Kotlin ([Bushido-dApp-android](https://github.com/Tgood91/Bushido-dApp-android), its own repository) with social login intact.
 

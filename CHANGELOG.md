@@ -3,6 +3,14 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+## Links straight to a tab (`/#agent`)
+
+- Owner's ask: a link that opens the Agent tab, to paste elsewhere. `https://bushido-dapp.onrender.com/#agent` now opens
+  it; `#swap`, `#bridge`, `#intel`, `#bushido` and `#rewards` work the same way. Switching tabs updates the address
+  bar (without adding history entries), so the current tab's link can always be copied. A plain URL still opens Swap.
+- Checked: a production build in a 390px browser for `/#agent` and `/#rewards`, tab clicks updating the hash, and a hash
+  change switching tabs; no page errors.
+
 ## Agent terminal: tell Bushido-Trades which coin you want your money in
 
 - Owner's ask: a terminal where users tell the agent what coins to swap their money into. The Agent tab's chat is now
