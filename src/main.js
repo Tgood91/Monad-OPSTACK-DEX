@@ -206,6 +206,20 @@ async function refreshQuotes() {
     $('toAmount').value = '';
     return;
   }
+  // Enforce a $0.10 minimum for stablecoin inputs (6-decimal tokens).
+  // For 18-decimal tokens the sources enforce their own floor; we let those through.
+  if (tIn.decimals <= 6) {
+    const MIN_STABLE_ATOMIC = 10n ** BigInt(tIn.decimals - 1); // $0.10 at 6 dec = 100_000
+    let amtWei;
+    try { amtWei = ethers.parseUnits(amtStr, tIn.decimals); } catch { amtWei = 0n; }
+    if (amtWei < MIN_STABLE_ATOMIC) {
+      box.innerHTML = '<div class="status warn">Minimum swap is $0.10</div>';
+      detail.innerHTML = '';
+      swapBtn.disabled = true; swapBtn.textContent = 'Amount too small';
+      $('toAmount').value = '';
+      return;
+    }
+  }
   if (tIn.address.toLowerCase() === tOut.address.toLowerCase()) {
     const wrapPair = tIn.isNative !== tOut.isNative;
     box.innerHTML = wrapPair
