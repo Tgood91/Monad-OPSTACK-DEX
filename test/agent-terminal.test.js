@@ -94,7 +94,7 @@ test("the other commands", () => {
 test("what the agent prints: help, coins, a plan", () => {
   assert.ok(helpLines("0.01").some((l) => l.text.includes("swap 100 USDC to AERO")));
   const all = coinLines(TOKENS);
-  assert.match(all[0].text, /^111 coins on Base/);
+  assert.match(all[0].text, /^117 coins on Base/);
   assert.match(coinLines(TOKENS, "aer")[1].text, /AERO/);
   assert.equal(coinLines(TOKENS, "zzzz")[0].cls, "warn");
   const plan = planLines(p("swap 100 USDC to AERO"), { price: "0.01", sources: ["0x", "1inch", "uniswap", "zerion"] });
