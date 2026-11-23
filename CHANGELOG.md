@@ -3,6 +3,22 @@
 One short entry per merged pull request, newest first. Each says **what** changed
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
+
+## Trending coins: 6 on Base (now 117), 5 on BNB Chain (now 34), none on Monad
+
+- Candidates: GeckoTerminal's trending pools (24 h, 3 pages) on Base, BNB Chain and Monad: 155 tokens. Each was read
+  on its own chain (symbol, decimals, code), priced through KyberSwap from the wrapped native coin (loss under 0.5% at
+  $20 and 0.25% at $200) and needed at least $10,000 of pool liquidity. `npm run verify:chains` reports no failures on
+  Base and BNB Chain.
+- Base: GOOGLc, MSTRc, METAc and ANTc (tokenised stocks at Coinbase's `0xB2000…` address family, like the other `…c`
+  stocks; ANTc is a pre-IPO private-company token), TIBBIR and VELVET.
+- BNB Chain: $BANANA (Banana For Scale), COLLECT, mubarak, TAG and BANK (Lorenzo).
+- Monad: none. The 12 that passed the price test are all wrapped tokenised stocks (wNVDAx, wTSLAx, wSPYx, …) that are
+  not on Monad's official token list, which the Monad list requires.
+- Left out on Base although they passed: a second "AERO" (`0x3f5b…a4Ee`, about $18M liquidity, not the listed AERO),
+  SOL (`0x3119…`, Base issuer unconfirmed), and a token named "Base" (`0x5eAa…`; no official Base token exists, and
+  $52M a day of volume on $0.76M liquidity looks like wash trading).
+- `test/agent-terminal.test.js` expects the new Base count (117). Not verified: no real swap of a new coin was sent.
 ## Links straight to a tab (`/#agent`)
 
 - Owner's ask: a link that opens the Agent tab, to paste elsewhere. `https://bushido-dapp.onrender.com/#agent` now opens
