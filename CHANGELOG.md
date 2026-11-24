@@ -15,12 +15,11 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
   tab switches still add no history entries.
 - Short vibrations when a swap or bridge is confirmed (Android app only).
 - App-only styles (`.android-app` in `Bushido-dApp/pwa.css`): safe-area padding, no pull-to-refresh (it could reload
-  the page mid-swap), no grey tap flash, and the owner's sunset dojo art as a darkened, fixed backdrop
-  (`Bushido-dApp/backdrop.jpg`, 242 kB, loaded only in the app).
-- The backdrop's crop follows the screen's shape, because the picture is 2:1 with "Decentralize" lettered across its
-  left half and a slice showing part of the word looked broken: phones get the torii-and-Fuji slice, narrower tablets
-  the right edge, and square or wider screens (an unfolded Galaxy Fold) the whole picture across the top. Known issue:
-  on those wide screens the lettering sits behind the page title.
+  the page mid-swap), no grey tap flash, and the owner's Bushido art (frog samurai, Fuji, the eight virtue stones) as
+  a darkened, fixed backdrop (`Bushido-dApp/backdrop.jpg`, 432 kB, loaded only in the app). It replaced a first
+  picture whose "Decentralize" lettering could not be cropped cleanly on every screen. Anchored 20% from the left, a
+  phone shows the whole frog and his sword; wider screens widen the view toward Fuji. The header, which sits straight on the art, gets a
+  lighter subtitle and a text shadow so it reads over the cherry blossom.
 - Samsung check (Playwright profiles): Galaxy S24 (also with Samsung Internet's user agent), A55, Z Flip 7, Z Fold 7
   folded and unfolded, Tab S9: app mode on, Back steps and sheet close correct, no sideways scroll, no page errors.
 - Checked: `npm test` (new `test/android-app.test.js`), `npm run build`, and a production build in Playwright as a

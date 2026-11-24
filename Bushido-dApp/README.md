@@ -30,7 +30,7 @@ modal). The app never holds keys or funds.
 | `sw.js` | Service worker: loads the app when offline, keeps the build files cached. **Never caches `/api`, prices, RPC or wallet traffic**, so quotes are always live. |
 | `pwa.js` | Registers the service worker and opens the right tab for home-screen shortcuts (there is no in-page install banner; install from the browser menu, and Chrome on Android may show its own prompt automatically) |
 | `pwa.css` | Phone-only styles: notch / home-indicator safe areas when installed, safe-area padding |
-| `backdrop.jpg` | The sunset dojo art behind the app (Android app only, via `.android-app` in `pwa.css`) |
+| `backdrop.jpg` | The Bushido art (frog samurai, Fuji, the eight virtue stones) behind the app (Android app only, via `.android-app` in `pwa.css`) |
 | `icons/` | Home-screen icons: 192 and 512 px, a maskable 512 for Android shapes, and the 180 px Apple touch icon |
 | `vite-plugin.js` | Publishes these files with every build: `sw.js` at the site root (so it controls the whole app), and the manifest and icons under `/Bushido-dApp/` |
 
