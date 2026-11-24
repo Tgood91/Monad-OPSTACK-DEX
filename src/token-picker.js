@@ -21,6 +21,8 @@ export function choose(select, value, doc = globalThis.document) {
   select.dispatchEvent(new (doc?.defaultView?.Event || Event)('change', { bubbles: true }));
 }
 
+import { backLayer } from './android-app.js';
+
 const CSS_CLASS = 'pick';
 
 /**
@@ -45,9 +47,15 @@ export function openChoiceSheet(doc, { title, items, onPick }) {
   wrap.className = 'pickWrap';
   wrap.setAttribute('role', 'dialog');
   wrap.setAttribute('aria-modal', 'true');
-  const close = () => {
+  const shut = () => {
     wrap.remove();
     doc.removeEventListener('keydown', onKey);
+  };
+  // In the Android app, the Back button closes the sheet; closing it here also drops that Back step.
+  const release = backLayer(shut);
+  const close = () => {
+    shut();
+    release();
   };
   const onKey = (e) => e.key === 'Escape' && close();
   doc.addEventListener('keydown', onKey);

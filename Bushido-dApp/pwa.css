@@ -11,3 +11,35 @@
     padding-right: max(16px, env(safe-area-inset-right));
   }
 }
+
+/* Android app (src/android-app.js adds .android-app): the same full-screen fit as the installed app, plus
+   app feel. No pull-to-refresh, which could reload the page in the middle of a swap; no grey tap flash. */
+.android-app body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; background: transparent; }
+.android-app .container {
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.android-app button { -webkit-user-select: none; user-select: none; }
+
+/* Android app backdrop: the owner's Bushido art (the frog samurai, Fuji and the eight virtue stones), darkened so
+   text stays readable. A fixed layer, because background-attachment: fixed does not work in Chrome on Android.
+   The picture is 16:9; anchored 20% from the left, a phone shows the whole frog and his sword with the
+   Makoto, Yu and Kokki stones below, and wider screens (a Fold, tablets) widen the view toward Fuji. */
+.android-app body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(10, 10, 15, 0.45), rgba(10, 10, 15, 0.7)),
+    url('./backdrop.jpg') 20% center / cover no-repeat,
+    #0a0a0f;
+}
+/* The header sits straight on the art (bright cherry blossom at the top), not on a card: lighter, with a shadow. */
+.android-app h1,
+.android-app .subtitle,
+.android-app #networkStatus { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.6); }
+.android-app .subtitle { color: #d4d4dc; }
+html.android-app { background: #0a0a0f; }

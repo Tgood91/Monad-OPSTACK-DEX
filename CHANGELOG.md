@@ -4,6 +4,29 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+## Android app mode: Back button, haptics, app styles and the dojo backdrop
+
+- In the Android app (Tgood91/Bushido-dApp-android opens `/?source=pwa` in Chrome) the system Back button used to leave
+  the app from any tab, and from an open coin/chain sheet, because tab switches replace the history entry. Now, in the
+  app only, Back closes an open sheet first, then returns from another tab to Swap, and only then leaves the app.
+  Closing a sheet with × or a pick also removes its Back step, so Back never has to be pressed twice.
+- App mode (`src/android-app.js`) is Android plus a sign of the app: `?source=pwa`, an `android-app://` referrer or the
+  installed PWA; remembered for the browser session. The website, desktop and iPhone behave exactly as before: there,
+  tab switches still add no history entries.
+- Short vibrations when a swap or bridge is confirmed (Android app only).
+- App-only styles (`.android-app` in `Bushido-dApp/pwa.css`): safe-area padding, no pull-to-refresh (it could reload
+  the page mid-swap), no grey tap flash, and the owner's Bushido art (frog samurai, Fuji, the eight virtue stones) as
+  a darkened, fixed backdrop (`Bushido-dApp/backdrop.jpg`, 432 kB, loaded only in the app). It replaced a first
+  picture whose "Decentralize" lettering could not be cropped cleanly on every screen. Anchored 20% from the left, a
+  phone shows the whole frog and his sword; wider screens widen the view toward Fuji. The header, which sits straight on the art, gets a
+  lighter subtitle and a text shadow so it reads over the cherry blossom.
+- Samsung check (Playwright profiles): Galaxy S24 (also with Samsung Internet's user agent), A55, Z Flip 7, Z Fold 7
+  folded and unfolded, Tab S9: app mode on, Back steps and sheet close correct, no sideways scroll, no page errors.
+- Checked: `npm test` (new `test/android-app.test.js`), `npm run build`, and a production build in Playwright as a
+  Pixel 7 with `?source=pwa`: tab → tab → Back lands on Swap; Back closes an open sheet and stays on the page; × does
+  not leave an extra Back step; no page errors; the plain URL gets no app class and no extra history.
+  Not verified: on a real Android phone in the TWA, and vibration (not observable in a headless browser).
+
 ## Trending coins: 6 on Base (now 117), 5 on BNB Chain (now 34), none on Monad
 
 - Candidates: GeckoTerminal's trending pools (24 h, 3 pages) on Base, BNB Chain and Monad: 155 tokens. Each was read

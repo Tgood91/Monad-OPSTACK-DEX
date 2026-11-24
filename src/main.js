@@ -9,6 +9,7 @@ import { appKit } from './config.js';
 import { installPerkHeader } from './perks-client.js';
 import { retryOnce } from './utils/retry.js';
 import { enhanceAllSelects, openChoiceSheet } from './token-picker.js';
+import { initAndroidApp, isAndroidApp, backLayer, haptic } from './android-app.js';
 import { chainMenuItems, chainMenuLabel } from './chain-menu.js';
 
 installPerkHeader(); // sends the Dojo Pass perk token (if you unlocked one) on our own /api calls
@@ -499,6 +500,7 @@ $('swapBtn').onclick = async () => {
         },
       });
       const ex = getChain(chainKey).explorer;
+      haptic('success');
       showStatus(`Swapped ✓ gasless via 1inch Fusion${r.txHash ? ` <a href="${ex}/tx/${r.txHash}" target="_blank">view tx</a>` : ''}`, 'success');
       updateBalances();
       scheduleQuote();
@@ -522,6 +524,7 @@ $('swapBtn').onclick = async () => {
     const ex = getChain(chainKey).explorer;
     showLoading(`Confirming… <a href="${ex}/tx/${sent.hash}" target="_blank">view</a>`);
     const rc = await sent.wait();
+    haptic('success');
     showStatus(`Swapped ✓ <a href="${ex}/tx/${rc.hash}" target="_blank">view tx</a>`, 'success');
     q._tx = null;
     updateBalances();
@@ -545,6 +548,7 @@ subscribeToNetworkChanges(() => {
 window.addEventListener('online', () => scheduleQuote());
 
 /* ---------------- init ---------------- */
+initAndroidApp(); // Android app only: Back steps through tabs and sheets, haptics, app-only styles
 renderChains();
 renderSources();
 renderTokens();
@@ -558,7 +562,21 @@ for (const [name, [tab]] of Object.entries(TABS)) $(tab).onclick = () => switchT
 // Links straight to a tab: #agent, #swap, #bridge, #intel, #bushido, #rewards (the Merkl tab).
 const HASH_TABS = { rewards: 'merkl', merkl: 'merkl', swap: 'swap', bridge: 'bridge', intel: 'intel', bushido: 'bushido', agent: 'agent' };
 const tabFromHash = () => HASH_TABS[location.hash.slice(1).toLowerCase()] || null;
+// In the Android app, Back from another tab returns to Swap (one step), then leaves the app.
+let tabBack = null;
 async function switchTab(which) {
+  if (isAndroidApp()) {
+    if (which === 'swap' && tabBack) {
+      const release = tabBack;
+      tabBack = null;
+      release();
+    } else if (which !== 'swap' && !tabBack) {
+      tabBack = backLayer(() => {
+        tabBack = null;
+        switchTab('swap');
+      });
+    }
+  }
   const hash = which === 'merkl' ? '#rewards' : `#${which}`;
   if (location.hash !== hash) history.replaceState(null, '', hash); // the address bar always links to the open tab
   for (const [name, [tab, pane]] of Object.entries(TABS)) {
