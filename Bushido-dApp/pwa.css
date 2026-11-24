@@ -24,9 +24,12 @@
 .android-app button { -webkit-user-select: none; user-select: none; }
 
 /* Android app backdrop: the owner's sunset dojo art behind the cards, darkened so text stays readable.
-   On a tall phone screen only a slice of the wide picture shows; 66% keeps the torii and Fuji in view
-   and the cut-off "Decentralize" lettering out of it.
-   A fixed layer, because background-attachment: fixed does not work in Chrome on Android. */
+   A fixed layer, because background-attachment: fixed does not work in Chrome on Android.
+   The picture is 2:1 with "Decentralize" lettered across its left half, so the crop depends on the screen's
+   shape: a slice that shows only part of the word looks broken.
+   - Phones (up to 2:3): the torii and Fuji slice, right of the lettering.
+   - Up to almost square: aligned to the right edge, still right of the lettering.
+   - Square or wider (an unfolded Galaxy Fold, tablets in landscape): the whole picture across the top. */
 .android-app body::before {
   content: '';
   position: fixed;
@@ -34,7 +37,23 @@
   z-index: -1;
   background:
     linear-gradient(rgba(10, 10, 15, 0.45), rgba(10, 10, 15, 0.7)),
-    url('./backdrop.jpg') 66% center / cover no-repeat,
+    url('./backdrop.jpg') 75% center / cover no-repeat,
     #0a0a0f;
+}
+@media (min-aspect-ratio: 2/3) {
+  .android-app body::before {
+    background:
+      linear-gradient(rgba(10, 10, 15, 0.45), rgba(10, 10, 15, 0.7)),
+      url('./backdrop.jpg') right center / cover no-repeat,
+      #0a0a0f;
+  }
+}
+@media (min-aspect-ratio: 19/20) {
+  .android-app body::before {
+    background:
+      linear-gradient(rgba(10, 10, 15, 0.35), rgba(10, 10, 15, 0.75) 50vw, #0a0a0f 50vw),
+      url('./backdrop.jpg') center top / 100% auto no-repeat,
+      #0a0a0f;
+  }
 }
 html.android-app { background: #0a0a0f; }
