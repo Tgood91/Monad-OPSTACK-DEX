@@ -4,21 +4,25 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
-## Owner's coins: CHOG and four wrapped xStocks on Monad, five coins on BNB Chain
+## Owner's coins: five on Monad (CHOG, four wrapped xStocks), five on BNB Chain, four on Avalanche
 
 - Monad: CHOG, wNVDAx, wTSLAx, wMUx and wSPYx. BNB Chain: TWT (Trust Wallet), FLOKI, BabyDoge, THE (THENA) and
-  LISTA (Lista DAO). Added at the owner's request.
+  LISTA (Lista DAO). Avalanche: JOE, COQ, PNG (Pangolin) and QI (BENQI). Added at the owner's request.
 - Each was read on its own chain: contract code present, on-chain symbol matches, decimals as listed (FLOKI and
-  BabyDoge have **9**). `npm run verify:chains -- --chain monad|bsc` reports no failures.
+  BabyDoge have **9**). `npm run verify:chains -- --chain monad|bsc|avalanche` reports no failures.
 - The four xStocks are not on Monad's official token list; the trending-coins screen (below) left them out for that
   reason. The owner chose to list them. Tokenised stocks can restrict who may hold them.
 - Liquidity (KyberSwap from the wrapped native coin, `--prices`):
   - BNB Chain, loss at about $20 / $200: TWT 0.21% / 0.29%, FLOKI 0.49% / 0.59%, BabyDoge 0.25% / 0.26%,
     THE 0.49% / 1.32%, LISTA 0.73% / 0.91%. All five are over the usual 0.5% / 0.25% bar at one size or both
     (THE and LISTA most), so larger swaps will show more price impact. Listed anyway at the owner's request.
+  - Avalanche, loss at about $20 / $200 (second run): JOE 0.30% / 0.31%, COQ -0.06% / 0.30%, PNG 0.38% / 0.21%,
+    QI -0.17% / 0.25%. Close to the usual bar; JOE and COQ just over at $200.
+  - GHO on Avalanche (the owner also asked for it) is real (`Gho Token`, 18 decimals) but KyberSwap had no route from
+    AVAX on two tries, and only about 82k GHO exist there, so it was **not** listed: it could not be swapped.
   - Monad: not measurable on 2026-11-24. The check reported about -35% / -11% for **every** Monad coin, USDC and
     WETH included, so the reference price it compares against is off, not the pools. These five are unscreened.
-- Not verified: a real swap of any of the ten; source-by-source quotes through the app's adapters.
+- Not verified: a real swap of any of the new coins; source-by-source quotes through the app's adapters.
 
 ## Android app mode: Back button, haptics, app styles and the dojo backdrop
 

@@ -369,6 +369,13 @@ export const CHAINS = {
       { symbol: 'AUSD', address: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', decimals: 6 },
       { symbol: 'axlUSDC', address: '0xfaB550568C688d5D8A52C7d794cb93Edc26eC0eC', decimals: 6 },
       { symbol: 'XAUt0', address: '0x2775d5105276781B4b85bA6eA6a6653bEeD1dd32', decimals: 6 }, // Tether Gold (bridged); from the owner's token list, same checks
+      // Added 2026-11-24 at the owner's request, read on Avalanche C-Chain (symbol, name, decimals, code).
+      { symbol: 'JOE', address: '0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd', decimals: 18 }, // Trader Joe
+      { symbol: 'COQ', address: '0x420FcA0121DC28039145009570975747295f2329', decimals: 18 }, // Coq Inu
+      { symbol: 'PNG', address: '0x60781C2586D68229fde47564546784ab3fACA982', decimals: 18 }, // Pangolin
+      { symbol: 'QI', address: '0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5', decimals: 18 }, // BENQI
+      // GHO (0xfc421aD3C883Bf9E7C4f42dE845C4e4405799e73) is real here but had no KyberSwap route from AVAX (twice,
+      // 2026-11-24; about 82k GHO exist on Avalanche), so it is left out until it can be swapped.
     ],
   },
 };
