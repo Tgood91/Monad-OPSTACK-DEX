@@ -11,3 +11,30 @@
     padding-right: max(16px, env(safe-area-inset-right));
   }
 }
+
+/* Android app (src/android-app.js adds .android-app): the same full-screen fit as the installed app, plus
+   app feel. No pull-to-refresh, which could reload the page in the middle of a swap; no grey tap flash. */
+.android-app body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; background: transparent; }
+.android-app .container {
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.android-app button { -webkit-user-select: none; user-select: none; }
+
+/* Android app backdrop: the owner's sunset dojo art behind the cards, darkened so text stays readable.
+   On a tall phone screen only a slice of the wide picture shows; 66% keeps the torii and Fuji in view
+   and the cut-off "Decentralize" lettering out of it.
+   A fixed layer, because background-attachment: fixed does not work in Chrome on Android. */
+.android-app body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(10, 10, 15, 0.45), rgba(10, 10, 15, 0.7)),
+    url('./backdrop.jpg') 66% center / cover no-repeat,
+    #0a0a0f;
+}
+html.android-app { background: #0a0a0f; }

@@ -14,6 +14,7 @@ import { ERC20_ABI } from './utils/abis.js';
 import { resilient } from './dex/resilience.js';
 import { runSimulation } from './simulate.js';
 import { mountDeposit } from './bridge-deposit-ui.js';
+import { haptic } from './android-app.js';
 import {
   PROVIDER_LABELS, fromChainsAll, toChainsAll, providersFor, pickProvider,
 } from './bridge-route.js';
@@ -543,6 +544,7 @@ async function pollStatus() {
       const st = s.status;
       if (st === 'SUCCESS') {
         renderSteps(3);
+        haptic('success');
         $('statusBox').innerHTML = `<div class="status success">Bridged ✓ ${Number(state.intent.amountOutFormatted).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${state.intent.ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}</div>`;
         setStatus('Done ✓', 'success');
         clearInterval(state.statusTimer);
@@ -694,6 +696,7 @@ function pollRelayStatus(requestId) {
         renderSteps(3);
         const ex = BRIDGE_CHAINS[state.toChain].explorer;
         const link = ex && s.txHashes[0] ? ` — <a href="${ex}/tx/${s.txHashes[0]}" target="_blank">view</a>` : '';
+        haptic('success');
         $('statusBox').innerHTML = `<div class="status success">Bridged ✓ about ${Number(ethers.formatUnits(BigInt(q.amountOut), q.ti.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${q.ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}${link}</div>`;
         setStatus('Done ✓', 'success');
         done();
@@ -760,6 +763,7 @@ async function pollAoriStatus() {
       const st = String(s.status || '').toLowerCase();
       if (st === 'completed' || st === 'filled') {
         renderSteps(3);
+        haptic('success');
         $('statusBox').innerHTML = `<div class="status success">Bridged ✓ ${Number(ethers.formatUnits(BigInt(state.quote.order.outputAmount), state.quote.ti.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${state.quote.ti.symbol} on ${BRIDGE_CHAINS[state.toChain].label}</div>`;
         setStatus('Done ✓', 'success');
         clearInterval(state.statusTimer);
