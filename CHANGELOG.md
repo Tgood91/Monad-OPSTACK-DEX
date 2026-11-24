@@ -4,6 +4,22 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+## Owner's coins: CHOG and four wrapped xStocks on Monad, five coins on BNB Chain
+
+- Monad: CHOG, wNVDAx, wTSLAx, wMUx and wSPYx. BNB Chain: TWT (Trust Wallet), FLOKI, BabyDoge, THE (THENA) and
+  LISTA (Lista DAO). Added at the owner's request.
+- Each was read on its own chain: contract code present, on-chain symbol matches, decimals as listed (FLOKI and
+  BabyDoge have **9**). `npm run verify:chains -- --chain monad|bsc` reports no failures.
+- The four xStocks are not on Monad's official token list; the trending-coins screen (below) left them out for that
+  reason. The owner chose to list them. Tokenised stocks can restrict who may hold them.
+- Liquidity (KyberSwap from the wrapped native coin, `--prices`):
+  - BNB Chain, loss at about $20 / $200: TWT 0.21% / 0.29%, FLOKI 0.49% / 0.59%, BabyDoge 0.25% / 0.26%,
+    THE 0.49% / 1.32%, LISTA 0.73% / 0.91%. All five are over the usual 0.5% / 0.25% bar at one size or both
+    (THE and LISTA most), so larger swaps will show more price impact. Listed anyway at the owner's request.
+  - Monad: not measurable on 2026-11-24. The check reported about -35% / -11% for **every** Monad coin, USDC and
+    WETH included, so the reference price it compares against is off, not the pools. These five are unscreened.
+- Not verified: a real swap of any of the ten; source-by-source quotes through the app's adapters.
+
 ## Android app mode: Back button, haptics, app styles and the dojo backdrop
 
 - In the Android app (Tgood91/Bushido-dApp-android opens `/?source=pwa` in Chrome) the system Back button used to leave

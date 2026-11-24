@@ -198,6 +198,13 @@ export const CHAINS = {
       // Same checks as above: on Monad's official token list, read on Monad, priced through KyberSwap from MON.
       { symbol: 'EURW', address: '0x1111B3DED9F1fE1801AD4ebeF8E2788183a24111', decimals: 6 },
       { symbol: 'USDat', address: '0x0Bb150DFa86EA5d7742F07FEfCD8E8edA81D64eF', decimals: 6 },
+      // Added 2026-11-24 at the owner's request, read on Monad (symbol, name, decimals, code). The four wrapped xStocks
+      // are not on Monad's official token list (the 2026-11-17 screen left them out for that reason); the owner chose to list them.
+      { symbol: 'CHOG', address: '0x350035555E10d9AfAF1566AaebfCeD5BA6C27777', decimals: 18 },
+      { symbol: 'wNVDAx', address: '0xa8ddb5Cd96b5222AFe198316E9A57CAA642850D5', decimals: 18 }, // Wrapped NVIDIA xStock
+      { symbol: 'wTSLAx', address: '0xc3FdBe3A68EE5dE461D30415a8165cf9Aefe1171', decimals: 18 }, // Wrapped Tesla xStock
+      { symbol: 'wMUx', address: '0xe2047ee3bdDb5C99ae428AB83df63f8730698e30', decimals: 18 }, // Wrapped Micron xStock
+      { symbol: 'wSPYx', address: '0xE7E553Cd128F0011777323A0b44a7b96EA1CB540', decimals: 18 }, // Wrapped SP500 xStock
     ],
   },
   optimism: {
@@ -323,6 +330,12 @@ export const CHAINS = {
       { symbol: 'mubarak', address: '0x5C85D6C6825aB4032337F11Ee92a72DF936b46F6', decimals: 18 },
       { symbol: 'TAG', address: '0x208bF3E7dA9639f1Eaefa2DE78c23396B0682025', decimals: 18 },
       { symbol: 'BANK', address: '0x3AeE7602b612de36088F3ffEd8c8f10E86EbF2bF', decimals: 18 },
+      // Added 2026-11-24 at the owner's request, read on BNB Chain. FLOKI and BabyDoge have 9 decimals.
+      { symbol: 'TWT', address: '0x4B0F1812e5Df2A09796481Ff14017e6005508003', decimals: 18 }, // Trust Wallet
+      { symbol: 'FLOKI', address: '0xfb5B838b6cfEEdC2873aB27866079AC55363D37E', decimals: 9 },
+      { symbol: 'BabyDoge', address: '0xc748673057861a797275CD8A068AbB95A902e8de', decimals: 9 }, // Baby Doge Coin
+      { symbol: 'THE', address: '0xF4C8E32EaDEC4BFe97E0F595AdD0f4450a863a11', decimals: 18 }, // THENA
+      { symbol: 'LISTA', address: '0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46', decimals: 18 }, // Lista DAO
     ],
   },
   avalanche: {
