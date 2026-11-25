@@ -4,6 +4,8 @@ import {
   agentConfig,
   paymentRequirements,
   registrationFile,
+  retiredRegistrationFile,
+  RETIRED_PATH,
   parseJob,
   direction,
   runJob,
@@ -446,4 +448,16 @@ test("facilitator order: a custom URL, then CDP (signed), then the server's own 
   assert.equal(built.key, "0x" + "11".repeat(32));
   assert.equal(built.rpcs[0], "https://rpc.example");
   assert.equal(built.usdc, USDC_BASE);
+});
+
+test("retired duplicate (agent 1218803): inactive, names itself, points to the live agent", () => {
+  const f = retiredRegistrationFile(agentConfig({ AGENT_ID: "1219431" }));
+  assert.equal(RETIRED_PATH, "/.well-known/agent-retired-1218803.json");
+  assert.equal(f.active, false);
+  assert.equal(f.x402Support, false);
+  assert.deepEqual(f.registrations, [
+    { agentId: 1218803, agentRegistry: "eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" },
+  ]);
+  assert.match(f.description, /agentId 1219431/);
+  assert.equal(f.pricing, undefined);
 });

@@ -5,6 +5,17 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## Retired file for the duplicate ERC-8004 agent 1218803
+
+- The owner's wallet registered Bushido-Trades twice on the Base Identity Registry: 1218803 first, then 1219431 (the
+  live one). Both pointed at the same registration file, which only lists 1219431, so explorers showed two
+  "Bushido-Trades" with one of them unlisted.
+- New `/.well-known/agent-retired-1218803.json`: `active: false`, no x402, no pricing, named
+  "Bushido-Trades (retired duplicate)", listing agent 1218803 and telling readers the live agent is 1219431.
+- It takes effect when the owner sends one transaction from the agent's owner wallet:
+  `setAgentURI(1218803, "https://bushido-dapp.onrender.com/.well-known/agent-retired-1218803.json")` on
+  `0x8004A169…a432`. Simulated from the owner wallet against Base mainnet: it succeeds. Not sent from here.
 ## ERC-8004 registration file: real image, a browsable "web" service, agentWallet
 
 - The registration file the Identity Registry points to (`tokenURI` of agent 1219431 =

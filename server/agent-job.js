@@ -119,6 +119,27 @@ export function registrationFile(cfg) {
   };
 }
 
+/** Agent 1218803 is an earlier, duplicate registration of Bushido-Trades by the same wallet; 1219431 is the real one. */
+export const RETIRED_AGENT_ID = 1218803;
+export const RETIRED_PATH = `/.well-known/agent-retired-${RETIRED_AGENT_ID}.json`;
+
+/** Registration file for the retired duplicate: marked inactive and pointing readers to the live agent. */
+export function retiredRegistrationFile(cfg) {
+  const origin = new URL(cfg.resource).origin;
+  const live = cfg.agentId ?? 1219431;
+  return {
+    type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+    name: `${AGENT_NAME} (retired duplicate)`,
+    description: `Retired duplicate registration. The live ${AGENT_NAME} agent is agentId ${live} on the same registry (eip155:${BASE_CHAIN_ID}:${IDENTITY_REGISTRY}); hire it there.`,
+    image: `${origin}/Bushido-dApp/icons/icon-512.png`,
+    services: [{ name: "web", endpoint: `${origin}/` }],
+    x402Support: false,
+    active: false,
+    supportedTrust: [],
+    registrations: [{ agentId: RETIRED_AGENT_ID, agentRegistry: `eip155:${BASE_CHAIN_ID}:${IDENTITY_REGISTRY}` }],
+  };
+}
+
 /** Validate the job body. Returns { input } or { error }. Checked BEFORE any payment is touched. */
 /** A coin from the verified Base list (src/dex/chains.js), by symbol (any case) or address. */
 export function findBaseToken(q) {
@@ -484,7 +505,7 @@ export function createFacilitator({
   return createLocalFacilitator({ chain: chainFactory({ key, rpcs, usdc: USDC_BASE }) });
 }
 
-/** Express handlers: { info, job, card, enabled, kind }. */
+/** Express handlers: { info, job, card, retiredCard, enabled, kind }. */
 export function createAgentJob({
   env = process.env,
   facilitator,
@@ -604,6 +625,9 @@ export function createAgentJob({
     },
     card(_req, res) {
       res.json(registrationFile(cfg));
+    },
+    retiredCard(_req, res) {
+      res.json(retiredRegistrationFile(cfg));
     },
   };
 }

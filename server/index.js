@@ -59,7 +59,7 @@ import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
 import { macroFeed, getMarket, blend } from "./macro.js";
-import { createAgentJob } from "./agent-job.js";
+import { createAgentJob, RETIRED_PATH } from "./agent-job.js";
 import { createIntel, unsupportedAnswer } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
@@ -569,6 +569,8 @@ app.get("/api/agent/job", agent.info);
 app.post("/api/agent/job", agent.job);
 app.get("/.well-known/agent-card.json", agent.card);
 app.get("/.well-known/agent-registration.json", agent.card);
+// The duplicate agent 1218803 points here once its owner calls setAgentURI (see CHANGELOG).
+app.get(RETIRED_PATH, agent.retiredCard);
 // Android app (Trusted Web Activity) ownership proof; see server/assetlinks.js
 app.get("/.well-known/assetlinks.json", assetLinksHandler());
 app.all("/api/fusion/{*rest}", createFusionRelay({ getToken: oneinchAuthToken }));
