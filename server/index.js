@@ -61,6 +61,7 @@ import { bridgeHealth } from "./bridge-health.js";
 import { macroFeed, getMarket, blend } from "./macro.js";
 import { createAgentJob, RETIRED_PATH, agentConfig } from "./agent-job.js";
 import { a2aRoutes, A2A_PATH } from "./a2a.js";
+import { mcpRoutes, MCP_PATH } from "./mcp.js";
 import { createIntel, unsupportedAnswer } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
@@ -573,6 +574,10 @@ app.post("/api/agent/job", agent.job);
 const a2a = a2aRoutes(agentConfig(process.env));
 app.get("/.well-known/agent-card.json", a2a.card);
 app.post(A2A_PATH, a2a.rpc);
+// MCP (Streamable HTTP, JSON responses): free tools that prepare the paid job (server/mcp.js).
+const mcp = mcpRoutes(agentConfig(process.env));
+app.post(MCP_PATH, mcp.post);
+app.get(MCP_PATH, mcp.get);
 app.get("/.well-known/agent-registration.json", agent.card);
 // The duplicate agent 1218803 points here once its owner calls setAgentURI (see CHANGELOG).
 app.get(RETIRED_PATH, agent.retiredCard);
