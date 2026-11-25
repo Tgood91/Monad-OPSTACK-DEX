@@ -121,7 +121,12 @@ test("config: 0.01 USDC to the owner's wallet by default; requirements match x40
 test("registration file carries the endpoint, price and (once set) the agentId", () => {
   const f = registrationFile(agentConfig({}));
   assert.equal(f.name, "Bushido-Trades");
-  assert.equal(f.services[0].endpoint, "https://bushido-dapp.onrender.com/api/agent/job");
+  assert.equal(f.image, "https://bushido-dapp.onrender.com/Bushido-dApp/icons/icon-512.png");
+  assert.deepEqual(f.services, [
+    { name: "web", endpoint: "https://bushido-dapp.onrender.com/" },
+    { name: "x402", endpoint: "https://bushido-dapp.onrender.com/api/agent/job" },
+    { name: "agentWallet", endpoint: "eip155:8453:" + DEFAULT_PAY_TO },
+  ]);
   assert.equal(f.pricing.amount, "0.01");
   assert.deepEqual(f.registrations, []);
   assert.equal(registrationFile(agentConfig({ AGENT_ID: "42" })).registrations[0].agentId, 42);

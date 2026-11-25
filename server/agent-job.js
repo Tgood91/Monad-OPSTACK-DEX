@@ -85,12 +85,19 @@ export function paymentRequirements(cfg) {
 
 /** ERC-8004 registration file, also served at /.well-known/agent-card.json. */
 export function registrationFile(cfg) {
+  const origin = new URL(cfg.resource).origin;
   return {
     type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
     name: AGENT_NAME,
     description: AGENT_DESCRIPTION,
-    image: "",
-    services: [{ name: "web", endpoint: cfg.resource }],
+    // ERC-8004 explorers need a real image URL and a "web" service that opens a page; the paid job endpoint (POST
+    // behind x402) is listed as its own service, and agentWallet matches the wallet the registry holds for this agent.
+    image: `${origin}/Bushido-dApp/icons/icon-512.png`,
+    services: [
+      { name: "web", endpoint: `${origin}/` },
+      { name: "x402", endpoint: cfg.resource },
+      { name: "agentWallet", endpoint: `eip155:${BASE_CHAIN_ID}:${cfg.payTo}` },
+    ],
     x402Support: true,
     pricing: {
       model: "per-job",
