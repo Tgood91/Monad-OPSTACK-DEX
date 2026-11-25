@@ -4,6 +4,17 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+
+## ERC-8004 registration file: real image, a browsable "web" service, agentWallet
+
+- The registration file the Identity Registry points to (`tokenURI` of agent 1219431 =
+  `/.well-known/agent-card.json`) had an empty `image` and a `web` service pointing at the paid job endpoint, which
+  only answers POST behind x402, so explorers showed no image and a "web" link that opens nothing.
+- Now: `image` is the app's 512 px icon (absolute URL); `services` lists `web` (the site), `x402` (the paid job
+  endpoint) and `agentWallet` (`eip155:8453:` + the pay-to wallet, which is the agent wallet the registry already
+  returns for agent 1219431). Nothing on-chain changes: the tokenURI stays the same URL.
+- Checked: unit test updated; on-chain, `tokenURI(1219431)` is this URL and `getAgentWallet(1219431)` is the pay-to
+  wallet. Not verified: how a specific 8004 explorer renders it until it re-reads the file.
 ## Android app mode: Back button, haptics, app styles and the dojo backdrop
 
 - In the Android app (Tgood91/Bushido-dApp-android opens `/?source=pwa` in Chrome) the system Back button used to leave
