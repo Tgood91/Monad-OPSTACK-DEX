@@ -57,8 +57,8 @@ Each tab has its own link: `https://bushido-dapp.onrender.com/#agent` opens the 
 ### Bushido-Trades in action
 
 A real paid job from the Agent tab (phone screen). The agent asked every source and returned the best price (1inch,
-149.84 DEGEN, ahead of Uniswap and 0x; Zerion could not quote that pair), read the market (RISK-OFF, 5 of 5 markets on
-Coinbase data) and warned that buying DEGEN goes against its downtrend. The 0.01 USDC payment links to Basescan.
+149.67 DEGEN, ahead of 0x; Zerion could not quote that pair), read the market (RISK-OFF, 5 of 5 markets on Coinbase
+data) and warned that buying DEGEN goes against its downtrend. The 0.01 USDC payment links to Basescan.
 Nothing trades until you type `open` and sign in the Swap tab, after a dry run.
 
 <img src="docs/images/agent-job-degen.jpg" alt="Bushido-Trades job result in the Agent tab: quotes from 1inch, Uniswap and 0x for DEGEN, the market regime and the trend warning" width="360">
