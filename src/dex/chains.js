@@ -205,6 +205,8 @@ export const CHAINS = {
       { symbol: 'wTSLAx', address: '0xc3FdBe3A68EE5dE461D30415a8165cf9Aefe1171', decimals: 18 }, // Wrapped Tesla xStock
       { symbol: 'wMUx', address: '0xe2047ee3bdDb5C99ae428AB83df63f8730698e30', decimals: 18 }, // Wrapped Micron xStock
       { symbol: 'wSPYx', address: '0xE7E553Cd128F0011777323A0b44a7b96EA1CB540', decimals: 18 }, // Wrapped SP500 xStock
+      // LINK (0x76f257B1DDA5cC71bee4eF637Fbdde4C801310A9, bridged over Chainlink CCIP, on Monad's official list) is left out:
+      // only about 2.9 LINK exist on Monad and KyberSwap had no route (twice, 2026-11-25). List it once it has liquidity.
     ],
   },
   optimism: {

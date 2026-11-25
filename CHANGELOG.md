@@ -22,6 +22,8 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
     AVAX on two tries, and only about 82k GHO exist there, so it was **not** listed: it could not be swapped.
   - Monad: not measurable on 2026-11-24. The check reported about -35% / -11% for **every** Monad coin, USDC and
     WETH included, so the reference price it compares against is off, not the pools. These five are unscreened.
+- LINK on Monad (`0x76f257B1…10A9`, Chainlink LINK bridged over CCIP, on Monad's official token list) was looked up at
+  the owner's request but **not** listed: about 2.9 LINK exist on Monad and KyberSwap had no route on two tries.
 - Not verified: a real swap of any of the new coins; source-by-source quotes through the app's adapters.
 
 ## README: a real Bushido-Trades job, and the A2A/MCP endpoints
