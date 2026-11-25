@@ -24,6 +24,59 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
     WETH included, so the reference price it compares against is off, not the pools. These five are unscreened.
 - Not verified: a real swap of any of the new coins; source-by-source quotes through the app's adapters.
 
+## README: a real Bushido-Trades job, and the A2A/MCP endpoints
+
+- README gets a "Bushido-Trades in action" section with the owner's phone screenshot of a real paid job (USDC to
+  DEGEN: best quote 1inch ahead of 0x, the market regime, the trend warning, the Basescan payment link), saved as
+  `docs/images/agent-job-degen.jpg`, plus where other agents reach it (A2A, MCP, x402) and its 8004scan page.
+- The API reference row for the agent now lists `/a2a`, `/mcp` and which `.well-known` file is which.
+- Docs only: no code change.
+## MCP endpoint for Bushido-Trades
+
+- New `POST /mcp` (`server/mcp.js`): an MCP server over Streamable HTTP (plain JSON replies, no SSE; `GET /mcp`
+  answers 405; notifications get 202). Protocol versions 2025-06-18, 2025-03-26 and 2024-11-05.
+- Two free tools, nothing charged or executed: `prepare_swap_job` (checks a swap against the Base coin list and
+  returns the exact paid job body for `/api/agent/job` plus its x402 payment, 0.01 USDC on Base) and
+  `list_base_coins` (the verified Base list, optional search). The job logic is shared with `/a2a`
+  (`prepareJob` in `server/a2a.js`).
+- The ERC-8004 registration file now lists an `MCP` service (`/mcp`, 2025-06-18). No on-chain change needed.
+- Checked: 6 new tests; the official MCP TypeScript client (`@modelcontextprotocol/sdk` 1.17.0) connected to a local
+  server, listed both tools and called both. Not verified: a specific AI app (Claude, Cursor, …) connecting to the
+  live URL.
+## A2A agent card and endpoint for Bushido-Trades
+
+- `/.well-known/agent-card.json` is now an A2A (Agent2Agent 0.3.0) agent card: name, description, icon, one skill
+  ("Best Base swap price", paid 0.01 USDC per job via x402), JSON-RPC at `/a2a`. A2A clients look for their card at
+  exactly that path, which used to serve the ERC-8004 registration file.
+- New `POST /a2a` (`server/a2a.js`): A2A JSON-RPC `message/send`. A request such as "swap 25 USDC to AERO" (or a data
+  part `{ sell, buy, amount, taker }`) is checked against the Base coin list and answered with the exact job body
+  and the x402 payment for `/api/agent/job`. Nothing is charged or executed there. Other methods get JSON-RPC errors.
+- The ERC-8004 registration file stays at `/.well-known/agent-registration.json` and now lists an `A2A` service.
+- Order matters: the registry's tokenURI for agent 1219431 must point at `agent-registration.json` BEFORE this
+  deploys (owner sends `setAgentURI(1219431, …/agent-registration.json)`; both URLs serve the same file until then).
+- Checked: 5 new tests (card, text parsing, message/send, data part and bad input, JSON-RPC errors); a local server
+  served the card, answered `/a2a` and still served the registration file; the `setAgentURI` call simulated from the
+  owner wallet succeeds. Not verified: a real third-party A2A client talking to it.
+## Retired file for the duplicate ERC-8004 agent 1218803
+
+- The owner's wallet registered Bushido-Trades twice on the Base Identity Registry: 1218803 first, then 1219431 (the
+  live one). Both pointed at the same registration file, which only lists 1219431, so explorers showed two
+  "Bushido-Trades" with one of them unlisted.
+- New `/.well-known/agent-retired-1218803.json`: `active: false`, no x402, no pricing, named
+  "Bushido-Trades (retired duplicate)", listing agent 1218803 and telling readers the live agent is 1219431.
+- It takes effect when the owner sends one transaction from the agent's owner wallet:
+  `setAgentURI(1218803, "https://bushido-dapp.onrender.com/.well-known/agent-retired-1218803.json")` on
+  `0x8004A169…a432`. Simulated from the owner wallet against Base mainnet: it succeeds. Not sent from here.
+## ERC-8004 registration file: real image, a browsable "web" service, agentWallet
+
+- The registration file the Identity Registry points to (`tokenURI` of agent 1219431 =
+  `/.well-known/agent-card.json`) had an empty `image` and a `web` service pointing at the paid job endpoint, which
+  only answers POST behind x402, so explorers showed no image and a "web" link that opens nothing.
+- Now: `image` is the app's 512 px icon (absolute URL); `services` lists `web` (the site), `x402` (the paid job
+  endpoint) and `agentWallet` (`eip155:8453:` + the pay-to wallet, which is the agent wallet the registry already
+  returns for agent 1219431). Nothing on-chain changes: the tokenURI stays the same URL.
+- Checked: unit test updated; on-chain, `tokenURI(1219431)` is this URL and `getAgentWallet(1219431)` is the pay-to
+  wallet. Not verified: how a specific 8004 explorer renders it until it re-reads the file.
 ## Android app mode: Back button, haptics, app styles and the dojo backdrop
 
 - In the Android app (Tgood91/Bushido-dApp-android opens `/?source=pwa` in Chrome) the system Back button used to leave

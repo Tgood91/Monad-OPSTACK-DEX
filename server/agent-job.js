@@ -85,12 +85,21 @@ export function paymentRequirements(cfg) {
 
 /** ERC-8004 registration file, also served at /.well-known/agent-card.json. */
 export function registrationFile(cfg) {
+  const origin = new URL(cfg.resource).origin;
   return {
     type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
     name: AGENT_NAME,
     description: AGENT_DESCRIPTION,
-    image: "",
-    services: [{ name: "web", endpoint: cfg.resource }],
+    // ERC-8004 explorers need a real image URL and a "web" service that opens a page; the paid job endpoint (POST
+    // behind x402) is listed as its own service, and agentWallet matches the wallet the registry holds for this agent.
+    image: `${origin}/Bushido-dApp/icons/icon-512.png`,
+    services: [
+      { name: "web", endpoint: `${origin}/` },
+      { name: "x402", endpoint: cfg.resource },
+      { name: "agentWallet", endpoint: `eip155:${BASE_CHAIN_ID}:${cfg.payTo}` },
+      { name: "A2A", endpoint: `${origin}/.well-known/agent-card.json`, version: "0.3.0" },
+      { name: "MCP", endpoint: `${origin}/mcp`, version: "2025-06-18" },
+    ],
     x402Support: true,
     pricing: {
       model: "per-job",
@@ -109,6 +118,27 @@ export function registrationFile(cfg) {
       cfg.agentId == null
         ? []
         : [{ agentId: cfg.agentId, agentRegistry: `eip155:${BASE_CHAIN_ID}:${IDENTITY_REGISTRY}` }],
+  };
+}
+
+/** Agent 1218803 is an earlier, duplicate registration of Bushido-Trades by the same wallet; 1219431 is the real one. */
+export const RETIRED_AGENT_ID = 1218803;
+export const RETIRED_PATH = `/.well-known/agent-retired-${RETIRED_AGENT_ID}.json`;
+
+/** Registration file for the retired duplicate: marked inactive and pointing readers to the live agent. */
+export function retiredRegistrationFile(cfg) {
+  const origin = new URL(cfg.resource).origin;
+  const live = cfg.agentId ?? 1219431;
+  return {
+    type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+    name: `${AGENT_NAME} (retired duplicate)`,
+    description: `Retired duplicate registration. The live ${AGENT_NAME} agent is agentId ${live} on the same registry (eip155:${BASE_CHAIN_ID}:${IDENTITY_REGISTRY}); hire it there.`,
+    image: `${origin}/Bushido-dApp/icons/icon-512.png`,
+    services: [{ name: "web", endpoint: `${origin}/` }],
+    x402Support: false,
+    active: false,
+    supportedTrust: [],
+    registrations: [{ agentId: RETIRED_AGENT_ID, agentRegistry: `eip155:${BASE_CHAIN_ID}:${IDENTITY_REGISTRY}` }],
   };
 }
 
@@ -477,7 +507,7 @@ export function createFacilitator({
   return createLocalFacilitator({ chain: chainFactory({ key, rpcs, usdc: USDC_BASE }) });
 }
 
-/** Express handlers: { info, job, card, enabled, kind }. */
+/** Express handlers: { info, job, card, retiredCard, enabled, kind }. */
 export function createAgentJob({
   env = process.env,
   facilitator,
@@ -597,6 +627,9 @@ export function createAgentJob({
     },
     card(_req, res) {
       res.json(registrationFile(cfg));
+    },
+    retiredCard(_req, res) {
+      res.json(retiredRegistrationFile(cfg));
     },
   };
 }

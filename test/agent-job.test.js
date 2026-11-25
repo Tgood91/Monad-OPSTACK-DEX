@@ -4,6 +4,8 @@ import {
   agentConfig,
   paymentRequirements,
   registrationFile,
+  retiredRegistrationFile,
+  RETIRED_PATH,
   parseJob,
   direction,
   runJob,
@@ -121,7 +123,14 @@ test("config: 0.01 USDC to the owner's wallet by default; requirements match x40
 test("registration file carries the endpoint, price and (once set) the agentId", () => {
   const f = registrationFile(agentConfig({}));
   assert.equal(f.name, "Bushido-Trades");
-  assert.equal(f.services[0].endpoint, "https://bushido-dapp.onrender.com/api/agent/job");
+  assert.equal(f.image, "https://bushido-dapp.onrender.com/Bushido-dApp/icons/icon-512.png");
+  assert.deepEqual(f.services, [
+    { name: "web", endpoint: "https://bushido-dapp.onrender.com/" },
+    { name: "x402", endpoint: "https://bushido-dapp.onrender.com/api/agent/job" },
+    { name: "agentWallet", endpoint: "eip155:8453:" + DEFAULT_PAY_TO },
+    { name: "A2A", endpoint: "https://bushido-dapp.onrender.com/.well-known/agent-card.json", version: "0.3.0" },
+    { name: "MCP", endpoint: "https://bushido-dapp.onrender.com/mcp", version: "2025-06-18" },
+  ]);
   assert.equal(f.pricing.amount, "0.01");
   assert.deepEqual(f.registrations, []);
   assert.equal(registrationFile(agentConfig({ AGENT_ID: "42" })).registrations[0].agentId, 42);
@@ -441,4 +450,16 @@ test("facilitator order: a custom URL, then CDP (signed), then the server's own 
   assert.equal(built.key, "0x" + "11".repeat(32));
   assert.equal(built.rpcs[0], "https://rpc.example");
   assert.equal(built.usdc, USDC_BASE);
+});
+
+test("retired duplicate (agent 1218803): inactive, names itself, points to the live agent", () => {
+  const f = retiredRegistrationFile(agentConfig({ AGENT_ID: "1219431" }));
+  assert.equal(RETIRED_PATH, "/.well-known/agent-retired-1218803.json");
+  assert.equal(f.active, false);
+  assert.equal(f.x402Support, false);
+  assert.deepEqual(f.registrations, [
+    { agentId: 1218803, agentRegistry: "eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432" },
+  ]);
+  assert.match(f.description, /agentId 1219431/);
+  assert.equal(f.pricing, undefined);
 });

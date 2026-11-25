@@ -54,6 +54,19 @@ burner pays the Base gas to collect Agent payments; the USDC goes from the payer
 Each tab has its own link: `https://bushido-dapp.onrender.com/#agent` opens the Agent tab (also `#swap`, `#bridge`,
 `#intel`, `#bushido`, `#rewards`).
 
+### Bushido-Trades in action
+
+A real paid job from the Agent tab (phone screen). The agent asked every source and returned the best price (1inch,
+149.67 DEGEN, ahead of 0x; Zerion could not quote that pair), read the market (RISK-OFF, 5 of 5 markets on Coinbase
+data) and warned that buying DEGEN goes against its downtrend. The 0.01 USDC payment links to Basescan.
+Nothing trades until you type `open` and sign in the Swap tab, after a dry run.
+
+<img src="docs/images/agent-job-degen.jpg" alt="Bushido-Trades job result in the Agent tab: quotes from 1inch, Uniswap and 0x for DEGEN, the market regime and the trend warning" width="360">
+
+Other agents and AI apps can reach it too: the A2A card at `/.well-known/agent-card.json` (JSON-RPC at `/a2a`), an MCP
+server at `/mcp` (tools `prepare_swap_job` and `list_base_coins`), and the paid x402 job at `/api/agent/job`. It is
+ERC-8004 agent **1219431** on Base ([8004scan](https://www.8004scan.io/agents/base/1219431)).
+
 It is also an **installable app**: a PWA for phones ([Bushido-dApp/README.md](Bushido-dApp/README.md)) and an
 Android app in Kotlin ([Bushido-dApp-android](https://github.com/Tgood91/Bushido-dApp-android), its own repository) with social login intact.
 
@@ -434,7 +447,7 @@ The server (`server/index.js`) exposes these under `/api`. Provider calls are pr
 | Rewards | `GET /api/merkl/rewards`, `GET /api/merkl/claim-data`, `GET /api/merkl/opportunities` |
 | Bushido | `GET /api/bushido/virtues`, `GET /api/bushido/strategies`, `POST /api/bushido/signal`, `GET /api/bushido/dashboard` |
 | Intel | `POST /api/intel/ask` |
-| Agent | `GET /api/agent/job` (profile, price, status), `POST /api/agent/job` (x402-paid job: `{ sell, buy, amount, taker }` or `{ asset: "ETH", amountUsd }`), `GET /.well-known/agent-card.json`, `GET /.well-known/agent-registration.json` |
+| Agent | `GET /api/agent/job` (profile, price, status), `POST /api/agent/job` (x402-paid job: `{ sell, buy, amount, taker }` or `{ asset: "ETH", amountUsd }`), `GET /.well-known/agent-card.json` (A2A card), `POST /a2a` (A2A JSON-RPC `message/send`), `POST /mcp` (MCP, Streamable HTTP), `GET /.well-known/agent-registration.json` (ERC-8004 file) |
 | Market regime | `GET /api/macro` (five markets from Coinbase, GeckoTerminal as backup; used by the Agent and `/macro.html`) |
 | Dojo | `GET /api/perks/status`, `POST /api/perks/claim`, `GET /api/faucet/status`, `POST /api/faucet/claim` |
 | Operations | `GET /api/ops/log`, `POST /api/ops/log` |
