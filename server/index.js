@@ -59,7 +59,8 @@ import { createFusionRelay } from "./fusion-relay.js";
 import { merklRewards, merklClaimData, merklOpportunities } from "./merkl.js";
 import { bridgeHealth } from "./bridge-health.js";
 import { macroFeed, getMarket, blend } from "./macro.js";
-import { createAgentJob, RETIRED_PATH } from "./agent-job.js";
+import { createAgentJob, RETIRED_PATH, agentConfig } from "./agent-job.js";
+import { a2aRoutes, A2A_PATH } from "./a2a.js";
 import { createIntel, unsupportedAnswer } from "./intel-live.js";
 import { searchTokens, tokenByAddress, chainSummary } from "./tokens.js";
 
@@ -567,7 +568,11 @@ const marketReady = async () => {
 const agent = createAgentJob({ getMacro: macroFeed, blend, marketReady });
 app.get("/api/agent/job", agent.info);
 app.post("/api/agent/job", agent.job);
-app.get("/.well-known/agent-card.json", agent.card);
+// A2A: the agent card A2A clients look for, and its JSON-RPC endpoint (server/a2a.js). The ERC-8004 registration
+// file is agent-registration.json (the registry's tokenURI for agent 1219431 points there).
+const a2a = a2aRoutes(agentConfig(process.env));
+app.get("/.well-known/agent-card.json", a2a.card);
+app.post(A2A_PATH, a2a.rpc);
 app.get("/.well-known/agent-registration.json", agent.card);
 // The duplicate agent 1218803 points here once its owner calls setAgentURI (see CHANGELOG).
 app.get(RETIRED_PATH, agent.retiredCard);

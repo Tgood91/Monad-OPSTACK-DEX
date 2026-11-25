@@ -6,6 +6,21 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## A2A agent card and endpoint for Bushido-Trades
+
+- `/.well-known/agent-card.json` is now an A2A (Agent2Agent 0.3.0) agent card: name, description, icon, one skill
+  ("Best Base swap price", paid 0.01 USDC per job via x402), JSON-RPC at `/a2a`. A2A clients look for their card at
+  exactly that path, which used to serve the ERC-8004 registration file.
+- New `POST /a2a` (`server/a2a.js`): A2A JSON-RPC `message/send`. A request such as "swap 25 USDC to AERO" (or a data
+  part `{ sell, buy, amount, taker }`) is checked against the Base coin list and answered with the exact job body
+  and the x402 payment for `/api/agent/job`. Nothing is charged or executed there. Other methods get JSON-RPC errors.
+- The ERC-8004 registration file stays at `/.well-known/agent-registration.json` and now lists an `A2A` service.
+- Order matters: the registry's tokenURI for agent 1219431 must point at `agent-registration.json` BEFORE this
+  deploys (owner sends `setAgentURI(1219431, …/agent-registration.json)`; both URLs serve the same file until then).
+- Checked: 5 new tests (card, text parsing, message/send, data part and bad input, JSON-RPC errors); a local server
+  served the card, answered `/a2a` and still served the registration file; the `setAgentURI` call simulated from the
+  owner wallet succeeds. Not verified: a real third-party A2A client talking to it.
 ## Retired file for the duplicate ERC-8004 agent 1218803
 
 - The owner's wallet registered Bushido-Trades twice on the Base Identity Registry: 1218803 first, then 1219431 (the

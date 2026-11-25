@@ -97,6 +97,7 @@ export function registrationFile(cfg) {
       { name: "web", endpoint: `${origin}/` },
       { name: "x402", endpoint: cfg.resource },
       { name: "agentWallet", endpoint: `eip155:${BASE_CHAIN_ID}:${cfg.payTo}` },
+      { name: "A2A", endpoint: `${origin}/.well-known/agent-card.json`, version: "0.3.0" },
     ],
     x402Support: true,
     pricing: {
