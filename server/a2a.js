@@ -94,29 +94,37 @@ export function handleA2A(cfg, body) {
       },
     ]);
   }
-  const parsed = parseJob(ask);
-  if (parsed.error) return reply([{ kind: "text", text: `Can't quote that: ${parsed.error}.` }]);
+  const job = prepareJob(cfg, ask);
+  if (job.error) return reply([{ kind: "text", text: `Can't quote that: ${job.error}.` }]);
+  return reply([
+    { kind: "text", text: job.text },
+    { kind: "data", data: { hire: job.hire, payment: job.payment } },
+  ]);
+}
+
+/**
+ * Shared by A2A and MCP: check a requested job against the Base coin list and describe how to hire it.
+ * -> { error } or { text, hire: { method, url, body }, payment }. Nothing is charged or executed.
+ */
+export function prepareJob(cfg, ask) {
+  const parsed = parseJob(ask || {});
+  if (parsed.error) return { error: parsed.error };
   const j = parsed.input;
   const taker = j.taker ? { taker: j.taker } : {};
-  const jobBody =
+  const body =
     j.mode === "swap"
       ? { sell: j.sell.symbol, buy: j.buy.symbol, amount: j.amount, ...taker }
       : { asset: j.asset, amountUsd: j.amountUsd, ...taker };
   const what =
     j.mode === "swap" ? `${j.amount} ${j.sell.symbol} to ${j.buy.symbol}` : `an ETH signal trade of $${j.amountUsd}`;
-  return reply([
-    {
-      kind: "text",
-      text:
-        `Ready to quote ${what} on Base. It is a paid job: POST the body below to ${cfg.resource} with an x402 ` +
-        `X-PAYMENT header for ${cfg.priceUsdc} USDC on Base (pay to ${cfg.payTo}). Add "taker" (your wallet) to get ` +
-        "a signable transaction.",
-    },
-    {
-      kind: "data",
-      data: { hire: { method: "POST", url: cfg.resource, body: jobBody }, payment: paymentRequirements(cfg) },
-    },
-  ]);
+  return {
+    text:
+      `Ready to quote ${what} on Base. It is a paid job: POST the body below to ${cfg.resource} with an x402 ` +
+      `X-PAYMENT header for ${cfg.priceUsdc} USDC on Base (pay to ${cfg.payTo}). Add "taker" (your wallet) to get ` +
+      "a signable transaction.",
+    hire: { method: "POST", url: cfg.resource, body },
+    payment: paymentRequirements(cfg),
+  };
 }
 
 /** Express handlers. */

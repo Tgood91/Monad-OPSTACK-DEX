@@ -98,6 +98,7 @@ export function registrationFile(cfg) {
       { name: "x402", endpoint: cfg.resource },
       { name: "agentWallet", endpoint: `eip155:${BASE_CHAIN_ID}:${cfg.payTo}` },
       { name: "A2A", endpoint: `${origin}/.well-known/agent-card.json`, version: "0.3.0" },
+      { name: "MCP", endpoint: `${origin}/mcp`, version: "2025-06-18" },
     ],
     x402Support: true,
     pricing: {

@@ -7,6 +7,19 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## MCP endpoint for Bushido-Trades
+
+- New `POST /mcp` (`server/mcp.js`): an MCP server over Streamable HTTP (plain JSON replies, no SSE; `GET /mcp`
+  answers 405; notifications get 202). Protocol versions 2025-06-18, 2025-03-26 and 2024-11-05.
+- Two free tools, nothing charged or executed: `prepare_swap_job` (checks a swap against the Base coin list and
+  returns the exact paid job body for `/api/agent/job` plus its x402 payment, 0.01 USDC on Base) and
+  `list_base_coins` (the verified Base list, optional search). The job logic is shared with `/a2a`
+  (`prepareJob` in `server/a2a.js`).
+- The ERC-8004 registration file now lists an `MCP` service (`/mcp`, 2025-06-18). No on-chain change needed.
+- Checked: 6 new tests; the official MCP TypeScript client (`@modelcontextprotocol/sdk` 1.17.0) connected to a local
+  server, listed both tools and called both. Not verified: a specific AI app (Claude, Cursor, …) connecting to the
+  live URL.
 ## A2A agent card and endpoint for Bushido-Trades
 
 - `/.well-known/agent-card.json` is now an A2A (Agent2Agent 0.3.0) agent card: name, description, icon, one skill
