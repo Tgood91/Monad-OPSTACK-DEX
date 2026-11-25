@@ -8,6 +8,14 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+
+## README: a real Bushido-Trades job, and the A2A/MCP endpoints
+
+- README gets a "Bushido-Trades in action" section with the owner's phone screenshot of a real paid job (USDC to
+  DEGEN: best quote 1inch ahead of 0x, the market regime, the trend warning, the Basescan payment link), saved as
+  `docs/images/agent-job-degen.jpg`, plus where other agents reach it (A2A, MCP, x402) and its 8004scan page.
+- The API reference row for the agent now lists `/a2a`, `/mcp` and which `.well-known` file is which.
+- Docs only: no code change.
 ## MCP endpoint for Bushido-Trades
 
 - New `POST /mcp` (`server/mcp.js`): an MCP server over Streamable HTTP (plain JSON replies, no SSE; `GET /mcp`
