@@ -158,6 +158,11 @@ export function findBaseToken(q) {
  *   swap:   { sell, buy, amount, taker? }   any two coins from the verified Base list; amount in the coin sold
  *   signal: { asset: "ETH", amountUsd, taker? }   the agent picks the direction from the ETH signal
  */
+// Guard rail on the ETH signal job's trade size, in dollars (swap jobs are sized in the coin sold).
+export const SIGNAL_MIN_USD = 0.1;
+export const SIGNAL_MAX_USD = 10;
+export const SIGNAL_DEFAULT_USD = 10;
+
 export function parseJob(body = {}) {
   const taker = body.taker == null || body.taker === "" ? null : String(body.taker);
   if (taker && !ADDR.test(taker)) return { error: "bad taker address" };
@@ -178,9 +183,9 @@ export function parseJob(body = {}) {
   }
   const asset = String(body.asset || "ETH").toUpperCase();
   if (asset !== "ETH") return { error: "only asset ETH is supported" };
-  const amountUsd = body.amountUsd == null ? 100 : Number(body.amountUsd);
-  if (!Number.isFinite(amountUsd) || amountUsd < 1 || amountUsd > 10_000)
-    return { error: "amountUsd must be between 1 and 10000" };
+  const amountUsd = body.amountUsd == null ? SIGNAL_DEFAULT_USD : Number(body.amountUsd);
+  if (!Number.isFinite(amountUsd) || amountUsd < SIGNAL_MIN_USD || amountUsd > SIGNAL_MAX_USD)
+    return { error: `amountUsd must be between ${SIGNAL_MIN_USD} and ${SIGNAL_MAX_USD}` };
   return { input: { mode: "signal", asset, amountUsd, taker } };
 }
 
@@ -564,7 +569,7 @@ export function createAgentJob({
             amount: "how much of the sold coin (e.g. 100)",
             taker: "0x… (optional; adds a signable tx and Uniswap/Zerion quotes)",
           },
-          signal: { asset: "ETH", amountUsd: "1-10000 (default 100)", taker: "0x… (optional)" },
+          signal: { asset: "ETH", amountUsd: "0.1-10 (default 10)", taker: "0x… (optional)" },
         },
         ...(await paymentStatus()),
         accepts: [reqs],
