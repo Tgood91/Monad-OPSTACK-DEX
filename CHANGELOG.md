@@ -5,6 +5,16 @@ and **the logic behind it**. Full detail, tests and caveats are on the linked PR
 
 
 
+## Bushido-Trades: the registration file lists its MCP tools and A2A skill
+
+- The ERC-8004 registration file (`/.well-known/agent-registration.json`) now names the MCP tools
+  (`prepare_swap_job`, `list_base_coins`) and the A2A skill (`base-swap-quote`), under both `tools`/`skills`
+  (what 8004scan reads, seen on other agents) and `mcpTools`/`a2aSkills` (the ERC-8004 best-practice names).
+- Why: 8004scan showed our MCP with no tools and A2A with no skills, and a service score of 0. A test keeps the
+  lists in step with what `/mcp` and the agent card really offer.
+- Not verified: 8004scan only re-reads on an on-chain URI event, so the owner must sign a refresh
+  (`deploy/erc8004/refresh.html`). Whether the service score then rises is up to 8004scan.
+
 ## Bushido-Trades: the ETH signal job now takes $0.10 to $10
 
 - The signal job's trade size is now $0.10 to $10 (was $1 to $10,000), and the default is $10 (was $100). The

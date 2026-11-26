@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleMcp, MCP_VERSIONS } from "../server/mcp.js";
-import { agentConfig } from "../server/agent-job.js";
+import { agentConfig, A2A_SKILLS, MCP_TOOLS } from "../server/agent-job.js";
+import { agentCard } from "../server/a2a.js";
 
 const cfg = agentConfig({});
 const rpc = (method, params, id = 1) => handleMcp(cfg, { jsonrpc: "2.0", id, method, params });
@@ -50,4 +51,13 @@ test("errors", () => {
   assert.equal(handleMcp(cfg, { nope: 1 }).error.code, -32600);
   assert.equal(rpc("resources/list").error.code, -32601);
   assert.equal(rpc("tools/call", { name: "nope" }).error.code, -32602);
+});
+
+test("the registration file lists the same tools and skills the endpoints offer", () => {
+  const names = rpc("tools/list").result.tools.map((t) => t.name);
+  assert.deepEqual(MCP_TOOLS, names);
+  assert.deepEqual(
+    A2A_SKILLS,
+    agentCard(cfg).skills.map((s) => s.id),
+  );
 });

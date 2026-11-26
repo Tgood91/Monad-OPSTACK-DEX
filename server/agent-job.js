@@ -84,6 +84,10 @@ export function paymentRequirements(cfg) {
 }
 
 /** ERC-8004 registration file, also served at /.well-known/agent-card.json. */
+// What the A2A card (server/a2a.js) and the MCP server (server/mcp.js) offer, for the registration file.
+export const A2A_SKILLS = ["base-swap-quote"];
+export const MCP_TOOLS = ["prepare_swap_job", "list_base_coins"];
+
 export function registrationFile(cfg) {
   const origin = new URL(cfg.resource).origin;
   return {
@@ -97,8 +101,16 @@ export function registrationFile(cfg) {
       { name: "web", endpoint: `${origin}/` },
       { name: "x402", endpoint: cfg.resource },
       { name: "agentWallet", endpoint: `eip155:${BASE_CHAIN_ID}:${cfg.payTo}` },
-      { name: "A2A", endpoint: `${origin}/.well-known/agent-card.json`, version: "0.3.0" },
-      { name: "MCP", endpoint: `${origin}/mcp`, version: "2025-06-18" },
+      // Skills and tools are listed here as well as on the endpoints (8004scan reads "skills"/"tools"; the
+      // ERC-8004 best-practice names are a2aSkills/mcpTools). test/agent-job.test.js checks they match the live ones.
+      {
+        name: "A2A",
+        endpoint: `${origin}/.well-known/agent-card.json`,
+        version: "0.3.0",
+        skills: A2A_SKILLS,
+        a2aSkills: A2A_SKILLS,
+      },
+      { name: "MCP", endpoint: `${origin}/mcp`, version: "2025-06-18", tools: MCP_TOOLS, mcpTools: MCP_TOOLS },
     ],
     x402Support: true,
     pricing: {
