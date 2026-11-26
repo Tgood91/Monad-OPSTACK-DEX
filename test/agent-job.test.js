@@ -128,8 +128,20 @@ test("registration file carries the endpoint, price and (once set) the agentId",
     { name: "web", endpoint: "https://bushido-dapp.onrender.com/" },
     { name: "x402", endpoint: "https://bushido-dapp.onrender.com/api/agent/job" },
     { name: "agentWallet", endpoint: "eip155:8453:" + DEFAULT_PAY_TO },
-    { name: "A2A", endpoint: "https://bushido-dapp.onrender.com/.well-known/agent-card.json", version: "0.3.0" },
-    { name: "MCP", endpoint: "https://bushido-dapp.onrender.com/mcp", version: "2025-06-18" },
+    {
+      name: "A2A",
+      endpoint: "https://bushido-dapp.onrender.com/.well-known/agent-card.json",
+      version: "0.3.0",
+      skills: ["base-swap-quote"],
+      a2aSkills: ["base-swap-quote"],
+    },
+    {
+      name: "MCP",
+      endpoint: "https://bushido-dapp.onrender.com/mcp",
+      version: "2025-06-18",
+      tools: ["prepare_swap_job", "list_base_coins"],
+      mcpTools: ["prepare_swap_job", "list_base_coins"],
+    },
   ]);
   assert.equal(f.pricing.amount, "0.01");
   assert.deepEqual(f.registrations, []);
