@@ -85,16 +85,18 @@ test("the other commands", () => {
   assert.equal(p("clear").kind, "clear");
   assert.equal(p("status").kind, "status");
   assert.deepEqual(p("coins aer"), { kind: "coins", filter: "aer" });
-  assert.deepEqual(p("signal"), { kind: "signal", amountUsd: 100 });
-  assert.deepEqual(p("signal $250"), { kind: "signal", amountUsd: 250 });
-  assert.equal(p("signal $50000").kind, "error");
+  assert.deepEqual(p("signal"), { kind: "signal", amountUsd: 10 });
+  assert.deepEqual(p("signal $2.5"), { kind: "signal", amountUsd: 2.5 });
+  assert.deepEqual(p("signal $0.10"), { kind: "signal", amountUsd: 0.1 });
+  assert.equal(p("signal $250").kind, "error");
+  assert.equal(p("signal $0.05").kind, "error");
   assert.equal(p("   ").kind, "empty");
 });
 
 test("what the agent prints: help, coins, a plan", () => {
   assert.ok(helpLines("0.01").some((l) => l.text.includes("swap 100 USDC to AERO")));
   const all = coinLines(TOKENS);
-  assert.match(all[0].text, /^117 coins on Base/);
+  assert.match(all[0].text, /^118 coins on Base/);
   assert.match(coinLines(TOKENS, "aer")[1].text, /AERO/);
   assert.equal(coinLines(TOKENS, "zzzz")[0].cls, "warn");
   const plan = planLines(p("swap 100 USDC to AERO"), { price: "0.01", sources: ["0x", "1inch", "uniswap", "zerion"] });

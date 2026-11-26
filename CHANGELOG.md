@@ -4,6 +4,20 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+
+## Bushido-Trades: the ETH signal job now takes $0.10 to $10
+
+- The signal job's trade size is now $0.10 to $10 (was $1 to $10,000), and the default is $10 (was $100). The
+  server (`parseJob`, `SIGNAL_MIN_USD` / `SIGNAL_MAX_USD`) and the Agent tab's terminal (`signal $10`) agree.
+  Asked for by the owner as a first guard rail: small trades while the agent is new.
+- Swap jobs (`{ sell, buy, amount }`) are unchanged: they are sized in the coin sold and have no dollar cap.
+  The owner chose to limit the signal job only.
+
+## Base: CADD (CAD Digital), now 118 coins
+
+- Added CADD `0x16F93eBC5320C89EfC8701577efe49d14A276a06` (18 decimals), read on Base: name "CAD Digital Inc",
+  symbol CADD, about 6.46M supply (an upgradeable proxy). KyberSwap from USDC: 0.07% loss at $20, 0.20% at $200;
+  about $80K of liquidity (GeckoTerminal). Address given by the owner. Not on the Uniswap or Superchain token lists.
 ## Owner's coins: five on Monad (CHOG, four wrapped xStocks), five on BNB Chain, four on Avalanche
 
 - Monad: CHOG, wNVDAx, wTSLAx, wMUx and wSPYx. BNB Chain: TWT (Trust Wallet), FLOKI, BabyDoge, THE (THENA) and

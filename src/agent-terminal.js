@@ -120,10 +120,10 @@ export function parseCommand(input, tokens) {
   let m;
   if ((m = t.match(/^(?:coins|list|tokens)(?: (.+))?$/))) return { kind: 'coins', filter: m[1] || '' };
   if ((m = t.match(/^signal(?: (?:for )?(\S+))?$/))) {
-    if (!m[1]) return { kind: 'signal', amountUsd: 100 };
+    if (!m[1]) return { kind: 'signal', amountUsd: 10 };
     const a = parseAmount(m[1]);
     const n = a ? Number(a.value) : NaN;
-    if (!(n >= 1 && n <= 10000)) return err('The signal job takes $1 to $10,000.', 'e.g. signal $100');
+    if (!(n >= 0.1 && n <= 10)) return err('The signal job takes $0.10 to $10.', 'e.g. signal $10');
     return { kind: 'signal', amountUsd: n };
   }
   // swap 100 usdc to aero · 100 usdc -> aero · convert 0.5 eth into usdc
@@ -194,7 +194,7 @@ export function helpLines(price = '0.01') {
     line('  put $50 into ETH', 'cmd'),
     line('  buy VIRTUAL with 0.05 ETH', 'cmd'),
     line('  sell 0.1 ETH            (into USDC)', 'cmd'),
-    line('  signal $100             (I pick the ETH direction)', 'cmd'),
+    line('  signal $10              (I pick the ETH direction)', 'cmd'),
     line('Also: coins [search] · status · open · cancel · clear', 'dim'),
     line(`Each job costs ${price} USDC. You sign the payment (no gas); it's only collected after the job runs.`, 'dim'),
   ];

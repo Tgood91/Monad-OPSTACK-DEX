@@ -137,10 +137,14 @@ test("registration file carries the endpoint, price and (once set) the agentId",
 });
 
 test("job input is validated", () => {
-  assert.deepEqual(parseJob({}).input, { mode: "signal", asset: "ETH", amountUsd: 100, taker: null });
+  assert.deepEqual(parseJob({}).input, { mode: "signal", asset: "ETH", amountUsd: 10, taker: null });
   assert.ok(parseJob({ asset: "BTC" }).error);
   assert.ok(parseJob({ amountUsd: 0 }).error);
-  assert.ok(parseJob({ amountUsd: 20000 }).error);
+  assert.ok(parseJob({ amountUsd: 0.09 }).error);
+  assert.equal(parseJob({ amountUsd: 0.1 }).input.amountUsd, 0.1);
+  assert.equal(parseJob({ amountUsd: 10 }).input.amountUsd, 10);
+  assert.ok(parseJob({ amountUsd: 10.01 }).error);
+  assert.ok(parseJob({ amountUsd: 100 }).error);
   assert.ok(parseJob({ taker: "0x12" }).error);
 });
 
