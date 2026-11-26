@@ -4,6 +4,12 @@ One short entry per merged pull request, newest first. Each says **what** change
 and **the logic behind it**. Full detail, tests and caveats are on the linked PR.
 
 
+
+## Base: CADD (CAD Digital), now 118 coins
+
+- Added CADD `0x16F93eBC5320C89EfC8701577efe49d14A276a06` (18 decimals), read on Base: name "CAD Digital Inc",
+  symbol CADD, about 6.46M supply (an upgradeable proxy). KyberSwap from USDC: 0.07% loss at $20, 0.20% at $200;
+  about $80K of liquidity (GeckoTerminal). Address given by the owner. Not on the Uniswap or Superchain token lists.
 ## Owner's coins: five on Monad (CHOG, four wrapped xStocks), five on BNB Chain, four on Avalanche
 
 - Monad: CHOG, wNVDAx, wTSLAx, wMUx and wSPYx. BNB Chain: TWT (Trust Wallet), FLOKI, BabyDoge, THE (THENA) and

@@ -62,6 +62,7 @@ export const CHAINS = {
       { symbol: 'BNKR', address: '0x22aF33FE49fD1Fa80c7149773dDe5890D3c76F3b', decimals: 18 },
       { symbol: 'CHECK', address: '0x9126236476eFBA9Ad8aB77855c60eB5BF37586Eb', decimals: 18 },
       { symbol: 'ANTc', address: '0xb20000000000000000000016e38FD364d271Ba28', decimals: 8 },
+      { symbol: 'CADD', address: '0x16F93eBC5320C89EfC8701577efe49d14A276a06', decimals: 18 },
       { symbol: 'CHIP', address: '0x0C1c1C109FE34733fca54b82d7B46B75CFb71F6e', decimals: 18 },
       { symbol: 'COOKIE', address: '0xC0041EF357B183448B235a8Ea73Ce4E4eC8c265F', decimals: 18 },
       { symbol: 'CP', address: '0x001AAd84c21A5CD4d696C56d44866e9703c43F77', decimals: 18 },
